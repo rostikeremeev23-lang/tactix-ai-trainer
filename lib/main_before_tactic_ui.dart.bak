@@ -1,0 +1,3707 @@
+// =====================================================
+// APP
+// =====================================================
+
+class AITrainerApp extends StatelessWidget {
+  const AITrainerApp({super.key});
+
+  static const _olive = Color(0xFFA7B84A);
+  static const _bg = Color(0xFF0A0E0B);
+  static const _panel = Color(0xFF111711);
+  static const _panel2 = Color(0xFF171D16);
+  static const _line = Color(0xFF2B3528);
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: _olive,
+      brightness: Brightness.dark,
+    ).copyWith(
+      primary: _olive,
+      secondary: _olive,
+      surface: _panel,
+      outline: _line,
+    );
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'TACTIC-AI',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        colorScheme: scheme,
+        scaffoldBackgroundColor: _bg,
+        useMaterial3: true,
+        fontFamily: 'Arial',
+        appBarTheme: const AppBarTheme(
+          backgroundColor: _bg,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: false,
+        ),
+        cardTheme: CardTheme(
+          color: _panel,
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(14)),
+            side: BorderSide(color: _line),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: _panel2,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: _line),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: _line),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: _olive, width: 1.2),
+          ),
+        ),
+      ),
+      home: const HomeScreen(),
+    );
+  }
+}
+
+// =====================================================
+// HOME
+// =====================================================
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  static const olive = Color(0xFFA7B84A);
+  static const bg = Color(0xFF0A0E0B);
+  static const panel = Color(0xFF111711);
+  static const line = Color(0xFF2B3528);
+
+  void _open(BuildContext context, Widget page) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => page),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        titleSpacing: 18,
+        title: const Row(
+          children: [
+            _TacticMark(),
+            SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TACTIC-AI',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                Text(
+                  'COMMAND TRAINER',
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.white54,
+                    letterSpacing: 2.0,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+              decoration: BoxDecoration(
+                border: Border.all(color: line),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  _StatusDot(),
+                  SizedBox(width: 6),
+                  Text(
+                    'READY',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: [
+            const _SystemBanner(),
+            const SizedBox(height: 14),
+            _HeroCard(onTap: () => _open(context, const AIScenarioScreen())),
+            const SizedBox(height: 14),
+            const _SectionLabel('БЫСТРЫЙ ДОСТУП'),
+            const SizedBox(height: 8),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1.55,
+              children: [
+                _CommandTile(
+                  icon: Icons.play_arrow_rounded,
+                  title: 'ТРЕНИРОВКА',
+                  subtitle: 'Запустить сценарий',
+                  accent: olive,
+                  onTap: () => _open(context, const MyScenariosScreen()),
+                ),
+                _CommandTile(
+                  icon: Icons.auto_awesome,
+                  title: 'AI СЦЕНАРИЙ',
+                  subtitle: 'Сгенерировать',
+                  accent: olive,
+                  onTap: () => _open(context, const AIScenarioScreen()),
+                ),
+                _CommandTile(
+                  icon: Icons.edit_note_rounded,
+                  title: 'СОЗДАТЬ',
+                  subtitle: 'Новый сценарий',
+                  accent: Colors.white70,
+                  onTap: () => _open(context, const CreateScenarioScreen()),
+                ),
+                _CommandTile(
+                  icon: Icons.bar_chart_rounded,
+                  title: 'АНАЛИТИКА',
+                  subtitle: 'Результаты',
+                  accent: Colors.white70,
+                  onTap: () => _open(context, const StatisticsScreen()),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const _SectionLabel('СОСТОЯНИЕ СИСТЕМЫ'),
+            const SizedBox(height: 8),
+            const _ReadinessCard(),
+            const SizedBox(height: 16),
+            const _SectionLabel('МОДУЛИ'),
+            const SizedBox(height: 8),
+            _ModuleRow(
+              icon: Icons.folder_open_rounded,
+              title: 'Банк сценариев',
+              subtitle: 'Локальное хранилище',
+              onTap: () => _open(context, const MyScenariosScreen()),
+            ),
+            const SizedBox(height: 8),
+            _ModuleRow(
+              icon: Icons.psychology_rounded,
+              title: 'AI-анализ',
+              subtitle: 'Поддержка формирования решений',
+              onTap: () => _open(context, const AIScenarioScreen()),
+            ),
+            const SizedBox(height: 8),
+            _ModuleRow(
+              icon: Icons.assessment_outlined,
+              title: 'Статистика подготовки',
+              subtitle: 'История и показатели',
+              onTap: () => _open(context, const StatisticsScreen()),
+            ),
+            const SizedBox(height: 18),
+            const Center(
+              child: Text(
+                'TACTIC-AI • TRAINING SYSTEM',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Colors.white24,
+                  letterSpacing: 2.2,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: NavigationBar(
+        height: 70,
+        backgroundColor: const Color(0xFF0D120E),
+        indicatorColor: olive.withOpacity(0.16),
+        selectedIndex: 0,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Центр',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.description_outlined),
+            selectedIcon: Icon(Icons.description),
+            label: 'Сценарии',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.analytics_outlined),
+            selectedIcon: Icon(Icons.analytics),
+            label: 'Статистика',
+          ),
+        ],
+        onDestinationSelected: (index) {
+          if (index == 1) {
+            _open(context, const MyScenariosScreen());
+          } else if (index == 2) {
+            _open(context, const StatisticsScreen());
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _TacticMark extends StatelessWidget {
+  const _TacticMark();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: HomeScreen.olive.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: HomeScreen.olive.withOpacity(0.55)),
+      ),
+      child: const Icon(Icons.shield_outlined, size: 19, color: HomeScreen.olive),
+    );
+  }
+}
+
+class _StatusDot extends StatelessWidget {
+  const _StatusDot();
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 7,
+    height: 7,
+    decoration: const BoxDecoration(
+      color: HomeScreen.olive,
+      shape: BoxShape.circle,
+    ),
+  );
+}
+
+class _SystemBanner extends StatelessWidget {
+  const _SystemBanner();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: HomeScreen.panel,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: HomeScreen.line),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.security_rounded, size: 17, color: HomeScreen.olive),
+          SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              'ТРЕНИРОВОЧНЫЙ КОНТУР • СИСТЕМА ГОТОВА',
+              style: TextStyle(fontSize: 10, letterSpacing: 1.0, fontWeight: FontWeight.w700),
+            ),
+          ),
+          Icon(Icons.chevron_right, size: 16, color: Colors.white38),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _HeroCard({required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: HomeScreen.olive.withOpacity(0.42)),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF192219), Color(0xFF101610)],
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: HomeScreen.olive.withOpacity(0.14),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: HomeScreen.olive.withOpacity(0.5)),
+              ),
+              child: const Icon(Icons.auto_awesome, color: HomeScreen.olive, size: 29),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('ОПЕРАТИВНЫЙ ЗАПУСК', style: TextStyle(fontSize: 10, color: HomeScreen.olive, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+                  SizedBox(height: 5),
+                  Text('Создать учебную ситуацию с AI', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  SizedBox(height: 4),
+                  Text('Сценарий → решение → оценка', style: TextStyle(fontSize: 12, color: Colors.white54)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_rounded, color: HomeScreen.olive),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CommandTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final VoidCallback onTap;
+  const _CommandTile({required this.icon, required this.title, required this.subtitle, required this.accent, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(13),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: accent, size: 25),
+              const Spacer(),
+              Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.8)),
+              const SizedBox(height: 3),
+              Text(subtitle, style: const TextStyle(fontSize: 10, color: Colors.white45)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReadinessCard extends StatelessWidget {
+  const _ReadinessCard();
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: [
+            const Row(
+              children: [
+                Expanded(child: Text('ГОТОВНОСТЬ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.1))),
+                Text('100%', style: TextStyle(fontSize: 12, color: HomeScreen.olive, fontWeight: FontWeight.w800)),
+              ],
+            ),
+            const SizedBox(height: 9),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: LinearProgressIndicator(value: 1, minHeight: 6, backgroundColor: Colors.white10),
+            ),
+            const SizedBox(height: 12),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _MiniStatus(label: 'AI', value: 'ONLINE'),
+                _MiniStatus(label: 'БАНК', value: 'READY'),
+                _MiniStatus(label: 'ОТЧЁТЫ', value: 'READY'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniStatus extends StatelessWidget {
+  final String label;
+  final String value;
+  const _MiniStatus({required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: const TextStyle(fontSize: 9, color: Colors.white38, letterSpacing: 1)),
+      const SizedBox(height: 2),
+      Text(value, style: const TextStyle(fontSize: 10, color: HomeScreen.olive, fontWeight: FontWeight.w700)),
+    ],
+  );
+}
+
+class _ModuleRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _ModuleRow({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: HomeScreen.panel,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: HomeScreen.line),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.035),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: Colors.white70),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(fontSize: 10, color: Colors.white42)),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: Colors.white28),
+        ],
+      ),
+    ),
+  );
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: const TextStyle(
+      fontSize: 10,
+      fontWeight: FontWeight.w800,
+      color: Colors.white38,
+      letterSpacing: 1.7,
+    ),
+  );
+}
+
+// =====================================================
+// AI SCENARIO CREATOR
+// =====================================================
+
+class AIScenarioScreen
+    extends StatefulWidget {
+  const AIScenarioScreen({super.key});
+
+  @override
+  State<AIScenarioScreen> createState() =>
+      _AIScenarioScreenState();
+}
+
+class _AIScenarioScreenState
+    extends State<AIScenarioScreen> {
+  final ideaController =
+      TextEditingController();
+
+  final titleController =
+      TextEditingController();
+
+  final descriptionController =
+      TextEditingController();
+
+  final timeController =
+      TextEditingController();
+
+  final resourcesController =
+      TextEditingController();
+
+  final conditionsController =
+      TextEditingController();
+
+  final optionAController =
+      TextEditingController();
+
+  final optionBController =
+      TextEditingController();
+
+  final optionCController =
+      TextEditingController();
+
+  GeneratedScenario? generated;
+
+  bool loading = false;
+  bool saving = false;
+
+  String? error;
+
+  Future<void> generateScenario() async {
+    final idea =
+        ideaController.text.trim();
+
+    if (idea.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Опишите учебную ситуацию.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      loading = true;
+      error = null;
+    });
+
+    try {
+      final result =
+          await AIService.generateScenario(
+        userDescription: idea,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        generated = result;
+
+        titleController.text =
+            result.title;
+
+        descriptionController.text =
+            result.description;
+
+        timeController.text =
+            result.time.toString();
+
+        resourcesController.text =
+            result.resources.toString();
+
+        conditionsController.text =
+            result.conditions;
+
+        optionAController.text =
+            result.optionA;
+
+        optionBController.text =
+            result.optionB;
+
+        optionCController.text =
+            result.optionC;
+
+        loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+        error =
+            'Не удалось создать сценарий.\n\n$e';
+      });
+    }
+  }
+
+  TrainingScenario buildScenario() {
+    return TrainingScenario(
+      title:
+          titleController.text.trim(),
+      description:
+          descriptionController.text.trim(),
+      time:
+          timeController.text.trim(),
+      resources:
+          resourcesController.text.trim(),
+      conditions:
+          conditionsController.text.trim(),
+      optionA:
+          optionAController.text.trim(),
+      optionB:
+          optionBController.text.trim(),
+      optionC:
+          optionCController.text.trim(),
+    );
+  }
+
+  bool isValid(
+    TrainingScenario scenario,
+  ) {
+    return scenario.title.isNotEmpty &&
+        scenario.description.isNotEmpty &&
+        scenario.optionA.isNotEmpty &&
+        scenario.optionB.isNotEmpty &&
+        scenario.optionC.isNotEmpty;
+  }
+
+  Future<void> saveScenario() async {
+    final scenario = buildScenario();
+
+    if (!isValid(scenario)) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Заполните название, описание и варианты A/B/C.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      saving = true;
+    });
+
+    try {
+      await ScenarioStorage.save(
+        scenario,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        saving = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content:
+              Text('Сценарий сохранён.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        saving = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content:
+              Text('Ошибка: $e'),
+        ),
+      );
+    }
+  }
+
+  void startTraining() {
+    final scenario = buildScenario();
+
+    if (!isValid(scenario)) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content:
+              Text('Проверьте основные поля.'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            ScenarioRunScreen(
+          scenario: scenario,
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    ideaController.dispose();
+    titleController.dispose();
+    descriptionController.dispose();
+    timeController.dispose();
+    resourcesController.dispose();
+    conditionsController.dispose();
+    optionAController.dispose();
+    optionBController.dispose();
+    optionCController.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title:
+            const Text('Создать с помощью AI'),
+      ),
+      body: SafeArea(
+        child:
+            SingleChildScrollView(
+          padding:
+              const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.stretch,
+            children: [
+              const SectionTitle(
+                text: 'ОПИШИТЕ ИДЕЮ',
+              ),
+
+              const SizedBox(height: 10),
+
+              const Text(
+                'Опишите условную учебную ситуацию своими словами.',
+                style:
+                    TextStyle(
+                  color:
+                      Colors.white60,
+                  height: 1.4,
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              TextField(
+                controller:
+                    ideaController,
+                maxLines: 7,
+                decoration:
+                    const InputDecoration(
+                  labelText: 'Описание',
+                  hintText:
+                      'Например: ограниченное время, '
+                      'ограниченные ресурсы и изменяющиеся условия...',
+                  border:
+                      OutlineInputBorder(),
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              FilledButton.icon(
+                onPressed:
+                    loading
+                        ? null
+                        : generateScenario,
+                icon: loading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child:
+                            CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.auto_awesome,
+                      ),
+                label:
+                    const Padding(
+                  padding:
+                      EdgeInsets.symmetric(
+                    vertical: 15,
+                  ),
+                  child:
+                      Text(
+                    'СГЕНЕРИРОВАТЬ СЦЕНАРИЙ',
+                  ),
+                ),
+              ),
+
+              if (error != null) ...[
+                const SizedBox(height: 15),
+                Card(
+                  child:
+                      Padding(
+                    padding:
+                        const EdgeInsets.all(
+                      15,
+                    ),
+                    child:
+                        Text(
+                      error!,
+                      style:
+                          const TextStyle(
+                        color:
+                            Colors.redAccent,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
+              if (generated != null) ...[
+                const SizedBox(height: 30),
+
+                const SectionTitle(
+                  text:
+                      'AI СОЗДАЛ СЦЕНАРИЙ',
+                ),
+
+                const SizedBox(height: 10),
+
+                const Text(
+                  'Перед запуском можно изменить любой параметр.',
+                  style:
+                      TextStyle(
+                    color:
+                        Colors.white54,
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                AppTextField(
+                  controller:
+                      titleController,
+                  label:
+                      'Название',
+                ),
+
+                AppTextField(
+                  controller:
+                      descriptionController,
+                  label:
+                      'Описание',
+                  maxLines: 7,
+                ),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child:
+                          AppTextField(
+                        controller:
+                            timeController,
+                        label:
+                            'Время',
+                      ),
+                    ),
+                    const SizedBox(
+                      width: 10,
+                    ),
+                    Expanded(
+                      child:
+                          AppTextField(
+                        controller:
+                            resourcesController,
+                        label:
+                            'Ресурсы',
+                      ),
+                    ),
+                  ],
+                ),
+
+                AppTextField(
+                  controller:
+                      conditionsController,
+                  label:
+                      'Условия',
+                  maxLines: 3,
+                ),
+
+                AppTextField(
+                  controller:
+                      optionAController,
+                  label:
+                      'Вариант A',
+                  maxLines: 4,
+                ),
+
+                AppTextField(
+                  controller:
+                      optionBController,
+                  label:
+                      'Вариант B',
+                  maxLines: 4,
+                ),
+
+                AppTextField(
+                  controller:
+                      optionCController,
+                  label:
+                      'Вариант C',
+                  maxLines: 4,
+                ),
+
+                if (generated!
+                    .criteria.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  const SectionTitle(
+                    text:
+                        'КРИТЕРИИ ОЦЕНКИ',
+                  ),
+                  const SizedBox(height: 10),
+                  ...generated!.criteria.map(
+                    (item) => Padding(
+                      padding:
+                          const EdgeInsets.only(
+                        bottom: 7,
+                      ),
+                      child: Row(
+                        crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
+                        children: [
+                          const Icon(
+                            Icons
+                                .check_circle_outline,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(item),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 20),
+
+                FilledButton.icon(
+                  onPressed:
+                      startTraining,
+                  icon:
+                      const Icon(
+                    Icons.play_arrow,
+                  ),
+                  label:
+                      const Padding(
+                    padding:
+                        EdgeInsets.symmetric(
+                      vertical: 15,
+                    ),
+                    child:
+                        Text(
+                      'НАЧАТЬ ТРЕНИРОВКУ',
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                OutlinedButton.icon(
+                  onPressed:
+                      saving
+                          ? null
+                          : saveScenario,
+                  icon:
+                      const Icon(
+                    Icons.save,
+                  ),
+                  label:
+                      const Padding(
+                    padding:
+                        EdgeInsets.symmetric(
+                      vertical: 15,
+                    ),
+                    child:
+                        Text(
+                      'СОХРАНИТЬ',
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 30),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// MANUAL SCENARIO CREATOR
+// =====================================================
+
+class CreateScenarioScreen
+    extends StatefulWidget {
+  const CreateScenarioScreen({
+    super.key,
+  });
+
+  @override
+  State<CreateScenarioScreen> createState() =>
+      _CreateScenarioScreenState();
+}
+
+class _CreateScenarioScreenState
+    extends State<CreateScenarioScreen> {
+  final titleController =
+      TextEditingController();
+
+  final descriptionController =
+      TextEditingController();
+
+  final timeController =
+      TextEditingController();
+
+  final resourcesController =
+      TextEditingController();
+
+  final conditionsController =
+      TextEditingController();
+
+  final optionAController =
+      TextEditingController();
+
+  final optionBController =
+      TextEditingController();
+
+  final optionCController =
+      TextEditingController();
+
+  bool saving = false;
+
+  Future<void> saveScenario() async {
+    final scenario =
+        TrainingScenario(
+      title:
+          titleController.text.trim(),
+      description:
+          descriptionController.text
+              .trim(),
+      time:
+          timeController.text.trim(),
+      resources:
+          resourcesController.text
+              .trim(),
+      conditions:
+          conditionsController.text
+              .trim(),
+      optionA:
+          optionAController.text.trim(),
+      optionB:
+          optionBController.text.trim(),
+      optionC:
+          optionCController.text.trim(),
+    );
+
+    if (scenario.title.isEmpty ||
+        scenario.description.isEmpty ||
+        scenario.optionA.isEmpty ||
+        scenario.optionB.isEmpty ||
+        scenario.optionC.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Заполните основные поля.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      saving = true;
+    });
+
+    try {
+      await ScenarioStorage.save(
+        scenario,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        saving = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content:
+              Text('Ошибка: $e'),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    descriptionController.dispose();
+    timeController.dispose();
+    resourcesController.dispose();
+    conditionsController.dispose();
+    optionAController.dispose();
+    optionBController.dispose();
+    optionCController.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title:
+            const Text('Создать сценарий'),
+      ),
+      body: SafeArea(
+        child:
+            SingleChildScrollView(
+          padding:
+              const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.stretch,
+            children: [
+              const SectionTitle(
+                text:
+                    'ОСНОВНЫЕ ДАННЫЕ',
+              ),
+
+              const SizedBox(height: 15),
+
+              AppTextField(
+                controller:
+                    titleController,
+                label:
+                    'Название',
+              ),
+
+              AppTextField(
+                controller:
+                    descriptionController,
+                label:
+                    'Описание',
+                maxLines: 6,
+              ),
+
+              Row(
+                children: [
+                  Expanded(
+                    child:
+                        AppTextField(
+                      controller:
+                          timeController,
+                      label:
+                          'Время',
+                      hint:
+                          '45',
+                    ),
+                  ),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  Expanded(
+                    child:
+                        AppTextField(
+                      controller:
+                          resourcesController,
+                      label:
+                          'Ресурсы',
+                      hint:
+                          '80',
+                    ),
+                  ),
+                ],
+              ),
+
+              AppTextField(
+                controller:
+                    conditionsController,
+                label:
+                    'Условия',
+                maxLines: 3,
+              ),
+
+              const SizedBox(height: 10),
+
+              const SectionTitle(
+                text:
+                    'ВАРИАНТЫ',
+              ),
+
+              const SizedBox(height: 12),
+
+              AppTextField(
+                controller:
+                    optionAController,
+                label:
+                    'Вариант A',
+                maxLines: 4,
+              ),
+
+              AppTextField(
+                controller:
+                    optionBController,
+                label:
+                    'Вариант B',
+                maxLines: 4,
+              ),
+
+              AppTextField(
+                controller:
+                    optionCController,
+                label:
+                    'Вариант C',
+                maxLines: 4,
+              ),
+
+              const SizedBox(height: 10),
+
+              FilledButton.icon(
+                onPressed:
+                    saving
+                        ? null
+                        : saveScenario,
+                icon: saving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child:
+                            CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.save,
+                      ),
+                label:
+                    const Padding(
+                  padding:
+                      EdgeInsets.symmetric(
+                    vertical: 15,
+                  ),
+                  child:
+                      Text('СОХРАНИТЬ'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// MY SCENARIOS
+// =====================================================
+
+class MyScenariosScreen
+    extends StatefulWidget {
+  const MyScenariosScreen({
+    super.key,
+  });
+
+  @override
+  State<MyScenariosScreen> createState() =>
+      _MyScenariosScreenState();
+}
+
+class _MyScenariosScreenState
+    extends State<MyScenariosScreen> {
+  List<TrainingScenario> scenarios = [];
+
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    loadScenarios();
+  }
+
+  Future<void> loadScenarios() async {
+    try {
+      final result =
+          await ScenarioStorage.load();
+
+      if (!mounted) return;
+
+      setState(() {
+        scenarios = result;
+        loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content:
+              Text('Ошибка загрузки: $e'),
+        ),
+      );
+    }
+  }
+
+  Future<void> openAI() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            const AIScenarioScreen(),
+      ),
+    );
+
+    loadScenarios();
+  }
+
+  Future<void> openManual() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            const CreateScenarioScreen(),
+      ),
+    );
+
+    loadScenarios();
+  }
+
+  Future<void> removeScenario(
+    int index,
+  ) async {
+    await ScenarioStorage.delete(
+      index,
+    );
+
+    await loadScenarios();
+  }
+
+  Future<void> confirmDelete(
+    int index,
+  ) async {
+    final scenario =
+        scenarios[index];
+
+    final answer =
+        await showDialog<bool>(
+      context: context,
+      builder:
+          (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'Удалить сценарий?',
+          ),
+          content: Text(
+            'Удалить «${scenario.title}»?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                  false,
+                );
+              },
+              child:
+                  const Text('ОТМЕНА'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                  true,
+                );
+              },
+              child:
+                  const Text('УДАЛИТЬ'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (answer == true) {
+      await removeScenario(index);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title:
+            const Text('Мои сценарии'),
+        actions: [
+          IconButton(
+            onPressed: openAI,
+            icon:
+                const Icon(
+              Icons.auto_awesome,
+            ),
+          ),
+          IconButton(
+            onPressed: openManual,
+            icon:
+                const Icon(Icons.add),
+          ),
+        ],
+      ),
+      body: loading
+          ? const Center(
+              child:
+                  CircularProgressIndicator(),
+            )
+          : scenarios.isEmpty
+              ? _buildEmpty()
+              : ListView.builder(
+                  padding:
+                      const EdgeInsets.all(
+                    15,
+                  ),
+                  itemCount:
+                      scenarios.length,
+                  itemBuilder:
+                      (context, index) {
+                    final scenario =
+                        scenarios[index];
+
+                    return Card(
+                      margin:
+                          const EdgeInsets
+                              .only(
+                        bottom: 12,
+                      ),
+                      child:
+                          ListTile(
+                        leading:
+                            const CircleAvatar(
+                          child: Icon(
+                            Icons
+                                .description,
+                          ),
+                        ),
+                        title:
+                            Text(
+                          scenario.title,
+                          style:
+                              const TextStyle(
+                            fontWeight:
+                                FontWeight
+                                    .bold,
+                          ),
+                        ),
+                        subtitle:
+                            Text(
+                          scenario
+                              .description,
+                          maxLines: 2,
+                          overflow:
+                              TextOverflow
+                                  .ellipsis,
+                        ),
+                        trailing:
+                            PopupMenuButton<
+                                String>(
+                          onSelected:
+                              (value) {
+                            if (value ==
+                                'delete') {
+                              confirmDelete(
+                                index,
+                              );
+                            }
+                          },
+                          itemBuilder:
+                              (_) => const [
+                            PopupMenuItem(
+                              value:
+                                  'delete',
+                              child:
+                                  Text(
+                                'Удалить',
+                              ),
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ScenarioRunScreen(
+                                scenario:
+                                    scenario,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Padding(
+        padding:
+            const EdgeInsets.all(30),
+        child: Column(
+          mainAxisAlignment:
+              MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons
+                  .description_outlined,
+              size: 70,
+              color:
+                  Colors.white54,
+            ),
+            const SizedBox(
+              height: 18,
+            ),
+            const Text(
+              'Сценариев пока нет',
+              style:
+                  TextStyle(
+                fontSize: 22,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            const Text(
+              'Создайте свой первый сценарий вручную или с AI.',
+              textAlign:
+                  TextAlign.center,
+              style:
+                  TextStyle(
+                color:
+                    Colors.white60,
+              ),
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            ElevatedButton.icon(
+              onPressed:
+                  openAI,
+              icon:
+                  const Icon(
+                Icons.auto_awesome,
+              ),
+              label:
+                  const Text(
+                'СОЗДАТЬ С AI',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// TRAINING
+// =====================================================
+
+class ScenarioRunScreen
+    extends StatefulWidget {
+  final TrainingScenario scenario;
+
+  const ScenarioRunScreen({
+    super.key,
+    required this.scenario,
+  });
+
+  @override
+  State<ScenarioRunScreen> createState() =>
+      _ScenarioRunScreenState();
+}
+
+class _ScenarioRunScreenState
+    extends State<ScenarioRunScreen> {
+  final ScrollController scrollController = ScrollController();
+
+  late SimulationState state;
+
+  final List<DecisionRecord>
+      history = [];
+
+  Timer? timer;
+
+  int elapsedSeconds = 0;
+
+  String? selectedOption;
+
+  String currentSituation = '';
+
+  String currentEvent = '';
+
+  String currentFocus = '';
+
+  String currentOptionA = '';
+  String currentOptionB = '';
+  String currentOptionC = '';
+
+  int runVersion = 0;
+
+  String? aiAnalysis;
+
+  String? aiSummary;
+
+  List<String> lastEvents = [];
+
+  bool processing = false;
+
+  bool completed = false;
+
+  bool showResult = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    state = SimulationState(
+      time: parseNumber(
+        widget.scenario.time,
+        45,
+      ).clamp(0, 120),
+      resources:
+          parseNumber(
+        widget.scenario.resources,
+        80,
+      ).clamp(0, 100),
+      stability: 75,
+      progress: 20,
+      uncertainty: 25,
+      turn: 1,
+    );
+
+    currentSituation =
+        widget.scenario.description;
+
+    currentOptionA = widget.scenario.optionA;
+    currentOptionB = widget.scenario.optionB;
+    currentOptionC = widget.scenario.optionC;
+
+    timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) {
+        if (!mounted ||
+            completed) {
+          return;
+        }
+
+        setState(() {
+          elapsedSeconds++;
+        });
+      },
+    );
+  }
+
+  int parseNumber(
+    String text,
+    int fallback,
+  ) {
+    final match =
+        RegExp(r'\d+').firstMatch(text);
+
+    if (match == null) {
+      return fallback;
+    }
+
+    return int.tryParse(
+          match.group(0)!,
+        ) ??
+        fallback;
+  }
+
+  String formatTime() {
+    final minutes =
+        elapsedSeconds ~/ 60;
+
+    final seconds =
+        elapsedSeconds % 60;
+
+    return '${minutes.toString().padLeft(2, '0')}:'
+        '${seconds.toString().padLeft(2, '0')}';
+  }
+
+  List<String> historyForAI() {
+    return history
+        .map(
+          (record) =>
+              'Ход ${record.turn}: решение ${record.decision}, оценка ${record.score}/100',
+        )
+        .toList();
+  }
+
+  String decisionText(
+    String choice,
+  ) {
+    switch (choice) {
+      case 'A':
+        return currentOptionA;
+      case 'B':
+        return currentOptionB;
+      case 'C':
+        return currentOptionC;
+      default:
+        return '';
+    }
+  }
+
+  String buildAISituation() {
+    return '''
+Сценарий:
+${widget.scenario.title}
+
+Исходное описание:
+${widget.scenario.description}
+
+Условия:
+${widget.scenario.conditions}
+
+Текущая учебная вводная:
+$currentSituation
+
+Текущее событие:
+$currentEvent
+
+Текущий фокус:
+$currentFocus
+
+Текущие варианты:
+A: $currentOptionA
+B: $currentOptionB
+C: $currentOptionC
+
+Текущий ход:
+${state.turn}
+''';
+  }
+
+
+  void updateDynamicOptions(SimulationState value) {
+    final variant = runVersion % 3;
+
+    if (value.turn <= 1) {
+      if (variant == 0) {
+        currentOptionA =
+            'Ускорить продвижение по основной учебной цели, принимая более высокую нагрузку.';
+        currentOptionB =
+            'Сохранить сбалансированный темп и равномерно распределить условный ресурс.';
+        currentOptionC =
+            'Сначала уточнить ситуацию и уменьшить неопределённость.';
+      } else if (variant == 1) {
+        currentOptionA =
+            'Сделать ставку на быстрый прогресс, допустив больший расход ресурса.';
+        currentOptionB =
+            'Выбрать умеренный темп с контролем устойчивости и ресурса.';
+        currentOptionC =
+            'Сначала получить дополнительную информацию и снизить неопределённость.';
+      } else {
+        currentOptionA =
+            'Приоритетно продвинуть учебную задачу, принимая повышенную нагрузку.';
+        currentOptionB =
+            'Поддерживать равновесие между прогрессом, ресурсом и устойчивостью.';
+        currentOptionC =
+            'Сделать паузу для уточнения условий и уменьшения неопределённости.';
+      }
+      return;
+    }
+
+    if (value.turn == 2) {
+      if (variant == 0) {
+        currentOptionA =
+            'Ускорить продвижение по основной учебной цели, принимая более высокую нагрузку.';
+        currentOptionB =
+            'Сохранить сбалансированный темп и распределить условный ресурс равномерно.';
+        currentOptionC =
+            'Сначала уточнить ситуацию и уменьшить неопределённость.';
+      } else if (variant == 1) {
+        currentOptionA =
+            'Сконцентрировать больше условных ресурсов на ускорении прогресса.';
+        currentOptionB =
+            'Сохранить устойчивый режим и не допустить резкого расхода ресурса.';
+        currentOptionC =
+            'Снизить неопределённость перед следующим решением.';
+      } else {
+        currentOptionA =
+            'Продолжить активное продвижение, увеличив допустимую нагрузку.';
+        currentOptionB =
+            'Удерживать сбалансированный режим с умеренным прогрессом.';
+        currentOptionC =
+            'Отдать приоритет уточнению условий перед дальнейшим продвижением.';
+      }
+      return;
+    }
+
+    if (value.turn >= 3) {
+      if (variant == 0) {
+        currentOptionA =
+            'Завершить основную учебную задачу с максимальным темпом.';
+        currentOptionB =
+            'Выбрать наиболее устойчивый путь завершения сценария.';
+        currentOptionC =
+            'Проверить остаточные риски и затем завершить учебную задачу.';
+      } else if (variant == 1) {
+        currentOptionA =
+            'Сделать финальный рывок к учебной цели, используя более высокий темп.';
+        currentOptionB =
+            'Завершить сценарий через наиболее устойчивый и сбалансированный вариант.';
+        currentOptionC =
+            'Сначала перепроверить оставшиеся риски и после этого завершить задачу.';
+      } else {
+        currentOptionA =
+            'Поставить завершение цели выше сохранения части ресурса.';
+        currentOptionB =
+            'Закрыть задачу через контролируемый и устойчивый вариант.';
+        currentOptionC =
+            'Уточнить остаточные риски перед окончательным решением.';
+      }
+    }
+  }
+
+  int calculateTurnScore(
+    SimulationState value,
+  ) {
+    double score = 0;
+
+    score +=
+        value.resources * 0.25;
+
+    score +=
+        value.stability * 0.25;
+
+    score +=
+        value.progress * 0.35;
+
+    score +=
+        (100 -
+                value.uncertainty) *
+            0.15;
+
+    return score
+        .round()
+        .clamp(0, 100);
+  }
+
+  int averageScore(
+    List<DecisionRecord> values,
+  ) {
+    if (values.isEmpty) {
+      return 0;
+    }
+
+    final total =
+        values.fold<int>(
+      0,
+      (sum, item) =>
+          sum + item.score,
+    );
+
+    return (total /
+            values.length)
+        .round()
+        .clamp(0, 100);
+  }
+
+  Future<void> makeDecision(
+    String decision,
+  ) async {
+    if (processing ||
+        completed) {
+      return;
+    }
+
+    setState(() {
+      processing = true;
+      showResult = false;
+      aiAnalysis = null;
+      aiSummary = null;
+    });
+
+    try {
+      // ==========================================
+      // 1. SIMULATION
+      // ==========================================
+
+      final engine =
+          SimulationEngine();
+
+      final result =
+          engine.applyDecision(
+        state,
+        decision,
+      );
+
+      final newState =
+          result.state;
+
+      updateDynamicOptions(newState);
+
+      final simulationData =
+          SimulationData(
+        time:
+            newState.time,
+        resources:
+            newState.resources,
+        stability:
+            newState.stability,
+        progress:
+            newState.progress,
+        uncertainty:
+            newState.uncertainty,
+      );
+
+      // ==========================================
+      // 2. AI
+      // ==========================================
+
+      String analysis;
+      String summary;
+
+      try {
+        analysis =
+            await AIService.analyze(
+          situation:
+              buildAISituation(),
+          decision:
+              '$decision: ${decisionText(decision)}',
+          simulation:
+              simulationData,
+          history:
+              historyForAI(),
+        );
+
+        summary =
+            await AIService
+                .generateSituationSummary(
+          situation:
+              buildAISituation(),
+          simulation:
+              simulationData,
+          events:
+              result.events,
+          history:
+              historyForAI(),
+        );
+      } catch (_) {
+        analysis =
+            AIService.localAnalysis(
+          decision:
+              '$decision: ${decisionText(decision)}',
+          simulation:
+              simulationData,
+          history:
+              historyForAI(),
+        );
+
+        summary =
+            AIService.localSummary(
+          simulation:
+              simulationData,
+          events:
+              result.events,
+        );
+      }
+
+      // ==========================================
+      // 3. RECORD
+      // ==========================================
+
+      final record =
+          DecisionRecord(
+        turn:
+            state.turn,
+        decision:
+            decision,
+        score:
+            calculateTurnScore(
+          newState,
+        ),
+      );
+
+      final updatedHistory =
+          List<DecisionRecord>.from(
+        history,
+      )..add(record);
+
+      final isCompleted =
+          result.completed;
+
+      // ==========================================
+      // 4. NEXT SITUATION
+      // ==========================================
+
+      String nextSituation =
+          result.summary;
+
+      String nextEvent =
+          result.events.isNotEmpty
+              ? result.events.last
+              : '';
+
+      String nextFocus =
+          'Следите за изменением состояния симуляции.';
+
+      if (!isCompleted) {
+        try {
+          final next =
+              await AIService
+                  .generateNextSituation(
+            scenario:
+                widget.scenario
+                    .description,
+            history:
+                updatedHistory
+                    .map(
+                      (item) =>
+                          'Ход ${item.turn}: решение ${item.decision}',
+                    )
+                    .toList(),
+            events:
+                result.events,
+            simulation:
+                simulationData,
+            turn:
+                newState.turn,
+          );
+
+          nextSituation =
+              next.situation;
+
+          nextEvent =
+              next.event;
+
+          nextFocus =
+              next.focus;
+        } catch (_) {
+          // Остаёмся на локальной вводной.
+        }
+      }
+
+      // ==========================================
+      // 5. SAVE RESULT
+      // ==========================================
+
+      if (isCompleted) {
+        final finalScore =
+            averageScore(
+          updatedHistory,
+        );
+
+        final finalResult =
+            TrainingResult(
+          scenarioTitle:
+              widget.scenario.title,
+          date:
+              DateTime.now(),
+          score:
+              finalScore,
+          decisions:
+              updatedHistory.length,
+          durationSeconds:
+              elapsedSeconds,
+          resourceScore:
+              newState.resources,
+          stabilityScore:
+              newState.stability,
+          progressScore:
+              newState.progress,
+          adaptationScore:
+              (100 -
+                      newState
+                          .uncertainty)
+                  .clamp(0, 100),
+        );
+
+        await ResultStorageService.save(
+          finalResult,
+        );
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        state = newState;
+
+        history
+          ..clear()
+          ..addAll(
+            updatedHistory,
+          );
+
+        lastEvents =
+            result.events;
+
+        aiAnalysis =
+            analysis;
+
+        aiSummary =
+            summary;
+
+        currentSituation =
+            nextSituation;
+
+        currentEvent =
+            nextEvent;
+
+        currentFocus =
+            nextFocus;
+
+        completed =
+            isCompleted;
+
+        selectedOption =
+            null;
+
+        showResult = true;
+        processing = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        processing = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content:
+              Text('Ошибка: $e'),
+        ),
+      );
+    }
+  }
+
+
+  Future<void> saveCurrentScenario() async {
+    try {
+      final savedScenario = TrainingScenario(
+        title: widget.scenario.title,
+        description: widget.scenario.description,
+        time: widget.scenario.time,
+        resources: widget.scenario.resources,
+        conditions: widget.scenario.conditions,
+        optionA: currentOptionA.isNotEmpty ? currentOptionA : widget.scenario.optionA,
+        optionB: currentOptionB.isNotEmpty ? currentOptionB : widget.scenario.optionB,
+        optionC: currentOptionC.isNotEmpty ? currentOptionC : widget.scenario.optionC,
+        goal: widget.scenario.goal,
+        criteria: widget.scenario.criteria,
+      );
+
+      await ScenarioStorage.save(savedScenario);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Сценарий сохранён.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка сохранения: $e'),
+        ),
+      );
+    }
+  }
+
+  void resetTraining() {
+    setState(() {
+      runVersion++;
+
+      state = SimulationState(
+        time:
+            parseNumber(
+          widget.scenario.time,
+          45,
+        ).clamp(0, 120),
+        resources:
+            parseNumber(
+          widget.scenario.resources,
+          80,
+        ).clamp(0, 100),
+        stability: 75,
+        progress: 20,
+        uncertainty: 25,
+        turn: 1,
+      );
+
+      history.clear();
+
+      elapsedSeconds = 0;
+
+      currentSituation =
+          widget.scenario.description;
+
+      currentOptionA = '';
+      currentOptionB = '';
+      currentOptionC = '';
+
+      updateDynamicOptions(
+        SimulationState(
+          time: parseNumber(
+            widget.scenario.time,
+            45,
+          ).clamp(0, 120),
+          resources: parseNumber(
+            widget.scenario.resources,
+            80,
+          ).clamp(0, 100),
+          stability: 75,
+          progress: 20,
+          uncertainty: 25,
+          turn: 1,
+        ),
+      );
+
+      currentEvent = '';
+      currentFocus = '';
+
+      aiAnalysis = null;
+      aiSummary = null;
+      lastEvents = [];
+
+      selectedOption = null;
+
+      processing = false;
+      completed = false;
+      showResult = false;
+    });
+  }
+
+  Future<void> nextTurn() async {
+    if (processing || completed) {
+      return;
+    }
+
+    setState(() {
+      showResult = false;
+      selectedOption = null;
+      aiAnalysis = null;
+      aiSummary = null;
+      lastEvents = [];
+    });
+
+    await Future.delayed(
+      const Duration(milliseconds: 100),
+    );
+
+    if (!mounted) return;
+
+    await scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final score = averageScore(history);
+    final progress = (history.length / 3).clamp(0.0, 1.0);
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('ЦЕНТР ТРЕНИРОВКИ'),
+        actions: [
+          IconButton(onPressed: processing ? null : saveCurrentScenario, tooltip: 'Сохранить сценарий', icon: const Icon(Icons.save_outlined)),
+          IconButton(onPressed: processing ? null : resetTraining, tooltip: 'Начать заново', icon: const Icon(Icons.restart_alt)),
+          const SizedBox(width: 4),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white12),
+                  gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [primary.withOpacity(.20), Colors.white.withOpacity(.04)]),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  Row(children: [
+                    Container(width: 46, height: 46, decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: primary.withOpacity(.18)), child: Icon(Icons.psychology_alt_outlined, color: primary)),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(widget.scenario.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 4),
+                      Text(completed ? 'ТРЕНИРОВКА ЗАВЕРШЕНА' : 'АДАПТИВНАЯ СИМУЛЯЦИЯ', style: TextStyle(color: primary, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
+                    ])),
+                    _StatusPill(label: completed ? 'ГОТОВО' : processing ? 'AI' : 'LIVE', icon: completed ? Icons.check_circle_outline : processing ? Icons.auto_awesome : Icons.circle),
+                  ]),
+                  const SizedBox(height: 18),
+                  Row(children: [
+                    Text('ЭТАП ${state.turn.clamp(1, 3)} ИЗ 3', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: .8)),
+                    const Spacer(),
+                    Text(formatTime(), style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()], fontWeight: FontWeight.w800)),
+                  ]),
+                  const SizedBox(height: 9),
+                  ClipRRect(borderRadius: BorderRadius.circular(99), child: LinearProgressIndicator(minHeight: 7, value: progress, backgroundColor: Colors.white10)),
+                  const SizedBox(height: 8),
+                  const Text('ПРОГРЕСС ПО ХОДАМ', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                ]),
+              ),
+              const SizedBox(height: 14),
+              if (widget.scenario.goal.isNotEmpty || widget.scenario.conditions.isNotEmpty) ...[
+                _PanelCard(
+                  title: 'БРИФИНГ СЦЕНАРИЯ',
+                  icon: Icons.assignment_turned_in_outlined,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (widget.scenario.goal.isNotEmpty) ...[
+                        const _MiniLabel(text: 'ЦЕЛЬ'),
+                        const SizedBox(height: 5),
+                        Text(
+                          widget.scenario.goal,
+                          style: const TextStyle(fontSize: 14, height: 1.45, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                      if (widget.scenario.goal.isNotEmpty && widget.scenario.conditions.isNotEmpty)
+                        const SizedBox(height: 12),
+                      if (widget.scenario.conditions.isNotEmpty) ...[
+                        const _MiniLabel(text: 'УЧЕБНЫЕ УСЛОВИЯ'),
+                        const SizedBox(height: 5),
+                        Text(
+                          widget.scenario.conditions,
+                          style: const TextStyle(fontSize: 14, height: 1.45, color: Colors.white70),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              const SectionTitle(text: 'МОНИТОРИНГ СОСТОЯНИЯ'),
+              const SizedBox(height: 10),
+              Wrap(spacing: 9, runSpacing: 9, children: [
+                _TrainingMetricCard(
+                  title: 'Время',
+                  value: '${state.time} мин',
+                  icon: Icons.schedule_outlined,
+                  progress: (state.time / 120).clamp(0.0, 1.0),
+                ),
+                _TrainingMetricCard(
+                  title: 'Ресурсы',
+                  value: '${state.resources}%',
+                  icon: Icons.battery_4_bar_outlined,
+                  progress: state.resources / 100,
+                ),
+                _TrainingMetricCard(
+                  title: 'Стабильность',
+                  value: '${state.stability}%',
+                  icon: Icons.shield_outlined,
+                  progress: state.stability / 100,
+                ),
+                _TrainingMetricCard(
+                  title: 'Прогресс',
+                  value: '${state.progress}%',
+                  icon: Icons.trending_up,
+                  progress: state.progress / 100,
+                ),
+                _TrainingMetricCard(
+                  title: 'Неопределённость',
+                  value: '${state.uncertainty}%',
+                  icon: Icons.help_outline,
+                  progress: state.uncertainty / 100,
+                  inverted: true,
+                ),
+              ]),
+              const SizedBox(height: 16),
+              _PanelCard(title: 'ТЕКУЩАЯ УЧЕБНАЯ ВВОДНАЯ', icon: Icons.radar_outlined, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text(currentSituation, style: const TextStyle(fontSize: 15, height: 1.55)),
+                if (currentEvent.isNotEmpty) ...[const SizedBox(height: 14), _SignalBlock(title: 'НОВОЕ СОБЫТИЕ', icon: Icons.bolt, text: currentEvent)],
+                if (currentFocus.isNotEmpty) ...[const SizedBox(height: 10), _SignalBlock(title: 'ФОКУС', icon: Icons.center_focus_strong, text: currentFocus)],
+              ])),
+              if (history.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _PanelCard(title: 'ЖУРНАЛ РЕШЕНИЙ', icon: Icons.route_outlined, trailing: Text('Средняя оценка: $score', style: const TextStyle(fontSize: 12, color: Colors.white60)), child: Column(children: history.map((item) => Padding(padding: EdgeInsets.only(bottom: item == history.last ? 0 : 8), child: _HistoryRow(item: item))).toList())),
+              ],
+              const SizedBox(height: 18),
+              Row(children: [
+                const Expanded(child: SectionTitle(text: 'ПРИНЯТИЕ РЕШЕНИЯ')),
+                if (selectedOption != null) _StatusPill(label: 'ВЫБОР ${selectedOption!}', icon: Icons.touch_app_outlined),
+              ]),
+              const SizedBox(height: 6),
+              const Text('Выберите один вариант. После подтверждения симуляция рассчитает последствия и AI сформирует разбор.', style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.45)),
+              const SizedBox(height: 12),
+              DecisionButton(letter: 'A', text: currentOptionA, selected: selectedOption == 'A', enabled: !processing && !completed, onTap: () => setState(() => selectedOption = 'A')),
+              DecisionButton(letter: 'B', text: currentOptionB, selected: selectedOption == 'B', enabled: !processing && !completed, onTap: () => setState(() => selectedOption = 'B')),
+              DecisionButton(letter: 'C', text: currentOptionC, selected: selectedOption == 'C', enabled: !processing && !completed, onTap: () => setState(() => selectedOption = 'C')),
+              const SizedBox(height: 4),
+              FilledButton.icon(onPressed: selectedOption == null || processing || completed ? null : () => makeDecision(selectedOption!), icon: processing ? const SizedBox(width: 19, height: 19, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check_circle_outline), label: Padding(padding: const EdgeInsets.symmetric(vertical: 15), child: Text(processing ? 'AI ОБРАБАТЫВАЕТ РЕШЕНИЕ…' : 'ПОДТВЕРДИТЬ РЕШЕНИЕ', style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: .3)))),
+              if (showResult) ...[
+                const SizedBox(height: 20),
+                _PanelCard(title: completed ? 'ФИНАЛЬНЫЙ РЕЗУЛЬТАТ' : 'РЕЗУЛЬТАТ ХОДА', icon: completed ? Icons.emoji_events_outlined : Icons.insights_outlined, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  if (lastEvents.isNotEmpty) ...lastEvents.map((event) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Padding(padding: EdgeInsets.only(top: 3), child: Icon(Icons.chevron_right, size: 18)), const SizedBox(width: 4), Expanded(child: Text(event, style: const TextStyle(height: 1.45)))]))),
+                  if (aiSummary != null) ...[const SizedBox(height: 12), _SignalBlock(title: 'AI-СВОДКА', icon: Icons.auto_awesome, text: aiSummary!)],
+                  if (aiAnalysis != null) ...[const SizedBox(height: 10), ExpansionTile(tilePadding: EdgeInsets.zero, childrenPadding: const EdgeInsets.fromLTRB(0, 0, 0, 4), title: const Text('AI-АНАЛИЗ'), leading: const Icon(Icons.analytics_outlined), children: [Align(alignment: Alignment.centerLeft, child: SelectableText(aiAnalysis!, style: const TextStyle(height: 1.5)))] )],
+                ])),
+                const SizedBox(height: 14),
+                if (completed) FinishCard(score: score, history: history, state: state, onRestart: resetTraining)
+                else OutlinedButton.icon(onPressed: processing ? null : nextTurn, icon: const Icon(Icons.arrow_forward_rounded), label: Padding(padding: const EdgeInsets.symmetric(vertical: 13), child: Text('ПРОДОЛЖИТЬ → ХОД ${state.turn}'))),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+}
+
+// =====================================================
+// FINISH CARD
+// =====================================================
+
+class FinishCard
+    extends StatelessWidget {
+  final int score;
+  final List<DecisionRecord> history;
+  final SimulationState state;
+  final VoidCallback onRestart;
+
+  const FinishCard({
+    super.key,
+    required this.score,
+    required this.history,
+    required this.state,
+    required this.onRestart,
+  });
+
+  String decisionLabel(String value) {
+    switch (value) {
+      case 'A':
+        return 'Интенсивный подход';
+      case 'B':
+        return 'Сбалансированный подход';
+      case 'C':
+        return 'Осторожный подход';
+      default:
+        return 'Решение';
+    }
+  }
+
+  String finalVerdict() {
+    if (score >= 85) {
+      return 'Очень сильное прохождение. Решения были последовательными, а состояние системы хорошо контролировалось.';
+    }
+
+    if (score >= 70) {
+      return 'Хорошее прохождение. Основная цель достигнута, но отдельные решения можно сделать эффективнее.';
+    }
+
+    if (score >= 50) {
+      return 'Среднее прохождение. Были полезные решения, однако часть ресурса или устойчивости была потеряна.';
+    }
+
+    return 'Прохождение требует улучшения. В следующей попытке стоит внимательнее учитывать последствия каждого решения.';
+  }
+
+  String bestDecision() {
+    if (history.isEmpty) {
+      return 'Нет данных';
+    }
+
+    final best = history.reduce(
+      (a, b) => a.score >= b.score ? a : b,
+    );
+
+    return 'Ход ${best.turn}: ${best.decision} — ${best.score}/100';
+  }
+
+  String weakestDecision() {
+    if (history.isEmpty) {
+      return 'Нет данных';
+    }
+
+    final weakest = history.reduce(
+      (a, b) => a.score <= b.score ? a : b,
+    );
+
+    return 'Ход ${weakest.turn}: ${weakest.decision} — ${weakest.score}/100';
+  }
+
+  String improvementAdvice() {
+    if (state.uncertainty > 60) {
+      return 'Основная зона роста — управление неопределённостью. Перед ускорением продвижения стоит уменьшать количество неизвестных факторов.';
+    }
+
+    if (state.resources < 35) {
+      return 'Основная зона роста — контроль ресурса. Избегай чрезмерного расходования в начале сценария.';
+    }
+
+    if (state.stability < 45) {
+      return 'Основная зона роста — устойчивость. Оценивай решения не только по прогрессу, но и по их влиянию на стабильность.';
+    }
+
+    if (state.progress < 65) {
+      return 'Основная зона роста — темп продвижения. Старайся быстрее переходить к учебной цели, сохраняя приемлемый уровень риска.';
+    }
+
+    return 'Основная зона роста — последовательность. Сопоставляй каждое новое решение с последствиями предыдущих ходов.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final adaptation =
+        (100 - state.uncertainty).clamp(0, 100);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.stretch,
+          children: [
+            const Icon(
+              Icons.emoji_events,
+              size: 64,
+            ),
+
+            const SizedBox(height: 12),
+
+            const Text(
+              'ТРЕНИРОВКА ЗАВЕРШЕНА',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 23,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+
+            const Text(
+              'Итоговый разбор',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white60,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            Center(
+              child: Text(
+                '$score / 100',
+                style: const TextStyle(
+                  fontSize: 44,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            Text(
+              finalVerdict(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                height: 1.45,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            const SectionTitle(
+              text: 'ИТОГОВЫЕ ПОКАЗАТЕЛИ',
+            ),
+
+            const SizedBox(height: 12),
+
+            ScoreRow(
+              title: 'Ресурсы',
+              value: state.resources,
+            ),
+
+            ScoreRow(
+              title: 'Стабильность',
+              value: state.stability,
+            ),
+
+            ScoreRow(
+              title: 'Прогресс',
+              value: state.progress,
+            ),
+
+            ScoreRow(
+              title: 'Адаптация',
+              value: adaptation,
+            ),
+
+            const SizedBox(height: 20),
+
+            const SectionTitle(
+              text: 'РЕШЕНИЯ ПО ХОДАМ',
+            ),
+
+            const SizedBox(height: 10),
+
+            ...history.map(
+              (item) => Card(
+                margin: const EdgeInsets.only(
+                  bottom: 8,
+                ),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    child: Text(
+                      item.turn.toString(),
+                    ),
+                  ),
+                  title: Text(
+                    'Ход ${item.turn} • ${item.decision}',
+                  ),
+                  subtitle: Text(
+                    decisionLabel(
+                      item.decision,
+                    ),
+                  ),
+                  trailing: Text(
+                    '${item.score}/100',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            InfoRow(
+              icon: Icons.star_outline,
+              title: 'Лучший ход',
+              value: bestDecision(),
+            ),
+
+            InfoRow(
+              icon: Icons.flag_outlined,
+              title: 'Самый слабый ход',
+              value: weakestDecision(),
+            ),
+
+            const SizedBox(height: 10),
+
+            const SectionTitle(
+              text: 'ЧТО УЛУЧШИТЬ',
+            ),
+
+            const SizedBox(height: 10),
+
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: Text(
+                  improvementAdvice(),
+                  style: const TextStyle(
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            ElevatedButton.icon(
+              onPressed: onRestart,
+              icon: const Icon(
+                Icons.restart_alt,
+              ),
+              label: const Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: 14,
+                ),
+                child: Text(
+                  'ПРОЙТИ ЗАНОВО',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// STATISTICS
+// =====================================================
+
+class StatisticsScreen
+    extends StatefulWidget {
+  const StatisticsScreen({
+    super.key,
+  });
+
+  @override
+  State<StatisticsScreen> createState() =>
+      _StatisticsScreenState();
+}
+
+class _StatisticsScreenState
+    extends State<StatisticsScreen> {
+  List<TrainingResult> results = [];
+
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    loadResults();
+  }
+
+  Future<void> loadResults() async {
+    final loaded =
+        await ResultStorageService
+            .load();
+
+    if (!mounted) return;
+
+    setState(() {
+      results = loaded;
+      loading = false;
+    });
+  }
+
+  int averageScore() {
+    if (results.isEmpty) {
+      return 0;
+    }
+
+    final total =
+        results.fold<int>(
+      0,
+      (sum, result) =>
+          sum + result.score,
+    );
+
+    return (total /
+            results.length)
+        .round();
+  }
+
+  int bestScore() {
+    if (results.isEmpty) {
+      return 0;
+    }
+
+    return results
+        .map(
+          (item) => item.score,
+        )
+        .reduce(maxInt);
+  }
+
+  int totalDecisions() {
+    return results.fold<int>(
+      0,
+      (sum, item) =>
+          sum + item.decisions,
+    );
+  }
+
+  int averageField(
+    int Function(TrainingResult)
+        getter,
+  ) {
+    if (results.isEmpty) {
+      return 0;
+    }
+
+    final total =
+        results.fold<int>(
+      0,
+      (sum, result) =>
+          sum + getter(result),
+    );
+
+    return (total /
+            results.length)
+        .round()
+        .clamp(0, 100);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title:
+            const Text('Статистика'),
+        actions: [
+          if (results.isNotEmpty)
+            IconButton(
+              onPressed:
+                  clearHistory,
+              icon:
+                  const Icon(
+                Icons.delete_sweep,
+              ),
+            ),
+        ],
+      ),
+      body: loading
+          ? const Center(
+              child:
+                  CircularProgressIndicator(),
+            )
+          : results.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding:
+                        EdgeInsets.all(30),
+                    child: Text(
+                      'Статистика появится после завершения первой тренировки.',
+                      textAlign:
+                          TextAlign.center,
+                    ),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh:
+                      loadResults,
+                  child:
+                      ListView(
+                    padding:
+                        const EdgeInsets.all(
+                      18,
+                    ),
+                    children: [
+                      const SectionTitle(
+                        text:
+                            'МОЙ ПРОГРЕСС',
+                      ),
+
+                      const SizedBox(
+                        height: 12,
+                      ),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child:
+                                StatCard(
+                              title:
+                                  'Тренировок',
+                              value:
+                                  results.length
+                                      .toString(),
+                              icon:
+                                  Icons
+                                      .fitness_center,
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 10,
+                          ),
+                          Expanded(
+                            child:
+                                StatCard(
+                              title:
+                                  'Средний',
+                              value:
+                                  averageScore()
+                                      .toString(),
+                              icon:
+                                  Icons
+                                      .analytics,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(
+                        height: 10,
+                      ),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child:
+                                StatCard(
+                              title:
+                                  'Лучший',
+                              value:
+                                  bestScore()
+                                      .toString(),
+                              icon:
+                                  Icons
+                                      .emoji_events,
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 10,
+                          ),
+                          Expanded(
+                            child:
+                                StatCard(
+                              title:
+                                  'Решений',
+                              value:
+                                  totalDecisions()
+                                      .toString(),
+                              icon:
+                                  Icons
+                                      .alt_route,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(
+                        height: 25,
+                      ),
+
+                      const SectionTitle(
+                        text:
+                            'СРЕДНИЕ ПОКАЗАТЕЛИ',
+                      ),
+
+                      const SizedBox(
+                        height: 12,
+                      ),
+
+                      ScoreRow(
+                        title:
+                            'Ресурсы',
+                        value:
+                            averageField(
+                          (item) =>
+                              item.resourceScore,
+                        ),
+                      ),
+
+                      ScoreRow(
+                        title:
+                            'Стабильность',
+                        value:
+                            averageField(
+                          (item) =>
+                              item.stabilityScore,
+                        ),
+                      ),
+
+                      ScoreRow(
+                        title:
+                            'Прогресс',
+                        value:
+                            averageField(
+                          (item) =>
+                              item.progressScore,
+                        ),
+                      ),
+
+                      ScoreRow(
+                        title:
+                            'Адаптация',
+                        value:
+                            averageField(
+                          (item) =>
+                              item.adaptationScore,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 25,
+                      ),
+
+                      const SectionTitle(
+                        text:
+                            'ИСТОРИЯ',
+                      ),
+
+                      const SizedBox(
+                        height: 10,
+                      ),
+
+                      ...results
+                          .take(20)
+                          .map(
+                        (result) =>
+                            Card(
+                          margin:
+                              const EdgeInsets
+                                  .only(
+                            bottom: 10,
+                          ),
+                          child:
+                              ListTile(
+                            leading:
+                                CircleAvatar(
+                              child:
+                                  Text(
+                                result
+                                    .score
+                                    .toString(),
+                              ),
+                            ),
+                            title:
+                                Text(
+                              result
+                                  .scenarioTitle,
+                              maxLines:
+                                  1,
+                              overflow:
+                                  TextOverflow
+                                      .ellipsis,
+                            ),
+                            subtitle:
+                                Text(
+                              '${result.decisions} решений • '
+                              '${formatDuration(
+                                result.durationSeconds,
+                              )}',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+    );
+  }
+
+  String formatDuration(
+    int seconds,
+  ) {
+    final minutes =
+        seconds ~/ 60;
+
+    final rest =
+        seconds % 60;
+
+    return '$minutesм '
+        '${rest.toString().padLeft(2, '0')}с';
+  }
+
+  Future<void> clearHistory() async {
+    final answer =
+        await showDialog<bool>(
+      context: context,
+      builder:
+          (dialogContext) {
+        return AlertDialog(
+          title:
+              const Text(
+            'Очистить статистику?',
+          ),
+          content:
+              const Text(
+            'Все результаты тренировок будут удалены.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(
+                dialogContext,
+                false,
+              ),
+              child:
+                  const Text('ОТМЕНА'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.pop(
+                dialogContext,
+                true,
+              ),
+              child:
+                  const Text('ОЧИСТИТЬ'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (answer == true) {
+      await ResultStorageService.clear();
+      await loadResults();
+    }
+  }
+}
+
+// =====================================================
+// STAT CARD
+// =====================================================
+
+class StatCard
+    extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+
+  const StatCard({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child:
+          Padding(
+        padding:
+            const EdgeInsets.all(14),
+        child:
+            Column(
+          mainAxisAlignment:
+              MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 24,
+            ),
+
+            const SizedBox(
+              height: 8,
+            ),
+
+            Text(
+              value,
+              style:
+                  const TextStyle(
+                fontSize: 24,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(
+              height: 3,
+            ),
+
+            Text(
+              title,
+              textAlign:
+                  TextAlign.center,
+              style:
+                  const TextStyle(
+                color:
+                    Colors.white60,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// SECTION TITLE
+// =====================================================
+
+class SectionTitle
+    extends StatelessWidget {
+  final String text;
+
+  const SectionTitle({
+    super.key,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style:
+          const TextStyle(
+        fontSize: 19,
+        fontWeight:
+            FontWeight.bold,
+      ),
+    );
+  }
+}
+
+// =====================================================
+// TEXT FIELD
+// =====================================================
+
+class AppTextField
+    extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String? hint;
+  final int maxLines;
+
+  const AppTextField({
+    super.key,
+    required this.controller,
+    required this.label,
+    this.hint,
+    this.maxLines = 1,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding:
+          const EdgeInsets.only(
+        bottom: 14,
+      ),
+      child:
+          TextField(
+        controller:
+            controller,
+        maxLines:
+            maxLines,
+        decoration:
+            InputDecoration(
+          labelText:
+              label,
+          hintText:
+              hint,
+          border:
+              const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// METRIC CARD
+// =====================================================
+
+class MetricCard
+    extends StatelessWidget {
+  final String title;
+  final String value;
+
+  const MetricCard({
+    super.key,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child:
+          Padding(
+        padding:
+            const EdgeInsets.all(12),
+        child:
+            Column(
+          children: [
+            Text(
+              title,
+              textAlign:
+                  TextAlign.center,
+              style:
+                  const TextStyle(
+                color:
+                    Colors.white60,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(
+              height: 5,
+            ),
+            Text(
+              value,
+              textAlign:
+                  TextAlign.center,
+              style:
+                  const TextStyle(
+                fontSize: 17,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// INFO ROW
+// =====================================================
+
+class InfoRow
+    extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+
+  const InfoRow({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin:
+          const EdgeInsets.only(
+        bottom: 10,
+      ),
+      child:
+          ListTile(
+        leading:
+            Icon(icon),
+        title:
+            Text(title),
+        trailing:
+            SizedBox(
+          width: 150,
+          child:
+              Text(
+            value,
+            textAlign:
+                TextAlign.right,
+            overflow:
+                TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// DECISION BUTTON
+// =====================================================
+
+class DecisionButton extends StatelessWidget {
+  final String letter;
+  final String text;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const DecisionButton({super.key, required this.letter, required this.text, required this.selected, required this.enabled, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(17),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(17),
+              color: selected ? primary.withOpacity(.14) : Colors.white.withOpacity(.035),
+              border: Border.all(color: selected ? primary : Colors.white12, width: selected ? 2 : 1),
+              boxShadow: selected ? [BoxShadow(color: primary.withOpacity(.12), blurRadius: 18, spreadRadius: 1)] : const [],
+            ),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(width: 42, height: 42, alignment: Alignment.center, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: selected ? primary : Colors.white10), child: Text(letter, style: TextStyle(fontWeight: FontWeight.w900, color: selected ? Colors.white : Colors.white70))),
+              const SizedBox(width: 13),
+              Expanded(child: Padding(padding: const EdgeInsets.only(top: 2), child: Text(text, style: const TextStyle(fontSize: 14.5, height: 1.45)))),
+              const SizedBox(width: 8),
+              Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked, color: selected ? primary : Colors.white30),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// SCORE ROW
+// =====================================================
+
+class ScoreRow
+    extends StatelessWidget {
+  final String title;
+  final int value;
+
+  const ScoreRow({
+    super.key,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final safe =
+        value.clamp(0, 100);
+
+    return Padding(
+      padding:
+          const EdgeInsets.only(
+        bottom: 12,
+      ),
+      child:
+          Row(
+        children: [
+          Expanded(
+            child:
+                Text(title),
+          ),
+
+          SizedBox(
+            width: 120,
+            child:
+                LinearProgressIndicator(
+              value:
+                  safe / 100,
+            ),
+          ),
+
+          const SizedBox(
+            width: 10,
+          ),
+
+          SizedBox(
+            width: 35,
+            child:
+                Text(
+              safe.toString(),
+              textAlign:
+                  TextAlign.right,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =====================================================
+// TRAINING UI HELPERS
+// =====================================================
+
+class _StatusPill extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  const _StatusPill({required this.label, required this.icon});
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: primary.withOpacity(.12), border: Border.all(color: primary.withOpacity(.35))), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 13, color: primary), const SizedBox(width: 5), Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: primary))]));
+  }
+}
+
+class _TrainingMetricCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final double progress;
+  final bool inverted;
+
+  const _TrainingMetricCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.progress,
+    this.inverted = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final width = (MediaQuery.sizeOf(context).width - 37) / 2;
+    final safeWidth = width < 140 ? 140.0 : width;
+    final safeProgress = progress.clamp(0.0, 1.0);
+
+    return SizedBox(
+      width: safeWidth,
+      child: Container(
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(.035),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: Colors.white70),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      color: Colors.white54,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                minHeight: 5,
+                value: safeProgress,
+                backgroundColor: Colors.white10,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  inverted && safeProgress > .60 ? Colors.orangeAccent : primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniLabel extends StatelessWidget {
+  final String text;
+  const _MiniLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w900,
+        color: Colors.white54,
+        letterSpacing: .9,
+      ),
+    );
+  }
+}
+
+class _PanelCard extends StatelessWidget {
+  final String title; final IconData icon; final Widget child; final Widget? trailing;
+  const _PanelCard({required this.title, required this.icon, required this.child, this.trailing});
+  @override
+  Widget build(BuildContext context) {
+    return Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white.withOpacity(.035), borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white10)), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Row(children: [Icon(icon, size: 19, color: Colors.white70), const SizedBox(width: 8), Expanded(child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: .45))), trailing ?? const SizedBox.shrink()]), const SizedBox(height: 13), child]));
+  }
+}
+
+class _SignalBlock extends StatelessWidget {
+  final String title; final IconData icon; final String text;
+  const _SignalBlock({required this.title, required this.icon, required this.text});
+  @override
+  Widget build(BuildContext context) {
+    return Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: Colors.white.withOpacity(.035), border: Border.all(color: Colors.white10)), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, size: 18), const SizedBox(width: 9), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white54, letterSpacing: .8)), const SizedBox(height: 4), Text(text, style: const TextStyle(height: 1.45))]))]));
+  }
+}
+
+class _HistoryRow extends StatelessWidget {
+  final DecisionRecord item;
+  const _HistoryRow({required this.item});
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10), decoration: BoxDecoration(color: Colors.white.withOpacity(.025), borderRadius: BorderRadius.circular(12)), child: Row(children: [Container(width: 32, height: 32, alignment: Alignment.center, decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: primary.withOpacity(.13)), child: Text(item.turn.toString(), style: TextStyle(fontWeight: FontWeight.w900, color: primary))), const SizedBox(width: 10), Expanded(child: Text('Решение ${item.decision}', style: const TextStyle(fontWeight: FontWeight.w700))), Text('${item.score}/100', style: const TextStyle(fontWeight: FontWeight.w900))]));
+  }
+}
+
+// =====================================================
+// DECISION RECORD
+// =====================================================
+
+class DecisionRecord {
+  final int turn;
+  final String decision;
+  final int score;
+
+  const DecisionRecord({
+    required this.turn,
+    required this.decision,
+    required this.score,
+  });
+}
+
+// =====================================================
+// MAX
+// =====================================================
+
+int maxInt(
+  int a,
+  int b,
+) {
+  return a > b ? a : b;
+}
