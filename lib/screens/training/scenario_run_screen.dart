@@ -675,6 +675,9 @@ ${state.turn}
         uncertainty: newState.uncertainty - state.uncertainty,
       );
 
+      final chosenDecisionText = decisionText(decision);
+      final chosenSituation = buildAISituation();
+
       updateDynamicOptions(newState);
 
       final simulationData =
@@ -702,20 +705,20 @@ ${state.turn}
         analysis =
             AIService.localObjectiveScoreExplanation(
           decision:
-              '$decision: ${decisionText(decision)}',
+              '$decision: $chosenDecisionText',
           objectiveScore:
-              result.decisionScore.total,
+              decisionScore.total,
           level:
-              result.decisionScore.level,
+              decisionScore.level,
           scoreBreakdown: {
-            'goal': result.decisionScore.goal,
-            'resources': result.decisionScore.resources,
-            'stability': result.decisionScore.stability,
-            'uncertainty': result.decisionScore.uncertainty,
-            'time': result.decisionScore.time,
+            'goal': decisionScore.goal,
+            'resources': decisionScore.resources,
+            'stability': decisionScore.stability,
+            'uncertainty': decisionScore.uncertainty,
+            'time': decisionScore.time,
           },
           stateDelta:
-              result.delta.toJson(),
+              stateDelta.toJson(),
         );
 
         summary =
@@ -730,26 +733,26 @@ ${state.turn}
           analysis =
               await AIService.explainObjectiveScore(
             situation:
-                buildAISituation(),
+                chosenSituation,
             decision:
-                '$decision: ${decisionText(decision)}',
+                '$decision: $chosenDecisionText',
             goal:
                 widget.scenario.goal,
             criteria:
                 widget.scenario.criteria,
             objectiveScore:
-                result.decisionScore.total,
+                decisionScore.total,
             level:
-                result.decisionScore.level,
+                decisionScore.level,
             scoreBreakdown: {
-              'goal': result.decisionScore.goal,
-              'resources': result.decisionScore.resources,
-              'stability': result.decisionScore.stability,
-              'uncertainty': result.decisionScore.uncertainty,
-              'time': result.decisionScore.time,
+              'goal': decisionScore.goal,
+              'resources': decisionScore.resources,
+              'stability': decisionScore.stability,
+              'uncertainty': decisionScore.uncertainty,
+              'time': decisionScore.time,
             },
             stateDelta:
-                result.delta.toJson(),
+                stateDelta.toJson(),
             simulation:
                 simulationData,
             history:
@@ -760,7 +763,7 @@ ${state.turn}
               await AIService
                   .generateSituationSummary(
             situation:
-                buildAISituation(),
+                chosenSituation,
             simulation:
                 simulationData,
             events:
@@ -772,20 +775,20 @@ ${state.turn}
           analysis =
               AIService.localObjectiveScoreExplanation(
             decision:
-                '$decision: ${decisionText(decision)}',
+                '$decision: $chosenDecisionText',
             objectiveScore:
-                result.decisionScore.total,
+                decisionScore.total,
             level:
-                result.decisionScore.level,
+                decisionScore.level,
             scoreBreakdown: {
-              'goal': result.decisionScore.goal,
-              'resources': result.decisionScore.resources,
-              'stability': result.decisionScore.stability,
-              'uncertainty': result.decisionScore.uncertainty,
-              'time': result.decisionScore.time,
+              'goal': decisionScore.goal,
+              'resources': decisionScore.resources,
+              'stability': decisionScore.stability,
+              'uncertainty': decisionScore.uncertainty,
+              'time': decisionScore.time,
             },
             stateDelta:
-                result.delta.toJson(),
+                stateDelta.toJson(),
           );
 
           summary =
