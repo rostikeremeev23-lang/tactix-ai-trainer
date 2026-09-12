@@ -253,6 +253,7 @@ def root():
 @app.get("/health")
 def health():
     ollama_available = False
+    model_available = False
 
     try:
         response = requests.get(
@@ -264,13 +265,24 @@ def health():
             response.status_code >= 200
             and response.status_code < 300
         )
-    except requests.RequestException:
-        ollama_available = False
+        if ollama_available:
+            data = response.json()
+            models = data.get("models") if isinstance(data, dict) else None
+            if isinstance(models, list):
+                model_available = any(
+                    isinstance(item, dict)
+                    and (item.get("name") == MODEL or item.get("model") == MODEL)
+                    for item in models
+                )
+    except (requests.RequestException, ValueError):
+        model_available = False
 
     return {
         "status": "ok",
         "model": MODEL,
         "ollama_available": ollama_available,
+        "model_available": model_available,
+        "ai_ready": ollama_available and model_available,
     }
 
 

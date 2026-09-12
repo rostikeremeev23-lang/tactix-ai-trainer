@@ -787,9 +787,14 @@ ${weaknesses.map((item) => '- $item').join('\n')}
                 ),
               );
 
-      return response.statusCode >=
-              200 &&
-          response.statusCode < 300;
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300) {
+        return false;
+      }
+
+      final data = jsonDecode(response.body);
+      return data is Map<String, dynamic> &&
+          data['ai_ready'] == true;
     } catch (_) {
       return false;
     }
