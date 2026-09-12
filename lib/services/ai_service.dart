@@ -140,7 +140,10 @@ class AIService {
   }
 
   static const Duration requestTimeout =
-      Duration(seconds: 180);
+      Duration(seconds: 15);
+
+  static const Duration scenarioTimeout =
+      Duration(seconds: 30);
 
   // ============================================================
   // HEADERS
@@ -643,7 +646,7 @@ ${weaknesses.map((item) => '- $item').join('\n')}
                 }),
               )
               .timeout(
-                requestTimeout,
+                scenarioTimeout,
               );
 
       final data =

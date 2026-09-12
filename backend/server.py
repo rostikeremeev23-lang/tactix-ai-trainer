@@ -32,7 +32,8 @@ app.add_middleware(
 OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
 MODEL = "gemma3:1b"
 
-REQUEST_TIMEOUT = 180
+REQUEST_TIMEOUT = 15
+SCENARIO_TIMEOUT = 30
 
 
 # =====================================================
@@ -121,6 +122,7 @@ class NextSituationResponse(BaseModel):
 def ask_ollama(
     prompt: str,
     json_mode: bool = False,
+    timeout: int = REQUEST_TIMEOUT,
 ) -> str:
     payload = {
         "model": MODEL,
@@ -153,7 +155,7 @@ def ask_ollama(
         response = requests.post(
             OLLAMA_URL,
             json=payload,
-            timeout=REQUEST_TIMEOUT,
+            timeout=timeout,
         )
 
         response.raise_for_status()
@@ -610,6 +612,7 @@ criteria = 3-5 элементов.
     raw = ask_ollama(
         prompt,
         json_mode=True,
+        timeout=SCENARIO_TIMEOUT,
     )
 
     parsed = parse_json_object(raw)
