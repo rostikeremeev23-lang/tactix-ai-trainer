@@ -700,6 +700,7 @@ ${state.turn}
 
       String analysis;
       String summary;
+      bool aiAvailableForTurn = false;
 
       if (widget.forceOffline) {
         analysis =
@@ -729,75 +730,87 @@ ${state.turn}
               result.events,
         );
       } else {
-        try {
-          analysis =
-              await AIService.explainObjectiveScore(
-            situation:
-                chosenSituation,
-            decision:
-                '$decision: $chosenDecisionText',
-            goal:
-                widget.scenario.goal,
-            criteria:
-                widget.scenario.criteria,
-            objectiveScore:
-                decisionScore.total,
-            level:
-                decisionScore.level,
-            scoreBreakdown: {
-              'goal': decisionScore.goal,
-              'resources': decisionScore.resources,
-              'stability': decisionScore.stability,
-              'uncertainty': decisionScore.uncertainty,
-              'time': decisionScore.time,
-            },
-            stateDelta:
-                stateDelta.toJson(),
-            simulation:
-                simulationData,
-            history:
-                historyForAI(),
-          );
+        analysis =
+            AIService.localObjectiveScoreExplanation(
+          decision:
+              '$decision: $chosenDecisionText',
+          objectiveScore:
+              decisionScore.total,
+          level:
+              decisionScore.level,
+          scoreBreakdown: {
+            'goal': decisionScore.goal,
+            'resources': decisionScore.resources,
+            'stability': decisionScore.stability,
+            'uncertainty': decisionScore.uncertainty,
+            'time': decisionScore.time,
+          },
+          stateDelta:
+              stateDelta.toJson(),
+        );
 
-          summary =
-              await AIService
-                  .generateSituationSummary(
-            situation:
-                chosenSituation,
-            simulation:
-                simulationData,
-            events:
-                result.events,
-            history:
-                historyForAI(),
-          );
-        } catch (_) {
-          analysis =
-              AIService.localObjectiveScoreExplanation(
-            decision:
-                '$decision: $chosenDecisionText',
-            objectiveScore:
-                decisionScore.total,
-            level:
-                decisionScore.level,
-            scoreBreakdown: {
-              'goal': decisionScore.goal,
-              'resources': decisionScore.resources,
-              'stability': decisionScore.stability,
-              'uncertainty': decisionScore.uncertainty,
-              'time': decisionScore.time,
-            },
-            stateDelta:
-                stateDelta.toJson(),
-          );
+        summary =
+            AIService.localSummary(
+          simulation:
+              simulationData,
+          events:
+              result.events,
+        );
 
-          summary =
-              AIService.localSummary(
-            simulation:
-                simulationData,
-            events:
-                result.events,
-          );
+        aiAvailableForTurn = await AIService.isServerAvailable();
+
+        if (aiAvailableForTurn) {
+          try {
+            analysis =
+                await AIService.explainObjectiveScore(
+              situation:
+                  chosenSituation,
+              decision:
+                  '$decision: $chosenDecisionText',
+              goal:
+                  widget.scenario.goal,
+              criteria:
+                  widget.scenario.criteria,
+              objectiveScore:
+                  decisionScore.total,
+              level:
+                  decisionScore.level,
+              scoreBreakdown: {
+                'goal': decisionScore.goal,
+                'resources': decisionScore.resources,
+                'stability': decisionScore.stability,
+                'uncertainty': decisionScore.uncertainty,
+                'time': decisionScore.time,
+              },
+              stateDelta:
+                  stateDelta.toJson(),
+              simulation:
+                  simulationData,
+              history:
+                  historyForAI(),
+            );
+          } catch (_) {
+            aiAvailableForTurn = false;
+          }
+        }
+
+        if (aiAvailableForTurn) {
+          try {
+            summary =
+                await AIService
+                    .generateSituationSummary(
+              situation:
+                  chosenSituation,
+              simulation:
+                  simulationData,
+              events:
+                  result.events,
+              history:
+                  historyForAI(),
+            );
+          } catch (_) {
+            aiAvailableForTurn = false;
+          }
         }
       }
 
@@ -854,7 +867,7 @@ ${state.turn}
               ? 'Следите за изменением состояния симуляции.'
               : _environmentFocus(environment!);
 
-      if (!isCompleted && !widget.forceOffline) {
+      if (!isCompleted && !widget.forceOffline && aiAvailableForTurn) {
         try {
           final next =
               await AIService
