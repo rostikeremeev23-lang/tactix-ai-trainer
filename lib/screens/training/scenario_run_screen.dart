@@ -971,7 +971,7 @@ ${state.turn}
               updatedHistory
                   .map(
                     (item) =>
-                        'Ход ${item.turn}: ${item.decision} вЂ” ${item.score}/100 (${item.level})',
+                        'Ход ${item.turn}: ${item.decision} — ${item.score}/100 (${item.level})',
                   )
                   .toList(),
         );
@@ -2288,7 +2288,7 @@ class FinishCard
         '${two(generatedAt.hour)}:${two(generatedAt.minute)}';
 
     final buffer = StringBuffer()
-      ..writeln('TACTIX вЂ” AFTER ACTION REVIEW')
+      ..writeln('TACTIX — AFTER ACTION REVIEW')
       ..writeln('========================================')
       ..writeln('Учебный отчёт • локальная оценка')
       ..writeln('Сформирован: $dateText')
@@ -2321,10 +2321,10 @@ class FinishCard
       ..writeln()
       ..writeln('КЛЮЧЕВЫЕ ВЫВОДЫ')
       ..writeln(
-        '- Сильная сторона: ${strongest == null ? 'Нет данных' : '${strongest.key} вЂ” ${strongest.value}/100'}',
+        '- Сильная сторона: ${strongest == null ? 'Нет данных' : '${strongest.key} — ${strongest.value}/100'}',
       )
       ..writeln(
-        '- Зона развития: ${weakest == null ? 'Нет данных' : '${weakest.key} вЂ” ${weakest.value}/100'}',
+        '- Зона развития: ${weakest == null ? 'Нет данных' : '${weakest.key} — ${weakest.value}/100'}',
       )
       ..writeln()
       ..writeln('СУММАРНЫЕ ИЗМЕНЕНИЯ СОСТОЯНИЯ')
@@ -2357,7 +2357,7 @@ class FinishCard
     for (final item in history) {
       buffer
         ..writeln(
-          'Ход ${item.turn}: вариант ${item.decision} вЂ” ${item.score}/100',
+          'Ход ${item.turn}: вариант ${item.decision} — ${item.score}/100',
         )
         ..writeln(
           '  Цель ${item.goalScore} | '
@@ -2371,10 +2371,10 @@ class FinishCard
     buffer
       ..writeln()
       ..writeln(
-        'Лучший ход: ${best == null ? 'Нет данных' : 'ход ${best.turn}, вариант ${best.decision} вЂ” ${best.score}/100'}',
+        'Лучший ход: ${best == null ? 'Нет данных' : 'ход ${best.turn}, вариант ${best.decision} — ${best.score}/100'}',
       )
       ..writeln(
-        'Самый слабый ход: ${weakDecision == null ? 'Нет данных' : 'ход ${weakDecision.turn}, вариант ${weakDecision.decision} вЂ” ${weakDecision.score}/100'}',
+        'Самый слабый ход: ${weakDecision == null ? 'Нет данных' : 'ход ${weakDecision.turn}, вариант ${weakDecision.decision} — ${weakDecision.score}/100'}',
       )
       ..writeln()
       ..writeln('ИТОГОВЫЙ ВЫВОД')
@@ -3071,14 +3071,14 @@ class FinishCard
                     title: 'Лучший ход',
                     value: best == null
                         ? 'Нет данных'
-                        : 'Ход ${best.turn}: ${best.decision} вЂ” ${best.score}/100',
+                        : 'Ход ${best.turn}: ${best.decision} — ${best.score}/100',
                   ),
                   InfoRow(
                     icon: Icons.flag_outlined,
                     title: 'Самый слабый ход',
                     value: weakDecision == null
                         ? 'Нет данных'
-                        : 'Ход ${weakDecision.turn}: ${weakDecision.decision} вЂ” ${weakDecision.score}/100',
+                        : 'Ход ${weakDecision.turn}: ${weakDecision.decision} — ${weakDecision.score}/100',
                   ),
                 ],
                 const SizedBox(height: 22),

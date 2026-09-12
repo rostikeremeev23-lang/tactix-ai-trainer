@@ -5,7 +5,7 @@ class TrainingResult {
   final int decisions;
   final int durationSeconds;
 
-  // Старые показатели вЂ” оставлены для полной совместимости
+  // Старые показатели — оставлены для полной совместимости
   // с уже существующим интерфейсом и сохранёнными результатами.
   final int resourceScore;
   final int stabilityScore;

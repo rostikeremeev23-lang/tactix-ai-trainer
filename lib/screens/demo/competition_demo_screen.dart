@@ -349,7 +349,7 @@ class CompetitionDemoScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 const Text(
                   'Для эффектной защиты можно физически отключить интернет '
-                  'перед нажатием кнопки вЂ” демонстрация продолжит работать.',
+                  'перед нажатием кнопки — демонстрация продолжит работать.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color:

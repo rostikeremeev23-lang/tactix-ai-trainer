@@ -1369,7 +1369,7 @@ class _EnvironmentDashboardState extends State<_EnvironmentDashboard> {
                                     Text(weather.weatherLabel, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
                                     const SizedBox(height: 5),
                                     const Text(
-                                      'Внешние параметры доступны для следующего шага вЂ” адаптивной сложности сценариев.',
+                                      'Внешние параметры доступны для следующего шага — адаптивной сложности сценариев.',
                                       style: TextStyle(color: TactixTheme.textMuted, fontSize: 11, height: 1.4),
                                     ),
                                   ],
@@ -1389,7 +1389,7 @@ class _EnvironmentDashboardState extends State<_EnvironmentDashboard> {
                                           Text(weather.weatherLabel, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
                                           const SizedBox(height: 4),
                                           const Text(
-                                            'Внешние параметры доступны для следующего шага вЂ” адаптивной сложности сценариев.',
+                                            'Внешние параметры доступны для следующего шага — адаптивной сложности сценариев.',
                                             style: TextStyle(color: TactixTheme.textMuted, fontSize: 11, height: 1.4),
                                           ),
                                         ],

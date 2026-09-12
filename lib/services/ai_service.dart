@@ -420,7 +420,7 @@ ${weaknesses.map((item) => '- $item').join('\n')}
     return text;
   }
 
-  /// Полностью локальное объяснение вЂ” используется как fallback,
+  /// Полностью локальное объяснение — используется как fallback,
   /// если backend/Ollama недоступны.
   static String localObjectiveScoreExplanation({
     required String decision,

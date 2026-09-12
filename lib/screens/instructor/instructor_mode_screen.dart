@@ -357,7 +357,7 @@ class _InstructorModeScreenState extends State<InstructorModeScreen> {
                   const SizedBox(height: 12),
                   AppTextField(
                     controller: criteriaController,
-                    label: '3вЂ“5 критериев, каждый с новой строки',
+                    label: '3–5 критериев, каждый с новой строки',
                     maxLines: 6,
                   ),
                   const SizedBox(height: 14),
