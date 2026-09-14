@@ -1280,7 +1280,7 @@ ${state.turn}
             children: [
               Container(
                 padding:
-                    const EdgeInsets.all(18),
+                    EdgeInsets.all(widget.forceOffline ? 18 : 14),
                 decoration: BoxDecoration(
                   borderRadius:
                       BorderRadius.circular(
@@ -1298,7 +1298,7 @@ ${state.turn}
                         Alignment.bottomRight,
                     colors: [
                       primary.withValues(
-                        alpha: .20,
+                        alpha: widget.forceOffline ? .20 : .06,
                       ),
                       Colors.white.withValues(
                         alpha: .04,
@@ -1314,8 +1314,8 @@ ${state.turn}
                     Row(
                       children: [
                         Container(
-                          width: 46,
-                          height: 46,
+                          width: widget.forceOffline ? 46 : 38,
+                          height: widget.forceOffline ? 46 : 38,
                           decoration:
                               BoxDecoration(
                             borderRadius:
@@ -1379,6 +1379,7 @@ ${state.turn}
                           ),
                         ),
                         _StatusPill(
+                          preserveDemo: widget.forceOffline,
                           label:
                               completed
                                   ? 'ГОТОВО'
@@ -1397,8 +1398,8 @@ ${state.turn}
                         ),
                       ],
                     ),
-                    const SizedBox(
-                      height: 18,
+                    SizedBox(
+                      height: widget.forceOffline ? 18 : 12,
                     ),
                     Row(
                       children: [
@@ -1437,7 +1438,7 @@ ${state.turn}
                       ),
                       child:
                           LinearProgressIndicator(
-                        minHeight: 7,
+                        minHeight: widget.forceOffline ? 7 : 4,
                         value: progress,
                         backgroundColor:
                             Colors.white10,
@@ -1471,7 +1472,8 @@ ${state.turn}
                             .stretch,
                     children: [
                       if (widget.scenario.goal.isNotEmpty) ...[
-                        const _MiniLabel(
+                        _MiniLabel(
+                          preserveDemo: widget.forceOffline,
                           text: 'ЦЕЛЬ',
                         ),
                         const SizedBox(
@@ -1494,7 +1496,8 @@ ${state.turn}
                           height: 12,
                         ),
                       if (widget.scenario.conditions.isNotEmpty) ...[
-                        const _MiniLabel(
+                        _MiniLabel(
+                          preserveDemo: widget.forceOffline,
                           text:
                               'УЧЕБНЫЕ УСЛОВИЯ',
                         ),
@@ -1527,6 +1530,7 @@ ${state.turn}
                 runSpacing: 9,
                 children: [
                   _TrainingMetricCard(
+                    preserveDemo: widget.forceOffline,
                     title: 'Время',
                     value:
                         '${state.time} мин',
@@ -1537,6 +1541,7 @@ ${state.turn}
                             .clamp(0.0, 1.0),
                   ),
                   _TrainingMetricCard(
+                    preserveDemo: widget.forceOffline,
                     title: 'Ресурсы',
                     value:
                         '${state.resources}%',
@@ -1546,6 +1551,7 @@ ${state.turn}
                         state.resources / 100,
                   ),
                   _TrainingMetricCard(
+                    preserveDemo: widget.forceOffline,
                     title:
                         'Стабильность',
                     value:
@@ -1556,6 +1562,7 @@ ${state.turn}
                         state.stability / 100,
                   ),
                   _TrainingMetricCard(
+                    preserveDemo: widget.forceOffline,
                     title: 'Прогресс',
                     value:
                         '${state.progress}%',
@@ -1564,6 +1571,7 @@ ${state.turn}
                         state.progress / 100,
                   ),
                   _TrainingMetricCard(
+                    preserveDemo: widget.forceOffline,
                     title:
                         'Неопределённость',
                     value:
@@ -1610,6 +1618,7 @@ ${state.turn}
                         height: 14,
                       ),
                       _SignalBlock(
+                        preserveDemo: widget.forceOffline,
                         title:
                             'НОВОЕ СОБЫТИЕ',
                         icon: Icons.bolt,
@@ -1622,6 +1631,7 @@ ${state.turn}
                         height: 10,
                       ),
                       _SignalBlock(
+                        preserveDemo: widget.forceOffline,
                         title: 'ФОКУС',
                         icon: Icons
                             .center_focus_strong,
@@ -1639,6 +1649,7 @@ ${state.turn}
                       'ЖУРНАЛ РЕШЕНИЙ',
                   icon:
                       Icons.route_outlined,
+                  accent: widget.forceOffline ? null : TactixTheme.textMuted,
                   trailing: Text(
                     'Средняя оценка: $score',
                     style:
@@ -1663,6 +1674,7 @@ ${state.turn}
                         ),
                         child:
                             _HistoryRow(
+                          preserveDemo: widget.forceOffline,
                           item: item,
                         ),
                       ),
@@ -1682,6 +1694,7 @@ ${state.turn}
                   if (selectedOption !=
                       null)
                     _StatusPill(
+                          preserveDemo: widget.forceOffline,
                       label:
                           'ВЫБОР ${selectedOption!}',
                       icon:
@@ -1700,7 +1713,8 @@ ${state.turn}
                 ),
               ),
               const SizedBox(height: 12),
-              DecisionButton(
+              widget.forceOffline
+                  ? DecisionButton(
                 letter: 'A',
                 text: currentOptionA,
                 selected:
@@ -1711,8 +1725,84 @@ ${state.turn}
                 onTap: () => setState(
                   () => selectedOption = 'A',
                 ),
-              ),
-              DecisionButton(
+              )
+                  : Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Material(
+                        color: selectedOption == 'A'
+                            ? TactixTheme.gold.withValues(alpha: 0.06)
+                            : TactixTheme.panel,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: selectedOption == 'A'
+                                ? TactixTheme.gold
+                                : TactixTheme.line,
+                            width: selectedOption == 'A' ? 2 : 1,
+                          ),
+                        ),
+                        child: InkWell(
+                          onTap: !processing && !completed
+                              ? () => setState(
+                                    () => selectedOption = 'A',
+                                  )
+                              : null,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: selectedOption == 'A'
+                                        ? TactixTheme.gold
+                                        : TactixTheme.panel2,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    'A',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: selectedOption == 'A'
+                                          ? TactixTheme.bg
+                                          : Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                    currentOptionA,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      height: 1.5,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Icon(
+                                  selectedOption == 'A'
+                                      ? Icons.check_circle
+                                      : Icons.radio_button_unchecked,
+                                  size: 22,
+                                  color: selectedOption == 'A'
+                                      ? TactixTheme.gold
+                                      : TactixTheme.textMuted,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+              widget.forceOffline
+                  ? DecisionButton(
                 letter: 'B',
                 text: currentOptionB,
                 selected:
@@ -1723,8 +1813,84 @@ ${state.turn}
                 onTap: () => setState(
                   () => selectedOption = 'B',
                 ),
-              ),
-              DecisionButton(
+              )
+                  : Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Material(
+                        color: selectedOption == 'B'
+                            ? TactixTheme.gold.withValues(alpha: 0.06)
+                            : TactixTheme.panel,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: selectedOption == 'B'
+                                ? TactixTheme.gold
+                                : TactixTheme.line,
+                            width: selectedOption == 'B' ? 2 : 1,
+                          ),
+                        ),
+                        child: InkWell(
+                          onTap: !processing && !completed
+                              ? () => setState(
+                                    () => selectedOption = 'B',
+                                  )
+                              : null,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: selectedOption == 'B'
+                                        ? TactixTheme.gold
+                                        : TactixTheme.panel2,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    'B',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: selectedOption == 'B'
+                                          ? TactixTheme.bg
+                                          : Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                    currentOptionB,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      height: 1.5,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Icon(
+                                  selectedOption == 'B'
+                                      ? Icons.check_circle
+                                      : Icons.radio_button_unchecked,
+                                  size: 22,
+                                  color: selectedOption == 'B'
+                                      ? TactixTheme.gold
+                                      : TactixTheme.textMuted,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+              widget.forceOffline
+                  ? DecisionButton(
                 letter: 'C',
                 text: currentOptionC,
                 selected:
@@ -1735,9 +1901,97 @@ ${state.turn}
                 onTap: () => setState(
                   () => selectedOption = 'C',
                 ),
-              ),
+              )
+                  : Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Material(
+                        color: selectedOption == 'C'
+                            ? TactixTheme.gold.withValues(alpha: 0.06)
+                            : TactixTheme.panel,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: selectedOption == 'C'
+                                ? TactixTheme.gold
+                                : TactixTheme.line,
+                            width: selectedOption == 'C' ? 2 : 1,
+                          ),
+                        ),
+                        child: InkWell(
+                          onTap: !processing && !completed
+                              ? () => setState(
+                                    () => selectedOption = 'C',
+                                  )
+                              : null,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: selectedOption == 'C'
+                                        ? TactixTheme.gold
+                                        : TactixTheme.panel2,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    'C',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: selectedOption == 'C'
+                                          ? TactixTheme.bg
+                                          : Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                    currentOptionC,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      height: 1.5,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Icon(
+                                  selectedOption == 'C'
+                                      ? Icons.check_circle
+                                      : Icons.radio_button_unchecked,
+                                  size: 22,
+                                  color: selectedOption == 'C'
+                                      ? TactixTheme.gold
+                                      : TactixTheme.textMuted,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
               const SizedBox(height: 4),
               FilledButton.icon(
+                style: widget.forceOffline
+                    ? null
+                    : FilledButton.styleFrom(
+                        backgroundColor: TactixTheme.gold,
+                        foregroundColor: TactixTheme.bg,
+                        disabledBackgroundColor: TactixTheme.panel2,
+                        disabledForegroundColor: TactixTheme.textMuted,
+                        elevation: 0,
+                        minimumSize: const Size.fromHeight(56),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
                 onPressed:
                     selectedOption ==
                                 null ||
@@ -1800,6 +2054,7 @@ ${state.turn}
                       if (lastDecisionScore != null &&
                           lastStateDelta != null) ...[
                         _TactixDecisionScoreCard(
+                          preserveDemo: widget.forceOffline,
                           score: lastDecisionScore!,
                           delta: lastStateDelta!,
                         ),
@@ -1853,6 +2108,7 @@ ${state.turn}
                           height: 12,
                         ),
                         _SignalBlock(
+                        preserveDemo: widget.forceOffline,
                           title:
                               'AI-СВОДКА',
                           icon: Icons
@@ -1956,10 +2212,12 @@ ${state.turn}
 class _TactixDecisionScoreCard extends StatelessWidget {
   final DecisionScore score;
   final StateDelta delta;
+  final bool preserveDemo;
 
   const _TactixDecisionScoreCard({
     required this.score,
     required this.delta,
+    this.preserveDemo = false,
   });
 
   String _delta(int value) {
@@ -1981,10 +2239,10 @@ class _TactixDecisionScoreCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
+        color: preserveDemo ? color.withValues(alpha: 0.06) : TactixTheme.panel,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: color.withValues(alpha: 0.30),
+          color: color.withValues(alpha: preserveDemo ? 0.30 : 0.22),
         ),
       ),
       child: Column(
@@ -1996,13 +2254,13 @@ class _TactixDecisionScoreCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'TACTIX SCORE',
+                    Text(
+                      preserveDemo ? 'TACTIX SCORE' : 'TACTIX SCORE\nScore этого хода',
                       style: TextStyle(
                         color: TactixTheme.textMuted,
-                        fontSize: 9,
+                        fontSize: preserveDemo ? 9 : 12,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
+                        letterSpacing: preserveDemo ? 1.5 : 0.3,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -2018,12 +2276,26 @@ class _TactixDecisionScoreCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(
-                '${score.total}/100',
-                style: TextStyle(
-                  color: color,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
+              Text.rich(
+                TextSpan(
+                  text: '${score.total}',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: preserveDemo ? 30 : 46,
+                    fontWeight: FontWeight.w900,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: '/100',
+                      style: preserveDemo
+                          ? null
+                          : const TextStyle(
+                              color: TactixTheme.textMuted,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -2033,19 +2305,23 @@ class _TactixDecisionScoreCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _TactixMetricChip(label: 'ЦЕЛЬ', value: score.goal),
-              _TactixMetricChip(label: 'РЕСУРСЫ', value: score.resources),
-              _TactixMetricChip(label: 'УСТОЙЧИВОСТЬ', value: score.stability),
-              _TactixMetricChip(label: 'НЕОПРЕД.', value: score.uncertainty),
-              _TactixMetricChip(label: 'ВРЕМЯ', value: score.time),
+              _TactixMetricChip(preserveDemo: preserveDemo, label: 'ЦЕЛЬ', value: score.goal),
+              _TactixMetricChip(preserveDemo: preserveDemo, label: 'РЕСУРСЫ', value: score.resources),
+              _TactixMetricChip(preserveDemo: preserveDemo, label: 'УСТОЙЧИВОСТЬ', value: score.stability),
+              _TactixMetricChip(preserveDemo: preserveDemo, label: preserveDemo ? 'НЕОПРЕД.' : 'НЕОПРЕДЕЛЁННОСТЬ', value: score.uncertainty),
+              _TactixMetricChip(preserveDemo: preserveDemo, label: 'ВРЕМЯ', value: score.time),
             ],
           ),
-          const SizedBox(height: 14),
-          const Text(
+          Container(
+            height: preserveDemo ? 14 : 1,
+            margin: preserveDemo ? EdgeInsets.zero : const EdgeInsets.symmetric(vertical: 16),
+            color: preserveDemo ? null : TactixTheme.line,
+          ),
+          Text(
             'ИЗМЕНЕНИЕ СОСТОЯНИЯ',
             style: TextStyle(
               color: TactixTheme.textMuted,
-              fontSize: 9,
+              fontSize: preserveDemo ? 9 : 12,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.2,
             ),
@@ -2063,11 +2339,11 @@ class _TactixDecisionScoreCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'Оценка рассчитана локально. AI только объясняет результат.',
             style: TextStyle(
               color: Colors.white54,
-              fontSize: 10,
+              fontSize: preserveDemo ? 10 : 12,
               height: 1.35,
             ),
           ),
@@ -2080,10 +2356,12 @@ class _TactixDecisionScoreCard extends StatelessWidget {
 class _TactixMetricChip extends StatelessWidget {
   final String label;
   final int value;
+  final bool preserveDemo;
 
   const _TactixMetricChip({
     required this.label,
     required this.value,
+    this.preserveDemo = false,
   });
 
   @override
@@ -2100,9 +2378,9 @@ class _TactixMetricChip extends StatelessWidget {
       ),
       child: Text(
         '$label  $value',
-        style: const TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
+        style: TextStyle(
+          fontSize: preserveDemo ? 9 : 13,
+          fontWeight: preserveDemo ? FontWeight.w800 : FontWeight.w600,
         ),
       ),
     );
@@ -3279,7 +3557,10 @@ class _StatusPill
   final String label;
   final IconData icon;
 
+  final bool preserveDemo;
+
   const _StatusPill({
+    this.preserveDemo = false,
     required this.label,
     required this.icon,
   });
@@ -3331,7 +3612,7 @@ class _StatusPill
             label,
             style:
                 TextStyle(
-              fontSize: 10,
+              fontSize: preserveDemo ? 10 : 12,
               fontWeight:
                   FontWeight.w900,
               color: primary,
@@ -3350,6 +3631,7 @@ class _TrainingMetricCard
   final IconData icon;
   final double progress;
   final bool inverted;
+  final bool preserveDemo;
 
   const _TrainingMetricCard({
     required this.title,
@@ -3357,6 +3639,7 @@ class _TrainingMetricCard
     required this.icon,
     required this.progress,
     this.inverted = false,
+    this.preserveDemo = false,
   });
 
   @override
@@ -3378,10 +3661,10 @@ class _TrainingMetricCard
         progress.clamp(0.0, 1.0);
 
     return SizedBox(
-      width: safeWidth,
+      width: preserveDemo ? safeWidth : (MediaQuery.sizeOf(context).width >= 900 ? 210 : (MediaQuery.sizeOf(context).width - 2 * TactixResponsive.horizontalPadding(context) - 9) / 2),
       child: Container(
         padding:
-            const EdgeInsets.all(13),
+            EdgeInsets.all(preserveDemo ? 13 : 10),
         decoration:
             BoxDecoration(
           color:
@@ -3415,14 +3698,14 @@ class _TrainingMetricCard
                 Expanded(
                   child: Text(
                     title,
-                    maxLines: 1,
+                    maxLines: preserveDemo ? 1 : null,
                     overflow:
                         TextOverflow.ellipsis,
                     style:
-                        const TextStyle(
-                      fontSize: 10.5,
+                        TextStyle(
+                      fontSize: preserveDemo ? 10.5 : 12,
                       color:
-                          Colors.white54,
+                          preserveDemo ? Colors.white54 : TactixTheme.textMuted,
                       fontWeight:
                           FontWeight.w700,
                     ),
@@ -3431,7 +3714,7 @@ class _TrainingMetricCard
                 Text(
                   value,
                   style:
-                      const TextStyle(
+                      TextStyle(
                     fontSize: 15,
                     fontWeight:
                         FontWeight.w900,
@@ -3449,7 +3732,7 @@ class _TrainingMetricCard
               ),
               child:
                   LinearProgressIndicator(
-                minHeight: 5,
+                minHeight: preserveDemo ? 5 : 3,
                 value: safeProgress,
                 backgroundColor:
                     Colors.white10,
@@ -3476,7 +3759,10 @@ class _MiniLabel
     extends StatelessWidget {
   final String text;
 
+  final bool preserveDemo;
+
   const _MiniLabel({
+    this.preserveDemo = false,
     required this.text,
   });
 
@@ -3484,8 +3770,8 @@ class _MiniLabel
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 10,
+      style: TextStyle(
+        fontSize: preserveDemo ? 10 : 12,
         fontWeight:
             FontWeight.w900,
         color: Colors.white54,
@@ -3501,7 +3787,10 @@ class _SignalBlock
   final IconData icon;
   final String text;
 
+  final bool preserveDemo;
+
   const _SignalBlock({
+    this.preserveDemo = false,
     required this.title,
     required this.icon,
     required this.text,
@@ -3546,8 +3835,8 @@ class _SignalBlock
                 Text(
                   title,
                   style:
-                      const TextStyle(
-                    fontSize: 10,
+                      TextStyle(
+                    fontSize: preserveDemo ? 10 : 12,
                     fontWeight:
                         FontWeight.w900,
                     color:
@@ -3561,7 +3850,7 @@ class _SignalBlock
                 Text(
                   text,
                   style:
-                      const TextStyle(
+                      TextStyle(
                     height: 1.45,
                   ),
                 ),
@@ -3577,17 +3866,19 @@ class _SignalBlock
 class _HistoryRow
     extends StatelessWidget {
   final DecisionRecord item;
+  final bool preserveDemo;
 
   const _HistoryRow({
     required this.item,
+    this.preserveDemo = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final primary =
-        Theme.of(context)
-            .colorScheme
-            .primary;
+        preserveDemo
+            ? Theme.of(context).colorScheme.primary
+            : TactixTheme.textMuted;
 
     return Container(
       padding:
@@ -3629,7 +3920,7 @@ class _HistoryRow
               style:
                   TextStyle(
                 fontWeight:
-                    FontWeight.w900,
+                    preserveDemo ? FontWeight.w900 : FontWeight.w600,
                 color: primary,
               ),
             ),
@@ -3641,18 +3932,18 @@ class _HistoryRow
             child: Text(
               'Решение ${item.decision}',
               style:
-                  const TextStyle(
+                  TextStyle(
                 fontWeight:
-                    FontWeight.w700,
+                    preserveDemo ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ),
           Text(
             '${item.score}/100',
             style:
-                const TextStyle(
+                TextStyle(
               fontWeight:
-                  FontWeight.w900,
+                  preserveDemo ? FontWeight.w900 : FontWeight.w600,
             ),
           ),
         ],
