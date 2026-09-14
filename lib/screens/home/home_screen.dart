@@ -321,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: aiOnline
                           ? const Color(0xFF7FE7B8)
                           : const Color(0xFFFFC857),
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.0,
                     ),
@@ -329,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 8),
                   const Text(
                     'Gemma 3 4B  |  Ollama',
-                    style: TextStyle(color: TactixTheme.textMuted, fontSize: 10),
+                    style: TextStyle(color: TactixTheme.textMuted, fontSize: 11),
                   ),
                 ],
               ),
@@ -385,6 +385,30 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _HeroCard(
             onTap: () => _open(context, const AIScenarioScreen()),
+          ),
+          const SizedBox(height: 18),
+          _CommandTile(
+            icon: Icons.rocket_launch_outlined,
+            title: 'DEMO ДЛЯ ЖЮРИ',
+            subtitle: 'OFFLINE READY • 3 хода • AAR',
+            accent: TactixTheme.gold,
+            onTap: () => _openOfflineDemo(context),
+          ),
+          const SizedBox(height: 18),
+          const SectionLabel('ЖИВЫЕ ДАННЫЕ'),
+          const SizedBox(height: 10),
+          _DashboardMetrics(
+            loading: loading,
+            trainings: results.length,
+            average: _averageScore(),
+            best: _bestScore(),
+            goal: _averageGoal(),
+            resource: _averageResource(),
+            stability: _averageStability(),
+            uncertainty: _averageUncertainty(),
+            time: _averageTime(),
+            level: _level(),
+            xp: _levelXp(),
           ),
           const SizedBox(height: 18),
           const SectionLabel('БЫСТРЫЙ ДОСТУП'),
@@ -444,16 +468,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () => _open(context, const AIScenarioScreen()),
                     ),
                   ),
-                  SizedBox(
-                    width: tileWidth,
-                    child: _CommandTile(
-                      icon: Icons.rocket_launch_outlined,
-                      title: 'DEMO ДЛЯ ЖЮРИ',
-                      subtitle: 'OFFLINE READY • 3 хода • AAR',
-                      accent: const Color(0xFF4EE39A),
-                      onTap: () => _openOfflineDemo(context),
-                    ),
-                  ),
                   if (canManageTraining)
                     SizedBox(
                       width: tileWidth,
@@ -489,22 +503,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               );
             },
-          ),
-          const SizedBox(height: 18),
-          const SectionLabel('ЖИВЫЕ ДАННЫЕ'),
-          const SizedBox(height: 10),
-          _DashboardMetrics(
-            loading: loading,
-            trainings: results.length,
-            average: _averageScore(),
-            best: _bestScore(),
-            goal: _averageGoal(),
-            resource: _averageResource(),
-            stability: _averageStability(),
-            uncertainty: _averageUncertainty(),
-            time: _averageTime(),
-            level: _level(),
-            xp: _levelXp(),
           ),
           const SizedBox(height: 18),
           const SectionLabel('ВНЕШНЯЯ СРЕДА'),
@@ -593,7 +591,7 @@ class _ProfilePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = levelProgress.clamp(0.0, 1.0).toDouble();
-    final primary = Theme.of(context).colorScheme.primary;
+    const primary = TactixTheme.textMuted;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -608,13 +606,13 @@ class _ProfilePanel extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 54,
-                height: 54,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(10),
                   color: primary.withValues(alpha: 0.10),
                   border: Border.all(
-                    color: primary.withValues(alpha: 0.36),
+                    color: primary.withValues(alpha: 0.16),
                   ),
                 ),
                 child: Center(
@@ -691,8 +689,9 @@ class _ProfilePanel extends StatelessWidget {
             borderRadius: BorderRadius.circular(99),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 8,
-              backgroundColor: Colors.white10,
+              minHeight: 4,
+              backgroundColor: TactixTheme.line,
+              color: TactixTheme.textMuted,
             ),
           ),
           const SizedBox(height: 15),
@@ -766,7 +765,7 @@ class _ProgressHistoryChart extends StatelessWidget {
     final values = results.reversed.take(8).map((e) => e.score).toList().reversed.toList();
 
     return Container(
-      height: 235,
+      height: values.length < 2 ? 120 : 235,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
         color: TactixTheme.panel,
@@ -822,13 +821,13 @@ class _ProgressHistoryChart extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.show_chart_outlined, size: 34, color: Colors.white24),
+          const Icon(Icons.show_chart_outlined, size: 26, color: Colors.white24),
           const SizedBox(height: 9),
           Text(
             'Нужно минимум 2 завершённые тренировки',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: .45),
+              color: TactixTheme.textMuted,
               fontSize: 11,
             ),
           ),
@@ -970,19 +969,19 @@ class _DashboardMetrics extends StatelessWidget {
 
   Widget _liveCard(String title, String value, IconData icon, Color accent) {
     return SizedBox(
-      width: 190,
+      width: 150,
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: TactixTheme.panel,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: accent.withValues(alpha: 0.18)),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: TactixTheme.line),
         ),
         child: Row(
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 28,
+              height: 28,
               decoration: BoxDecoration(
                 color: accent.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
@@ -996,21 +995,21 @@ class _DashboardMetrics extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: TactixTheme.textMuted,
-                      fontSize: 8.5,
+                      fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: .8,
+                      letterSpacing: 0,
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     value,
                     style: TextStyle(
-                      color: accent,
-                      fontSize: 18,
+                      color: Colors.white,
+                      fontSize: 22,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -1049,9 +1048,9 @@ class _DesktopSidebar extends StatelessWidget {
               'NAVIGATION',
               style: TextStyle(
                 color: TactixTheme.textMuted,
-                fontSize: 9,
+                fontSize: 11,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 1.7,
+                letterSpacing: 0.5,
               ),
             ),
           ),
@@ -1123,9 +1122,9 @@ class _DesktopSidebar extends StatelessWidget {
                     Text(
                       'SYSTEM STATUS',
                       style: TextStyle(
-                        fontSize: 9,
+                        fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 1.0,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
@@ -1184,7 +1183,7 @@ class _DesktopSidebar extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: active ? Colors.white : Colors.white70,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: active ? FontWeight.w800 : FontWeight.w500,
                   ),
                 ),
@@ -1260,7 +1259,7 @@ class _EnvironmentDashboardState extends State<_EnvironmentDashboard> {
     return PanelCard(
       title: 'ENVIRONMENT MONITOR',
       icon: Icons.public_rounded,
-      accent: TactixTheme.cyan,
+      accent: TactixTheme.textMuted,
       trailing: TextButton.icon(
         onPressed: loading ? null : _load,
         icon: const Icon(Icons.refresh_rounded, size: 15),
@@ -1425,20 +1424,20 @@ class _EnvironmentMetric extends StatelessWidget {
       width: 150,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.025),
+        color: TactixTheme.panel,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: TactixTheme.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: accent, size: 18),
+          Icon(icon, color: accent.withValues(alpha: 0.65), size: 16),
           const SizedBox(height: 8),
           Text(
             label,
             style: const TextStyle(
               color: TactixTheme.textMuted,
-              fontSize: 8,
+              fontSize: 10,
               fontWeight: FontWeight.w900,
               letterSpacing: .7,
             ),
@@ -1448,7 +1447,7 @@ class _EnvironmentMetric extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -1526,7 +1525,7 @@ class _IntelligencePanel extends StatelessWidget {
                 const SizedBox(height: 7),
                 const Text(
                   'Gemma 3 4B  •  Ollama',
-                  style: TextStyle(color: TactixTheme.textMuted, fontSize: 10),
+                  style: TextStyle(color: TactixTheme.textMuted, fontSize: 11),
                 ),
                 const SizedBox(height: 16),
                 _metric('СРЕДНИЙ БАЛЛ', '$average%', TactixTheme.cyan),
@@ -1550,12 +1549,12 @@ class _IntelligencePanel extends StatelessWidget {
                   children: [
                     Text(
                       'Уровень $level',
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                     ),
                     const Spacer(),
                     Text(
                       '$xp / 500 XP',
-                      style: const TextStyle(color: TactixTheme.textMuted, fontSize: 10),
+                      style: const TextStyle(color: TactixTheme.textMuted, fontSize: 11),
                     ),
                   ],
                 ),
@@ -1650,9 +1649,9 @@ class _IntelligencePanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.06),
+        color: TactixTheme.panel,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: accent.withValues(alpha: 0.16)),
+        border: Border.all(color: TactixTheme.line),
       ),
       child: Row(
         children: [
@@ -1661,17 +1660,17 @@ class _IntelligencePanel extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: TactixTheme.textMuted,
-                fontSize: 9,
-                letterSpacing: 1.0,
+                fontSize: 11,
+                letterSpacing: 0.2,
               ),
             ),
           ),
           Text(
             value,
             style: TextStyle(
-              color: accent,
+              color: accent.withValues(alpha: 0.8),
               fontSize: 17,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -1693,12 +1692,12 @@ class _MetricPair extends StatelessWidget {
         Expanded(
           child: Text(
             left,
-            style: const TextStyle(color: TactixTheme.textMuted, fontSize: 10),
+            style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
           ),
         ),
         Text(
           right,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+          style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -1721,7 +1720,7 @@ class _DiagnosticRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(color: TactixTheme.textMuted, fontSize: 10),
+              style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
             ),
           ),
           Icon(
@@ -1733,9 +1732,9 @@ class _DiagnosticRow extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: ok ? const Color(0xFF70E6AF) : Colors.redAccent,
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
+              color: ok ? TactixTheme.textMuted : Colors.redAccent,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1942,34 +1941,26 @@ class _HeroCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: EdgeInsets.all(isPhone ? 18 : 24),
+        padding: EdgeInsets.all(isPhone ? 16 : 20),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF13202A), Color(0xFF0D141B)],
+            colors: [TactixTheme.panel2, TactixTheme.panel],
           ),
-          border: Border.all(color: TactixTheme.cyan.withValues(alpha: 0.28)),
+          border: Border.all(color: TactixTheme.gold.withValues(alpha: 0.24)),
         ),
-        child: isPhone
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _HeroContent(),
-                  const SizedBox(height: 18),
-                  _heroButton(),
-                ],
-              )
-            : Row(
-                children: [
-                  const Expanded(flex: 7, child: _HeroContent()),
-                  const SizedBox(width: 20),
-                  Expanded(child: _heroButton()),
-                ],
-              ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _HeroContent(),
+            const SizedBox(height: 16),
+            _heroButton(),
+          ],
+        ),
       ),
     );
   }
@@ -1983,10 +1974,10 @@ class _HeroCard extends StatelessWidget {
           width: double.infinity,
           padding: EdgeInsets.symmetric(
             horizontal: compact ? 10 : 16,
-            vertical: compact ? 10 : 13,
+            vertical: 16,
           ),
           decoration: BoxDecoration(
-            color: TactixTheme.gold.withValues(alpha: 0.10),
+            color: TactixTheme.gold,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: TactixTheme.gold.withValues(alpha: 0.42),
@@ -1996,7 +1987,7 @@ class _HeroCard extends StatelessWidget {
             children: [
               const Icon(
                 Icons.play_arrow_rounded,
-                color: TactixTheme.gold,
+                color: TactixTheme.bg,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -2006,17 +1997,17 @@ class _HeroCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: TactixTheme.gold,
-                    fontSize: 11,
+                    color: TactixTheme.bg,
+                    fontSize: 13,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 0.8,
+                    letterSpacing: 0.4,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               const Icon(
                 Icons.arrow_forward_rounded,
-                color: TactixTheme.gold,
+                color: TactixTheme.bg,
                 size: 17,
               ),
             ],
@@ -2038,7 +2029,7 @@ class _HeroContent extends StatelessWidget {
         Text(
           'TACTIX',
           style: TextStyle(
-            fontSize: 30,
+            fontSize: 26,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.2,
           ),
@@ -2049,7 +2040,7 @@ class _HeroContent extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             height: 1.35,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w600,
           ),
         ),
         SizedBox(height: 8),
@@ -2057,7 +2048,7 @@ class _HeroContent extends StatelessWidget {
           'Сценарии • AI-анализ • симуляция • статистика',
           style: TextStyle(
             color: TactixTheme.textMuted,
-            fontSize: 11,
+            fontSize: 12,
           ),
         ),
       ],
@@ -2084,46 +2075,57 @@ class _CommandTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        height: 152,
-        padding: const EdgeInsets.all(15),
+        constraints: const BoxConstraints(minHeight: 88),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: TactixTheme.panel,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: accent.withValues(alpha: 0.25)),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: TactixTheme.line),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
             Container(
-              width: 38,
-              height: 38,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.08),
+                color: accent.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: accent.withValues(alpha: 0.24)),
               ),
               child: Icon(icon, color: accent, size: 20),
             ),
-            const Spacer(),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: TactixTheme.textMuted,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(color: TactixTheme.textMuted, fontSize: 9.5),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.arrow_forward_rounded,
+              color: TactixTheme.textMuted,
+              size: 16,
             ),
-            const SizedBox(height: 7),
-            Icon(Icons.arrow_forward_rounded, color: accent, size: 16),
           ],
         ),
       ),
