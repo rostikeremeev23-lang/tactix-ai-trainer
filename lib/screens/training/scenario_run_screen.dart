@@ -2816,18 +2816,11 @@ class FinishCard
     );
   }
 
-  Widget _sectionTitle(
-    String text, {
-    IconData? icon,
-  }) {
+  Widget _sectionTitle(String text, {IconData? icon}) {
     return Row(
       children: [
         if (icon != null) ...[
-          Icon(
-            icon,
-            size: 17,
-            color: TactixTheme.gold,
-          ),
+          Icon(icon, size: 17, color: TactixTheme.gold),
           const SizedBox(width: 8),
         ],
         Expanded(
@@ -2845,13 +2838,10 @@ class FinishCard
     );
   }
 
-  Widget _metricBar(
-    String label,
-    int value,
-  ) {
+  Widget _metricBar(String label, int value) {
     final color = _scoreColor(value);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 9),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2882,7 +2872,7 @@ class FinishCard
             borderRadius: BorderRadius.circular(99),
             child: LinearProgressIndicator(
               value: (value / 100).clamp(0.0, 1.0),
-              minHeight: 7,
+              minHeight: 5,
               backgroundColor: Colors.white10,
               color: color,
             ),
@@ -2892,29 +2882,21 @@ class FinishCard
     );
   }
 
-  Widget _deltaChip(
-    String label,
-    int value,
-  ) {
+  Widget _deltaChip(String label, int value) {
     final positive = value > 0;
     final negative = value < 0;
     final color = positive
         ? const Color(0xFF4EE39A)
         : negative
-            ? const Color(0xFFFF9F43)
-            : Colors.white54;
+        ? const Color(0xFFFF9F43)
+        : Colors.white54;
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: .07),
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(
-          color: color.withValues(alpha: .25),
-        ),
+        border: Border.all(color: color.withValues(alpha: .25)),
       ),
       child: Text(
         '$label ${_deltaText(value)}',
@@ -2929,94 +2911,74 @@ class FinishCard
 
   Widget _decisionCard(DecisionRecord item) {
     final color = _scoreColor(item.score);
+    final resultText = item.level.trim().isNotEmpty ? item.level : '/ 100';
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 9),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .025),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: TactixTheme.line),
+        color: Colors.white.withValues(alpha: .018),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: TactixTheme.line.withValues(alpha: .75)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 34,
-            height: 34,
+            constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
+            padding: const EdgeInsets.all(5),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: .10),
-              borderRadius: BorderRadius.circular(9),
-              border: Border.all(
-                color: color.withValues(alpha: .30),
-              ),
+              color: TactixTheme.cyan.withValues(alpha: .08),
+              borderRadius: BorderRadius.circular(7),
             ),
             child: Text(
               '${item.turn}',
-              style: TextStyle(
-                color: color,
+              style: const TextStyle(
+                color: TactixTheme.cyan,
+                fontSize: 10,
                 fontWeight: FontWeight.w900,
               ),
             ),
           ),
-          const SizedBox(width: 11),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ХОД ${item.turn} • ВАРИАНТ ${item.decision}',
+                  'ХОД ${item.turn} • ВАРИАНТ ${item.decision}\n${decisionLabel(item.decision)}',
+                  softWrap: true,
                   style: const TextStyle(
                     fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: .7,
+                    fontWeight: FontWeight.w800,
+                    height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
-                  decisionLabel(item.decision),
+                  '$resultText • R ${_deltaText(item.delta['resources'] ?? 0)} • '
+                  'S ${_deltaText(item.delta['stability'] ?? 0)} • '
+                  'P ${_deltaText(item.delta['progress'] ?? 0)} • '
+                  'U ${_deltaText(item.delta['uncertainty'] ?? 0)}',
+                  softWrap: true,
                   style: const TextStyle(
                     color: TactixTheme.textMuted,
-                    fontSize: 10,
+                    fontSize: 9,
+                    height: 1.35,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 7,
-                  runSpacing: 7,
-                  children: [
-                    _deltaChip('R', item.delta['resources'] ?? 0),
-                    _deltaChip('S', item.delta['stability'] ?? 0),
-                    _deltaChip('P', item.delta['progress'] ?? 0),
-                    _deltaChip('U', item.delta['uncertainty'] ?? 0),
-                  ],
                 ),
               ],
             ),
           ),
           const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${item.score}',
-                style: TextStyle(
-                  color: color,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                item.level.isEmpty
-                    ? '/ 100'
-                    : item.level.toUpperCase(),
-                style: const TextStyle(
-                  color: TactixTheme.textMuted,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+          Text(
+            '${item.score}',
+            style: TextStyle(
+              color: color,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),
@@ -3025,8 +2987,7 @@ class FinishCard
 
   @override
   Widget build(BuildContext context) {
-    final adaptation =
-        (100 - state.uncertainty).clamp(0, 100);
+    final adaptation = (100 - state.uncertainty).clamp(0, 100);
     final scoreColor = _scoreColor(score);
     final strongest = _strongestCriterion;
     final weakest = _weakestCriterion;
@@ -3045,72 +3006,50 @@ class FinishCard
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  scoreColor.withValues(alpha: .13),
-                  TactixTheme.panel2,
-                  TactixTheme.panel,
-                ],
-              ),
+              color: TactixTheme.panel2,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(18),
               ),
+              border: Border(
+                bottom: BorderSide(
+                  color: TactixTheme.gold.withValues(alpha: .28),
+                ),
+              ),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: TactixTheme.gold.withValues(alpha: .10),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: TactixTheme.gold.withValues(alpha: .30),
-                        ),
-                      ),
-                      child: const Text(
-                        'AFTER ACTION REVIEW',
-                        style: TextStyle(
-                          color: TactixTheme.gold,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    const Text(
-                      'LOCAL SCORE • AI EXPLANATION',
-                      style: TextStyle(
-                        color: TactixTheme.textMuted,
-                        fontSize: 8,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: .7,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  scenarioTitle.toUpperCase(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 17,
+                const Text(
+                  'AFTER ACTION REVIEW',
+                  style: TextStyle(
+                    color: TactixTheme.gold,
+                    fontSize: 13,
                     fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'LOCAL SCORE • AI EXPLANATION',
+                  style: TextStyle(
+                    color: TactixTheme.textMuted,
+                    fontSize: 8,
                     letterSpacing: .7,
                   ),
                 ),
+                const SizedBox(height: 15),
+                Text(
+                  scenarioTitle,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    height: 1.3,
+                  ),
+                ),
                 if (goal.trim().isNotEmpty) ...[
-                  const SizedBox(height: 7),
+                  const SizedBox(height: 5),
                   Text(
                     goal,
-                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: TactixTheme.textMuted,
                       fontSize: 11,
@@ -3118,64 +3057,96 @@ class FinishCard
                     ),
                   ),
                 ],
-                const SizedBox(height: 20),
+                const SizedBox(height: 14),
                 const Text(
                   'TACTIX SCORE',
                   style: TextStyle(
                     color: TactixTheme.textMuted,
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.8,
+                    letterSpacing: 1.4,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 6),
                 Text(
                   '$score',
                   style: TextStyle(
                     color: scoreColor,
-                    fontSize: 58,
-                    height: 1,
+                    fontSize: 64,
+                    height: 1.1,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const Text(
+                  '/ 100',
+                  style: TextStyle(color: TactixTheme.textMuted, fontSize: 12),
+                ),
+                const SizedBox(height: 7),
                 Text(
                   _level(score),
                   style: TextStyle(
                     color: scoreColor,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.3,
+                    letterSpacing: .4,
                   ),
                 ),
-                const SizedBox(height: 13),
-                Text(
-                  finalVerdict(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  runSpacing: 8,
+                const SizedBox(height: 15),
+                Row(
                   children: [
-                    _deltaChip('ХОДОВ', history.length),
-                    _deltaChip('ВРЕМЯ', durationSeconds),
-                    _deltaChip('ПРОГРЕСС', state.progress),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'ХОДОВ',
+                            style: TextStyle(
+                              color: TactixTheme.textMuted,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: .8,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            '${history.length}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 30, color: TactixTheme.line),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'ПРОДОЛЖИТЕЛЬНОСТЬ',
+                              style: TextStyle(
+                                color: TactixTheme.textMuted,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: .8,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              _duration(),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Продолжительность: ${_duration()}',
-                  style: const TextStyle(
-                    color: TactixTheme.textMuted,
-                    fontSize: 9,
-                  ),
                 ),
               ],
             ),
@@ -3185,101 +3156,128 @@ class FinishCard
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _sectionTitle(
-                  'СТРУКТУРА TACTIX SCORE',
-                  icon: Icons.radar_rounded,
-                ),
-                const SizedBox(height: 15),
-                ..._criteria.entries.map(
-                  (entry) => _metricBar(
-                    entry.key,
-                    entry.value,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                _sectionTitle('КЛЮЧЕВЫЕ ВЫВОДЫ', icon: Icons.insights_outlined),
+                const SizedBox(height: 12),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final two = constraints.maxWidth >= 620;
-                    final width = two
-                        ? (constraints.maxWidth - 10) / 2
+                    final cardWidth = constraints.maxWidth >= 620
+                        ? (constraints.maxWidth - 12) / 2
                         : constraints.maxWidth;
-
-                    Widget insightCard({
-                      required String title,
-                      required String value,
-                      required IconData icon,
-                      required Color color,
-                    }) {
-                      return SizedBox(
-                        width: width,
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: .055),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: color.withValues(alpha: .22),
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        SizedBox(
+                          width: cardWidth,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: TactixTheme.cyan.withValues(alpha: .055),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: TactixTheme.cyan.withValues(alpha: .25),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'СИЛЬНАЯ СТОРОНА',
+                                  style: TextStyle(
+                                    color: TactixTheme.cyan,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  strongest == null
+                                      ? 'Нет данных'
+                                      : '${strongest.key} • ${strongest.value}/100',
+                                  softWrap: true,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(icon, color: color, size: 20),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      title,
-                                      style: const TextStyle(
-                                        color: TactixTheme.textMuted,
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: .9,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      value,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w800,
-                                        height: 1.35,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                        ),
+                        SizedBox(
+                          width: cardWidth,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: TactixTheme.gold.withValues(alpha: .045),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: TactixTheme.gold.withValues(alpha: .22),
                               ),
-                            ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'ЗОНА РАЗВИТИЯ',
+                                  style: TextStyle(
+                                    color: TactixTheme.gold,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  weakest == null
+                                      ? 'Нет данных'
+                                      : '${weakest.key} • ${weakest.value}/100',
+                                  softWrap: true,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    }
-
-                    return Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        insightCard(
-                          title: 'СИЛЬНАЯ СТОРОНА',
-                          value: strongest == null
-                              ? 'Нет данных'
-                              : '${strongest.key} • ${strongest.value}/100',
-                          icon: Icons.trending_up_rounded,
-                          color: const Color(0xFF4EE39A),
-                        ),
-                        insightCard(
-                          title: 'ЗОНА РАЗВИТИЯ',
-                          value: weakest == null
-                              ? 'Нет данных'
-                              : '${weakest.key} • ${weakest.value}/100',
-                          icon: Icons.track_changes_rounded,
-                          color: const Color(0xFFFF9F43),
                         ),
                       ],
                     );
                   },
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  finalVerdict(),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                _sectionTitle(
+                  'СТРУКТУРА TACTIX SCORE',
+                  icon: Icons.radar_rounded,
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
+                  decoration: BoxDecoration(
+                    color: TactixTheme.panel2.withValues(alpha: .55),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: TactixTheme.line),
+                  ),
+                  child: Column(
+                    children: [
+                      ..._criteria.entries.map(
+                        (entry) => _metricBar(entry.key, entry.value),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 22),
                 _sectionTitle(
@@ -3291,26 +3289,11 @@ class FinishCard
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _deltaChip(
-                      'РЕСУРСЫ',
-                      _aggregateDelta('resources'),
-                    ),
-                    _deltaChip(
-                      'УСТОЙЧИВОСТЬ',
-                      _aggregateDelta('stability'),
-                    ),
-                    _deltaChip(
-                      'ПРОГРЕСС',
-                      _aggregateDelta('progress'),
-                    ),
-                    _deltaChip(
-                      'НЕОПРЕД.',
-                      _aggregateDelta('uncertainty'),
-                    ),
-                    _deltaChip(
-                      'ВРЕМЯ',
-                      _aggregateDelta('time'),
-                    ),
+                    _deltaChip('РЕСУРСЫ', _aggregateDelta('resources')),
+                    _deltaChip('УСТОЙЧИВОСТЬ', _aggregateDelta('stability')),
+                    _deltaChip('ПРОГРЕСС', _aggregateDelta('progress')),
+                    _deltaChip('НЕОПРЕД.', _aggregateDelta('uncertainty')),
+                    _deltaChip('ВРЕМЯ', _aggregateDelta('time')),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -3319,46 +3302,188 @@ class FinishCard
                   icon: Icons.dashboard_customize_outlined,
                 ),
                 const SizedBox(height: 12),
-                ScoreRow(
-                  title: 'Ресурсы',
-                  value: state.resources,
+                ScoreRow(title: 'Ресурсы', value: state.resources),
+                ScoreRow(title: 'Стабильность', value: state.stability),
+                ScoreRow(title: 'Прогресс', value: state.progress),
+                ScoreRow(title: 'Адаптация', value: adaptation),
+                const SizedBox(height: 22),
+                _sectionTitle(
+                  'КЛЮЧЕВЫЕ РЕШЕНИЯ',
+                  icon: Icons.compare_arrows_rounded,
                 ),
-                ScoreRow(
-                  title: 'Стабильность',
-                  value: state.stability,
-                ),
-                ScoreRow(
-                  title: 'Прогресс',
-                  value: state.progress,
-                ),
-                ScoreRow(
-                  title: 'Адаптация',
-                  value: adaptation,
+                const SizedBox(height: 12),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cardWidth = constraints.maxWidth >= 620
+                        ? (constraints.maxWidth - 12) / 2
+                        : constraints.maxWidth;
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        SizedBox(
+                          width: cardWidth,
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: TactixTheme.cyan.withValues(alpha: .035),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: TactixTheme.cyan.withValues(alpha: .12),
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.trending_up_rounded,
+                                  color: TactixTheme.cyan,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'ЛУЧШИЙ ХОД',
+                                        style: TextStyle(
+                                          color: TactixTheme.textMuted,
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: .9,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        best == null
+                                            ? 'Нет данных'
+                                            : 'Ход ${best.turn} • вариант ${best.decision}',
+                                        softWrap: true,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                      if (best != null) ...[
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          decisionLabel(best.decision),
+                                          softWrap: true,
+                                          style: const TextStyle(
+                                            color: TactixTheme.textMuted,
+                                            fontSize: 10,
+                                            height: 1.35,
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        best == null
+                                            ? '—'
+                                            : '${best.score}/100',
+                                        style: const TextStyle(
+                                          color: TactixTheme.cyan,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: cardWidth,
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: TactixTheme.gold.withValues(alpha: .03),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: TactixTheme.gold.withValues(alpha: .18),
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.trending_down_rounded,
+                                  color: TactixTheme.gold,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'САМЫЙ СЛАБЫЙ ХОД',
+                                        style: TextStyle(
+                                          color: TactixTheme.textMuted,
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: .9,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        weakDecision == null
+                                            ? 'Нет данных'
+                                            : 'Ход ${weakDecision.turn} • вариант ${weakDecision.decision}',
+                                        softWrap: true,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                      if (weakDecision != null) ...[
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          decisionLabel(weakDecision.decision),
+                                          softWrap: true,
+                                          style: const TextStyle(
+                                            color: TactixTheme.textMuted,
+                                            fontSize: 10,
+                                            height: 1.35,
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        weakDecision == null
+                                            ? '—'
+                                            : '${weakDecision.score}/100',
+                                        style: const TextStyle(
+                                          color: TactixTheme.gold,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 22),
                 _sectionTitle(
                   'ТРАЕКТОРИЯ РЕШЕНИЙ',
                   icon: Icons.account_tree_outlined,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 ...history.map(_decisionCard),
-                if (best != null || weakDecision != null) ...[
-                  const SizedBox(height: 4),
-                  InfoRow(
-                    icon: Icons.star_outline,
-                    title: 'Лучший ход',
-                    value: best == null
-                        ? 'Нет данных'
-                        : 'Ход ${best.turn}: ${best.decision} — ${best.score}/100',
-                  ),
-                  InfoRow(
-                    icon: Icons.flag_outlined,
-                    title: 'Самый слабый ход',
-                    value: weakDecision == null
-                        ? 'Нет данных'
-                        : 'Ход ${weakDecision.turn}: ${weakDecision.decision} — ${weakDecision.score}/100',
-                  ),
-                ],
                 const SizedBox(height: 22),
                 _sectionTitle(
                   'ПОЧЕМУ ТАКОЙ БАЛЛ',
@@ -3368,7 +3493,7 @@ class FinishCard
                 Container(
                   padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
-                    color: TactixTheme.cyan.withValues(alpha: .045),
+                    color: TactixTheme.cyan.withValues(alpha: .025),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: TactixTheme.cyan.withValues(alpha: .20),
