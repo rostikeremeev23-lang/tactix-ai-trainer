@@ -266,196 +266,141 @@ class _TraineeRosterScreenState
       appBar: AppBar(
         title: const Text(
           'ОБУЧАЕМЫЕ',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: .3),
         ),
         actions: [
           IconButton(
             tooltip: 'Обновить',
-            onPressed:
-                _loading ? null : _load,
-            icon: const Icon(
-              Icons.sync_rounded,
-            ),
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.sync_rounded),
           ),
           const SizedBox(width: 8),
         ],
       ),
-      floatingActionButton:
-          FloatingActionButton.extended(
+      floatingActionButton: !_loading && _users.isEmpty
+          ? null
+          : FloatingActionButton.extended(
         onPressed: _addTrainee,
-        icon: const Icon(
-          Icons.person_add_alt_1,
-        ),
+        icon: const Icon(Icons.person_add_alt_1),
         label: const Text(
           'ДОБАВИТЬ',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
       body: _loading
-          ? const Center(
-              child:
-                  CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : _users.isEmpty
-              ? const _EmptyRoster()
-              : ListView.separated(
-                  padding:
-                      const EdgeInsets.fromLTRB(
-                    20,
-                    20,
-                    20,
-                    100,
-                  ),
-                  itemCount: _users.length,
-                  separatorBuilder:
-                      (_, _) =>
-                          const SizedBox(
-                    height: 10,
-                  ),
-                  itemBuilder:
-                      (context, index) {
-                    final user =
-                        _users[index];
+          ? _EmptyRoster(onAdd: _addTrainee)
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+              itemCount: _users.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final user = _users[index];
 
-                    return _TraineeCard(
-                      user: user,
-                      onDelete: () =>
-                          _deleteUser(user),
-                    );
-                  },
-                ),
+                return _TraineeCard(
+                  user: user,
+                  onDelete: () => _deleteUser(user),
+                );
+              },
+            ),
     );
   }
 }
 
-class _TraineeCard
-    extends StatelessWidget {
+class _TraineeCard extends StatelessWidget {
   final AppUser user;
   final VoidCallback onDelete;
 
-  const _TraineeCard({
-    required this.user,
-    required this.onDelete,
-  });
+  const _TraineeCard({required this.user, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: TactixTheme.panel,
-        borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
-          color: TactixTheme.line,
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: TactixTheme.line),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: TactixTheme.gold
-                  .withValues(
-                alpha: .1,
-              ),
-              borderRadius:
-                  BorderRadius.circular(12),
-              border: Border.all(
-                color: TactixTheme.gold
-                    .withValues(
-                  alpha: .28,
-                ),
-              ),
-            ),
-            child: const Icon(
-              Icons.person_outline,
-              color: TactixTheme.gold,
+          Text(
+            user.callsign,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            user.fullName,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.white70,
+              height: 1.4,
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user.callsign,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight:
-                        FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  user.fullName,
-                  style: const TextStyle(
-                    color:
-                        Colors.white70,
-                  ),
-                ),
-                if (user.unitName
-                    .isNotEmpty) ...[
-                  const SizedBox(
-                    height: 4,
-                  ),
-                  Text(
-                    user.unitName,
-                    style: const TextStyle(
-                      color: TactixTheme
-                          .textMuted,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ],
+          const SizedBox(height: 10),
+          Text(
+            user.unitName.isEmpty
+                ? 'Подразделение не указано'
+                : 'Подразделение: ${user.unitName}',
+            style: const TextStyle(
+              fontSize: 12,
+              color: TactixTheme.textMuted,
+              height: 1.4,
             ),
           ),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 9,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color: TactixTheme.cyan
-                  .withValues(
-                alpha: .08,
-              ),
-              borderRadius:
-                  BorderRadius.circular(8),
-              border: Border.all(
-                color: TactixTheme.cyan
-                    .withValues(
-                  alpha: .25,
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                user.role.label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: TactixTheme.cyan,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ),
-            child: const Text(
-              'ОБУЧАЕМЫЙ',
-              style: TextStyle(
-                color: TactixTheme.cyan,
-                fontSize: 9,
-                fontWeight:
-                    FontWeight.w900,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: TactixTheme.panel2,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: TactixTheme.line),
+                ),
+                child: Text(
+                  user.isActive ? 'Активен' : 'Неактивен',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: user.isActive
+                        ? TactixTheme.cyan
+                        : TactixTheme.textMuted,
+                  ),
+                ),
               ),
-            ),
+              TextButton.icon(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Удалить'),
+                style: TextButton.styleFrom(
+                  foregroundColor: TactixTheme.textMuted,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
-          IconButton(
-            tooltip: 'Удалить',
-            onPressed: onDelete,
-            icon: const Icon(
-              Icons.delete_outline,
-              color: Colors.white38,
+          const SizedBox(height: 6),
+          const Text(
+            'Последние результаты — в контроле назначений',
+            style: TextStyle(
+              fontSize: 12,
+              color: TactixTheme.textMuted,
+              height: 1.4,
             ),
           ),
         ],
@@ -464,49 +409,47 @@ class _TraineeCard
   }
 }
 
-class _EmptyRoster
-    extends StatelessWidget {
-  const _EmptyRoster();
+class _EmptyRoster extends StatelessWidget {
+  final VoidCallback onAdd;
+  const _EmptyRoster({required this.onAdd});
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.groups_outlined,
-              size: 54,
-              color:
-                  TactixTheme.textMuted,
-            ),
-            SizedBox(height: 14),
-            Text(
-              'СПИСОК ПОКА ПУСТ',
-              style: TextStyle(
-                fontWeight:
-                    FontWeight.w900,
-                letterSpacing: 1,
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.groups_outlined, size: 64, color: TactixTheme.gold),
+              const SizedBox(height: 16),
+              const Text(
+                'СПИСОК ПОКА ПУСТ',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, letterSpacing: .3),
               ),
-            ),
-            SizedBox(height: 7),
-            Text(
-              'Добавьте обучаемого, чтобы инструктор мог назначать ему тренировки.',
-              textAlign:
-                  TextAlign.center,
-              style: TextStyle(
-                color:
-                    TactixTheme.textMuted,
-                height: 1.4,
+              const SizedBox(height: 8),
+              const Text(
+                'Добавьте обучаемого, чтобы инструктор мог назначать ему тренировки.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: TactixTheme.textMuted, height: 1.5),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: onAdd,
+                icon: const Icon(Icons.person_add_alt_1),
+                label: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text('ДОБАВИТЬ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-

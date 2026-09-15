@@ -233,249 +233,145 @@ class _AssignTrainingScreenState
       appBar: AppBar(
         title: const Text(
           'НАЗНАЧИТЬ ТРЕНИРОВКУ',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: .3),
         ),
       ),
       body: _loading
-          ? const Center(
-              child:
-                  CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding:
-                  const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Center(
                 child: ConstrainedBox(
-                  constraints:
-                      const BoxConstraints(
-                    maxWidth: 760,
-                  ),
+                  constraints: const BoxConstraints(maxWidth: 760),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment
-                            .stretch,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _HeaderCard(
-                        trainees:
-                            _trainees.length,
-                        scenarios:
-                            _scenarios.length,
+                        trainees: _trainees.length,
+                        scenarios: _scenarios.length,
                       ),
-                      const SizedBox(
-                        height: 18,
-                      ),
+                      const SizedBox(height: 18),
+                      const _FormStep(title: '01  Обучаемый'),
                       if (_trainees.isEmpty)
                         const _MissingCard(
-                          icon: Icons
-                              .groups_outlined,
-                          title:
-                              'НЕТ ОБУЧАЕМЫХ',
-                          text:
-                              'Сначала добавьте хотя бы одного обучаемого в режиме инструктора.',
+                          icon: Icons.groups_outlined,
+                          title: 'НЕТ ОБУЧАЕМЫХ',
+                          text: 'Сначала добавьте хотя бы одного обучаемого в режиме инструктора.',
                         )
                       else
-                        DropdownButtonFormField<
-                            AppUser>(
-                          initialValue:
-                              _selectedTrainee,
-                          decoration:
-                              const InputDecoration(
-                            labelText:
-                                'Обучаемый',
-                            prefixIcon:
-                                Icon(
-                              Icons
-                                  .person_outline,
-                            ),
+                        DropdownButtonFormField<AppUser>(
+                          isExpanded: true,
+                          itemHeight: null,
+                          initialValue: _selectedTrainee,
+                          decoration: const InputDecoration(
+                            labelText: 'Обучаемый',
+                            prefixIcon: Icon(Icons.person_outline),
                           ),
                           items: _trainees
                               .map(
-                                (user) =>
-                                    DropdownMenuItem(
-                                  value:
-                                      user,
-                                  child:
-                                      Text(
-                                    user.callsign,
-                                  ),
+                                (user) => DropdownMenuItem(
+                                  value: user,
+                                  child: Text(user.callsign),
                                 ),
                               )
                               .toList(),
                           onChanged: _saving
                               ? null
                               : (value) {
-                                  setState(
-                                    () {
-                                      _selectedTrainee =
-                                          value;
-                                    },
-                                  );
+                                  setState(() {
+                                    _selectedTrainee = value;
+                                  });
                                 },
                         ),
-                      const SizedBox(
-                        height: 14,
-                      ),
+                      const SizedBox(height: 14),
+                      const _FormStep(title: '02  Сценарий'),
                       if (_scenarios.isEmpty)
                         const _MissingCard(
-                          icon: Icons
-                              .description_outlined,
-                          title:
-                              'НЕТ СЦЕНАРИЕВ',
-                          text:
-                              'Сначала сохраните учебный сценарий, затем назначьте его обучаемому.',
+                          icon: Icons.description_outlined,
+                          title: 'НЕТ СЦЕНАРИЕВ',
+                          text: 'Сначала сохраните учебный сценарий, затем назначьте его обучаемому.',
                         )
                       else
-                        DropdownButtonFormField<
-                            TrainingScenario>(
-                          initialValue:
-                              _selectedScenario,
-                          decoration:
-                              const InputDecoration(
-                            labelText:
-                                'Сценарий',
-                            prefixIcon:
-                                Icon(
-                              Icons
-                                  .description_outlined,
-                            ),
+                        DropdownButtonFormField<TrainingScenario>(
+                          isExpanded: true,
+                          itemHeight: null,
+                          initialValue: _selectedScenario,
+                          decoration: const InputDecoration(
+                            labelText: 'Сценарий',
+                            prefixIcon: Icon(Icons.description_outlined),
                           ),
                           items: _scenarios
                               .map(
-                                (scenario) =>
-                                    DropdownMenuItem(
-                                  value:
-                                      scenario,
-                                  child:
-                                      Text(
-                                    scenario
-                                        .title,
-                                    overflow:
-                                        TextOverflow
-                                            .ellipsis,
-                                  ),
+                                (scenario) => DropdownMenuItem(
+                                  value: scenario,
+                                  child: Text(scenario.title, softWrap: true),
                                 ),
                               )
                               .toList(),
                           onChanged: _saving
                               ? null
                               : (value) {
-                                  setState(
-                                    () {
-                                      _selectedScenario =
-                                          value;
-                                    },
-                                  );
+                                  setState(() {
+                                    _selectedScenario = value;
+                                  });
                                 },
                         ),
-                      const SizedBox(
-                        height: 14,
-                      ),
+                      const SizedBox(height: 14),
+                      if (_selectedScenario != null)
+                        _ScenarioPreview(scenario: _selectedScenario!),
+                      const SizedBox(height: 14),
+                      const _FormStep(title: '03  Параметры'),
                       InkWell(
-                        onTap: _saving
-                            ? null
-                            : _pickDueDate,
-                        borderRadius:
-                            BorderRadius
-                                .circular(
-                          12,
-                        ),
+                        onTap: _saving ? null : _pickDueDate,
+                        borderRadius: BorderRadius.circular(12),
                         child: InputDecorator(
-                          decoration:
-                              const InputDecoration(
-                            labelText:
-                                'Срок выполнения',
-                            prefixIcon:
-                                Icon(
-                              Icons
-                                  .event_outlined,
-                            ),
+                          decoration: const InputDecoration(
+                            labelText: 'Срок выполнения',
+                            prefixIcon: Icon(Icons.event_outlined),
                           ),
-                          child: Row(
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              Expanded(
-                                child:
-                                    Text(
-                                  _formatDate(
-                                    _dueAt,
-                                  ),
-                                ),
-                              ),
+                              Text(_formatDate(_dueAt)),
                               TextButton(
-                                onPressed:
-                                    _saving
-                                        ? null
-                                        : () {
-                                            setState(
-                                              () {
-                                                _dueAt =
-                                                    null;
-                                              },
-                                            );
-                                          },
-                                child:
-                                    const Text(
-                                  'БЕЗ СРОКА',
-                                ),
+                                onPressed: _saving
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _dueAt = null;
+                                        });
+                                      },
+                                child: const Text('БЕЗ СРОКА'),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      const SizedBox(
-                        height: 18,
-                      ),
-                      if (_selectedScenario !=
-                          null)
-                        _ScenarioPreview(
-                          scenario:
-                              _selectedScenario!,
-                        ),
-                      const SizedBox(
-                        height: 22,
-                      ),
+                      const SizedBox(height: 14),
+                      const _FormStep(title: '04  Назначить'),
                       FilledButton.icon(
                         onPressed:
-                            _saving ||
-                                    _trainees
-                                        .isEmpty ||
-                                    _scenarios
-                                        .isEmpty
-                                ? null
-                                : _assign,
+                            _saving || _trainees.isEmpty || _scenarios.isEmpty
+                            ? null
+                            : _assign,
                         icon: _saving
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child:
-                                    CircularProgressIndicator(
-                                  strokeWidth:
-                                      2,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
                                 ),
                               )
-                            : const Icon(
-                                Icons
-                                    .assignment_turned_in_outlined,
-                              ),
+                            : const Icon(Icons.assignment_turned_in_outlined),
                         label: Padding(
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
-                            vertical: 14,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           child: Text(
-                            _saving
-                                ? 'СОХРАНЕНИЕ...'
-                                : 'НАЗНАЧИТЬ ТРЕНИРОВКУ',
-                            style:
-                                const TextStyle(
-                              fontWeight:
-                                  FontWeight
-                                      .w900,
-                              letterSpacing:
-                                  .7,
+                            _saving ? 'СОХРАНЕНИЕ...' : 'НАЗНАЧИТЬ ТРЕНИРОВКУ',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: .7,
                             ),
                           ),
                         ),
@@ -489,48 +385,37 @@ class _AssignTrainingScreenState
   }
 }
 
-class _HeaderCard
-    extends StatelessWidget {
+class _HeaderCard extends StatelessWidget {
   final int trainees;
   final int scenarios;
 
-  const _HeaderCard({
-    required this.trainees,
-    required this.scenarios,
-  });
+  const _HeaderCard({required this.trainees, required this.scenarios});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: TactixTheme.panel,
-        borderRadius:
-            BorderRadius.circular(16),
-        border: Border.all(
-          color: TactixTheme.line,
-        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: TactixTheme.line),
       ),
       child: Row(
         children: [
           const Icon(
-            Icons
-                .assignment_outlined,
+            Icons.assignment_outlined,
             color: TactixTheme.gold,
             size: 28,
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'НОВОЕ НАЗНАЧЕНИЕ',
                   style: TextStyle(
-                    fontWeight:
-                        FontWeight.w900,
+                    fontWeight: FontWeight.w900,
                     letterSpacing: .8,
                   ),
                 ),
@@ -538,9 +423,8 @@ class _HeaderCard
                 Text(
                   '$trainees обучаемых • $scenarios сценариев',
                   style: const TextStyle(
-                    color:
-                        TactixTheme.textMuted,
-                    fontSize: 11,
+                    color: TactixTheme.textMuted,
+                    fontSize: 12,
                   ),
                 ),
               ],
@@ -552,74 +436,51 @@ class _HeaderCard
   }
 }
 
-class _ScenarioPreview
-    extends StatelessWidget {
+class _ScenarioPreview extends StatelessWidget {
   final TrainingScenario scenario;
 
-  const _ScenarioPreview({
-    required this.scenario,
-  });
+  const _ScenarioPreview({required this.scenario});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: TactixTheme.panel,
-        borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
-          color: TactixTheme.gold
-              .withValues(
-            alpha: .22,
-          ),
-        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: TactixTheme.gold.withValues(alpha: .22)),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'ПРЕДПРОСМОТР',
             style: TextStyle(
-              color:
-                  TactixTheme.textMuted,
-              fontSize: 9,
-              fontWeight:
-                  FontWeight.w900,
-              letterSpacing: 1,
+              color: TactixTheme.textMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .3,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             scenario.title,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight:
-                  FontWeight.w900,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 7),
           Text(
             scenario.description,
-            maxLines: 4,
-            overflow:
-                TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white70,
-              height: 1.45,
-            ),
+
+            softWrap: true,
+            style: const TextStyle(color: Colors.white70, height: 1.45),
           ),
-          if (scenario.goal
-              .isNotEmpty) ...[
+          if (scenario.goal.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
               'Цель: ${scenario.goal}',
               style: const TextStyle(
-                color:
-                    TactixTheme.textMuted,
-                fontSize: 11,
+                color: TactixTheme.textMuted,
+                fontSize: 12,
                 height: 1.4,
               ),
             ),
@@ -630,8 +491,7 @@ class _ScenarioPreview
   }
 }
 
-class _MissingCard
-    extends StatelessWidget {
+class _MissingCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String text;
@@ -645,43 +505,30 @@ class _MissingCard
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: TactixTheme.panel,
-        borderRadius:
-            BorderRadius.circular(12),
-        border: Border.all(
-          color: TactixTheme.line,
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: TactixTheme.line),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color:
-                TactixTheme.textMuted,
-          ),
+          Icon(icon, color: TactixTheme.textMuted),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontWeight:
-                        FontWeight.w900,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   text,
                   style: const TextStyle(
-                    color:
-                        TactixTheme.textMuted,
-                    fontSize: 11,
+                    color: TactixTheme.textMuted,
+                    fontSize: 12,
                     height: 1.4,
                   ),
                 ),
@@ -694,3 +541,27 @@ class _MissingCard
   }
 }
 
+class _FormStep extends StatelessWidget {
+  final String title;
+  const _FormStep({required this.title});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Divider(color: TactixTheme.line, height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: TactixTheme.gold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

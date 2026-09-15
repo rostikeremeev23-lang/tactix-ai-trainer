@@ -189,59 +189,8 @@ class _InstructorModeScreenState extends State<InstructorModeScreen> {
       appBar: AppBar(
         title: const Text(
           'РЕЖИМ ИНСТРУКТОРА',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.0,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0),
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Контроль назначений',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const InstructorAssignmentsScreen(),
-                ),
-              );
-            },
-            icon: const Icon(
-              Icons.fact_check_outlined,
-            ),
-          ),
-          IconButton(
-            tooltip: 'Назначить тренировку',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const AssignTrainingScreen(),
-                ),
-              );
-            },
-            icon: const Icon(
-              Icons.assignment_outlined,
-            ),
-          ),
-          IconButton(
-            tooltip: 'Обучаемые',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const TraineeRosterScreen(),
-                ),
-              );
-            },
-            icon: const Icon(
-              Icons.groups_outlined,
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -252,10 +201,96 @@ class _InstructorModeScreenState extends State<InstructorModeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const Text(
+                    'Рабочая панель инструктора',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Подготовьте состав группы, назначьте тренировку и проверьте результат.',
+                    style: TextStyle(
+                      color: TactixTheme.textMuted,
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final width = constraints.maxWidth >= 960
+                          ? (constraints.maxWidth - 24) / 3
+                          : constraints.maxWidth;
+                      return Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          SizedBox(
+                            width: width,
+                            child: _WorkflowCard(
+                              title: 'Обучаемые',
+                              description:
+                                  'Состав группы, профили и статус обучаемых',
+                              icon: Icons.groups_outlined,
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const TraineeRosterScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          SizedBox(
+                            width: width,
+                            child: _WorkflowCard(
+                              title: 'Назначить тренировку',
+                              description:
+                                  'Обучаемый → сценарий → срок выполнения',
+                              icon: Icons.assignment_outlined,
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const AssignTrainingScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          SizedBox(
+                            width: width,
+                            child: _WorkflowCard(
+                              title: 'Контроль назначений',
+                              description:
+                                  'Статусы, сроки и результаты тренировок',
+                              icon: Icons.fact_check_outlined,
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const InstructorAssignmentsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 28),
+                  const Text(
+                    'Подготовка учебного сценария',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: TactixTheme.gold.withValues(alpha: .07),
+                      color: TactixTheme.panel,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: TactixTheme.gold.withValues(alpha: .28),
@@ -271,12 +306,12 @@ class _InstructorModeScreenState extends State<InstructorModeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'INSTRUCTOR CONSOLE • LOCAL',
+                                'КОНСТРУКТОР СЦЕНАРИЯ',
                                 style: TextStyle(
                                   color: TactixTheme.gold,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 1.1,
-                                  fontSize: 11,
+                                  fontSize: 12,
                                 ),
                               ),
                               SizedBox(height: 6),
@@ -294,7 +329,10 @@ class _InstructorModeScreenState extends State<InstructorModeScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const SectionTitle(text: 'УЧЕБНАЯ ЗАДАЧА'),
+                  const Text(
+                    'УЧЕБНАЯ ЗАДАЧА',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
                   const SizedBox(height: 12),
                   AppTextField(
                     controller: titleController,
@@ -335,7 +373,10 @@ class _InstructorModeScreenState extends State<InstructorModeScreen> {
                     maxLines: 3,
                   ),
                   const SizedBox(height: 10),
-                  const SectionTitle(text: 'ВАРИАНТЫ РЕШЕНИЯ'),
+                  const Text(
+                    'ВАРИАНТЫ РЕШЕНИЯ',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
                   const SizedBox(height: 12),
                   AppTextField(
                     controller: optionAController,
@@ -353,7 +394,10 @@ class _InstructorModeScreenState extends State<InstructorModeScreen> {
                     maxLines: 3,
                   ),
                   const SizedBox(height: 10),
-                  const SectionTitle(text: 'КРИТЕРИИ ОЦЕНКИ'),
+                  const Text(
+                    'КРИТЕРИИ ОЦЕНКИ',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
                   const SizedBox(height: 12),
                   AppTextField(
                     controller: criteriaController,
@@ -392,11 +436,7 @@ class _InstructorModeScreenState extends State<InstructorModeScreen> {
                       if (compact) {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            save,
-                            const SizedBox(height: 10),
-                            start,
-                          ],
+                          children: [save, const SizedBox(height: 10), start],
                         );
                       }
 
@@ -419,3 +459,52 @@ class _InstructorModeScreenState extends State<InstructorModeScreen> {
   }
 }
 
+class _WorkflowCard extends StatelessWidget {
+  final String title;
+  final String description;
+  final IconData icon;
+  final VoidCallback onPressed;
+  const _WorkflowCard({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.onPressed,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(icon, color: TactixTheme.gold, size: 24),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              description,
+              style: const TextStyle(
+                color: TactixTheme.textMuted,
+                fontSize: 12,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: onPressed,
+              style: OutlinedButton.styleFrom(textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Text(title, textAlign: TextAlign.center),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

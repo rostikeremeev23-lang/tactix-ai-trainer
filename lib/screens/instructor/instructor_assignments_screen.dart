@@ -168,19 +168,13 @@ class _InstructorAssignmentsScreenState
       appBar: AppBar(
         title: const Text(
           'КОНТРОЛЬ НАЗНАЧЕНИЙ',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: .3),
         ),
         actions: [
           IconButton(
             tooltip: 'Обновить',
-            onPressed:
-                _loading ? null : _load,
-            icon: const Icon(
-              Icons.sync_rounded,
-            ),
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.sync_rounded),
           ),
           const SizedBox(width: 8),
         ],
@@ -188,54 +182,32 @@ class _InstructorAssignmentsScreenState
       body: RefreshIndicator(
         onRefresh: _load,
         color: TactixTheme.gold,
-        backgroundColor:
-            TactixTheme.panel,
+        backgroundColor: TactixTheme.panel,
         child: ListView(
-          padding:
-              const EdgeInsets.fromLTRB(
-            20,
-            20,
-            20,
-            40,
-          ),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
           children: [
             _Summary(
               active: _activeCount,
               overdue: _overdueCount,
-              completed:
-                  _completedCount,
+              completed: _completedCount,
             ),
             const SizedBox(height: 20),
             if (_loading)
               const Padding(
-                padding:
-                    EdgeInsets.only(top: 60),
-                child: Center(
-                  child:
-                      CircularProgressIndicator(),
-                ),
+                padding: EdgeInsets.only(top: 60),
+                child: Center(child: CircularProgressIndicator()),
               )
             else if (_items.isEmpty)
               const _EmptyState()
             else
               ..._items.map(
                 (item) => Padding(
-                  padding:
-                      const EdgeInsets.only(
-                    bottom: 10,
-                  ),
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: _AssignmentCard(
                     item: item,
-                    dueText:
-                        _formatDate(
-                      item.dueAt,
-                    ),
-                    statusColor:
-                        _statusColor(
-                      item.effectiveStatus,
-                    ),
-                    onDelete: () =>
-                        _delete(item),
+                    dueText: _formatDate(item.dueAt),
+                    statusColor: _statusColor(item.effectiveStatus),
+                    onDelete: () => _delete(item),
                   ),
                 ),
               ),
@@ -246,8 +218,7 @@ class _InstructorAssignmentsScreenState
   }
 }
 
-class _Summary
-    extends StatelessWidget {
+class _Summary extends StatelessWidget {
   final int active;
   final int overdue;
   final int completed;
@@ -264,30 +235,23 @@ class _Summary
       spacing: 10,
       runSpacing: 10,
       children: [
-        _Metric(
-          label: 'АКТИВНЫЕ',
-          value: active,
-          color: TactixTheme.cyan,
-        ),
+        _Metric(label: 'АКТИВНЫЕ', value: active, color: TactixTheme.cyan),
         _Metric(
           label: 'ПРОСРОЧЕНЫ',
           value: overdue,
-          color:
-              const Color(0xFFFF6B6B),
+          color: const Color(0xFFFF6B6B),
         ),
         _Metric(
           label: 'ЗАВЕРШЕНЫ',
           value: completed,
-          color:
-              const Color(0xFF4EE39A),
+          color: const Color(0xFF4EE39A),
         ),
       ],
     );
   }
 }
 
-class _Metric
-    extends StatelessWidget {
+class _Metric extends StatelessWidget {
   final String label;
   final int value;
   final Color color;
@@ -301,32 +265,23 @@ class _Metric
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 155,
-      padding:
-          const EdgeInsets.all(16),
+      constraints: const BoxConstraints(minWidth: 155),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: TactixTheme.panel,
-        borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
-          color: color.withValues(
-            alpha: .25,
-          ),
-        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: .25)),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
             style: const TextStyle(
-              color:
-                  TactixTheme.textMuted,
-              fontSize: 9,
-              fontWeight:
-                  FontWeight.w900,
-              letterSpacing: 1,
+              color: TactixTheme.textMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .3,
             ),
           ),
           const SizedBox(height: 7),
@@ -335,8 +290,7 @@ class _Metric
             style: TextStyle(
               color: color,
               fontSize: 28,
-              fontWeight:
-                  FontWeight.w900,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -345,8 +299,7 @@ class _Metric
   }
 }
 
-class _AssignmentCard
-    extends StatelessWidget {
+class _AssignmentCard extends StatelessWidget {
   final TrainingAssignment item;
   final String dueText;
   final Color statusColor;
@@ -362,174 +315,105 @@ class _AssignmentCard
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: TactixTheme.panel,
-        borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
-          color: TactixTheme.line,
-        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: TactixTheme.line),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Container(
-                width: 44,
-                height: 44,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
-                  color: TactixTheme.gold
-                      .withValues(
-                    alpha: .08,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    11,
-                  ),
-                  border: Border.all(
-                    color: TactixTheme.gold
-                        .withValues(
-                      alpha: .22,
-                    ),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.person_outline,
-                  color: TactixTheme.gold,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
-                  children: [
-                    Text(
-                      item.assigneeCallsign,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight:
-                            FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 3,
-                    ),
-                    Text(
-                      item.scenarioTitle,
-                      maxLines: 1,
-                      overflow:
-                          TextOverflow
-                              .ellipsis,
-                      style: const TextStyle(
-                        color:
-                            Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets
-                        .symmetric(
-                  horizontal: 9,
-                  vertical: 6,
-                ),
-                decoration:
-                    BoxDecoration(
-                  color: statusColor
-                      .withValues(
-                    alpha: .09,
-                  ),
-                  borderRadius:
-                      BorderRadius
-                          .circular(8),
-                  border: Border.all(
-                    color: statusColor
-                        .withValues(
-                      alpha: .3,
-                    ),
-                  ),
+                  color: statusColor.withValues(alpha: .09),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: statusColor.withValues(alpha: .3)),
                 ),
                 child: Text(
-                  item.effectiveStatus
-                      .label,
+                  item.effectiveStatus.label,
                   style: TextStyle(
                     color: statusColor,
-                    fontSize: 9,
-                    fontWeight:
-                        FontWeight.w900,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-              const SizedBox(width: 4),
-              IconButton(
-                tooltip:
-                    'Удалить назначение',
+              TextButton.icon(
                 onPressed: onDelete,
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: Colors.white38,
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Удалить назначение'),
+                style: TextButton.styleFrom(
+                  foregroundColor: TactixTheme.textMuted,
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            item.assigneeCallsign,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            item.scenarioTitle,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              height: 1.45,
+            ),
           ),
           const SizedBox(height: 14),
           Wrap(
             spacing: 18,
             runSpacing: 8,
             children: [
+              _Info(icon: Icons.event_outlined, text: 'Срок: $dueText'),
               _Info(
-                icon:
-                    Icons.event_outlined,
-                text:
-                    'Срок: $dueText',
+                icon: Icons.schedule_outlined,
+                text: 'Назначено: ${_date(item.assignedAt)}',
               ),
-              _Info(
-                icon:
-                    Icons.schedule_outlined,
-                text:
-                    'Назначено: ${_date(item.assignedAt)}',
-              ),
-              if (item.finalScore != null)
-                _Info(
-                  icon:
-                      Icons.score_outlined,
-                  text:
-                      'TACTIX Score: ${item.finalScore}',
-                ),
               if (item.completedAt != null)
                 _Info(
-                  icon:
-                      Icons.check_circle_outline,
-                  text:
-                      'Завершено: ${_date(item.completedAt!)}',
+                  icon: Icons.check_circle_outline,
+                  text: 'Завершено: ${_date(item.completedAt!)}',
                 ),
             ],
           ),
           if (item.finalScore != null) ...[
             const SizedBox(height: 14),
-            LinearProgressIndicator(
-              value:
-                  item.finalScore!.clamp(
-                        0,
-                        100,
-                      ) /
-                      100,
-              minHeight: 7,
-              borderRadius:
-                  BorderRadius.circular(
-                10,
+            const Text(
+              'TACTIX SCORE',
+              style: TextStyle(
+                fontSize: 12,
+                color: TactixTheme.textMuted,
+                fontWeight: FontWeight.w600,
               ),
-              backgroundColor:
-                  TactixTheme.line,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${item.finalScore} / 100',
+              style: const TextStyle(
+                fontSize: 28,
+                color: TactixTheme.gold,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            LinearProgressIndicator(
+              value: item.finalScore!.clamp(0, 100) / 100,
+              minHeight: 4,
+              borderRadius: BorderRadius.circular(10),
+              backgroundColor: TactixTheme.line,
             ),
           ],
         ],
@@ -537,47 +421,31 @@ class _AssignmentCard
     );
   }
 
-  static String _date(
-    DateTime date,
-  ) {
-    final day =
-        date.day.toString().padLeft(2, '0');
-    final month =
-        date.month.toString().padLeft(2, '0');
+  static String _date(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
 
     return '$day.$month.${date.year}';
   }
 }
 
-class _Info
-    extends StatelessWidget {
+class _Info extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _Info({
-    required this.icon,
-    required this.text,
-  });
+  const _Info({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisSize:
-          MainAxisSize.min,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          size: 15,
-          color:
-              TactixTheme.textMuted,
-        ),
+        Icon(icon, size: 15, color: TactixTheme.textMuted),
         const SizedBox(width: 6),
-        Text(
-          text,
-          style: const TextStyle(
-            color:
-                TactixTheme.textMuted,
-            fontSize: 11,
+        Flexible(
+          child: Text(
+            text,
+            style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
           ),
         ),
       ],
@@ -585,56 +453,42 @@ class _Info
   }
 }
 
-class _EmptyState
-    extends StatelessWidget {
+class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin:
-          const EdgeInsets.only(top: 24),
-      padding:
-          const EdgeInsets.all(30),
-      decoration: BoxDecoration(
-        color: TactixTheme.panel,
-        borderRadius:
-            BorderRadius.circular(16),
-        border: Border.all(
-          color: TactixTheme.line,
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Container(
+          margin: const EdgeInsets.only(top: 12),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: TactixTheme.panel,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: TactixTheme.line),
+          ),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.assignment_outlined, size: 56, color: TactixTheme.gold),
+              SizedBox(height: 12),
+              Text(
+                'НАЗНАЧЕНИЙ ПОКА НЕТ',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: .3),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Созданные инструктором задания и результаты обучаемых появятся здесь.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: TactixTheme.textMuted, height: 1.5),
+              ),
+            ],
+          ),
         ),
-      ),
-      child: const Column(
-        children: [
-          Icon(
-            Icons.assignment_outlined,
-            size: 48,
-            color:
-                TactixTheme.textMuted,
-          ),
-          SizedBox(height: 12),
-          Text(
-            'НАЗНАЧЕНИЙ ПОКА НЕТ',
-            style: TextStyle(
-              fontWeight:
-                  FontWeight.w900,
-              letterSpacing: .8,
-            ),
-          ),
-          SizedBox(height: 7),
-          Text(
-            'Созданные инструктором задания и результаты обучаемых появятся здесь.',
-            textAlign:
-                TextAlign.center,
-            style: TextStyle(
-              color:
-                  TactixTheme.textMuted,
-              height: 1.4,
-            ),
-          ),
-        ],
       ),
     );
   }
 }
-
