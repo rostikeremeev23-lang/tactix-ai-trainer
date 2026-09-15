@@ -37,6 +37,26 @@ class OrganizationMembership(Base):
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="trainee", server_default=text("'trainee'"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
+class InviteCode(Base):
+    __tablename__ = "invite_codes"
+    __table_args__ = (
+        CheckConstraint("role IN ('trainee', 'instructor')", name="ck_invite_codes_role"),
+        CheckConstraint("max_uses > 0", name="ck_invite_codes_max_uses"),
+        CheckConstraint("used_count >= 0 AND used_count <= max_uses", name="ck_invite_codes_used_count"),
+        Index("ix_invite_codes_organization_id", "organization_id"),
+        Index("ix_invite_codes_created_by", "created_by"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    code_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False)
+    created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    max_uses: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    used_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
 class TrainingAssignment(Base):
     __tablename__ = "training_assignments"
     __table_args__ = (Index("ix_training_assignments_organization_id", "organization_id"), Index("ix_training_assignments_assigned_by", "assigned_by"), Index("ix_training_assignments_assigned_to", "assigned_to"))
