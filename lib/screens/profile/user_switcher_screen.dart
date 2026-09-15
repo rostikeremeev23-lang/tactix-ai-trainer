@@ -28,8 +28,11 @@ class _UserSwitcherScreenState
   }
 
   Future<void> _load() async {
-    final users =
+    final storedUsers =
         await UserStorageService.loadUsers();
+    final users = storedUsers
+        .where((user) => user.serverId == null)
+        .toList();
 
     users.sort(
       (a, b) {

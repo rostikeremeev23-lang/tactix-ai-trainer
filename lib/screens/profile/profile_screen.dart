@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
+import '../../app/user_session_scope.dart';
 import '../../models/training_result.dart';
 import '../../services/ai_service.dart';
 import '../../services/result_storage_service.dart';
@@ -66,6 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final session = UserSessionScope.of(context);
     final width = MediaQuery.sizeOf(context).width;
     final phone = width < 700;
 
@@ -79,24 +81,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2),
         ),
         actions: [
-          IconButton(
-            tooltip: 'Переключить профиль',
-            onPressed: () {
-              Navigator.push(
+          if (!session.isServerUser)
+            IconButton(
+              tooltip: 'Switch local profile',
+              onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const UserSwitcherScreen(),
+                  builder: (_) => const UserSwitcherScreen(),
                 ),
-              );
-            },
-            icon: const Icon(
-              Icons.switch_account_outlined,
-              color: Colors.white70,
+              ),
+              icon: const Icon(
+                Icons.switch_account_outlined,
+                color: Colors.white70,
+              ),
             ),
-          ),
+          if (session.isServerUser)
+            IconButton(
+              tooltip: 'Sign out',
+              onPressed: () async {
+                await session.signOut();
+                if (context.mounted) {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                }
+              },
+              icon: const Icon(Icons.logout_rounded, color: Colors.white70),
+            ),
           IconButton(
-            tooltip: 'Обновить',
+            tooltip: 'Refresh',
             onPressed: loading ? null : _load,
             icon: const Icon(Icons.sync_rounded, color: Colors.white70),
           ),
@@ -116,6 +127,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (session.isServerUser) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: TactixTheme.panel,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: TactixTheme.line),
+                      ),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          const Text(
+                            'SERVER ACCOUNT',
+                            style: TextStyle(
+                              color: TactixTheme.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            session.currentUser!.role.label,
+                            style: const TextStyle(
+                              color: TactixTheme.gold,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   _ProfileHero(
                     level: level,
                     xp: xp,

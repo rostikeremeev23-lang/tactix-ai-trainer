@@ -70,6 +70,7 @@ class _UserSetupScreenState
     setState(() {
       _saving = false;
     });
+    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
   }
 
   InputDecoration _decoration(

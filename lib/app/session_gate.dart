@@ -1,36 +1,60 @@
 import 'package:flutter/material.dart';
 
-import '../screens/auth/user_setup_screen.dart';
+import '../screens/auth/auth_screen.dart';
 import 'theme.dart';
 import 'user_session_scope.dart';
 
 class SessionGate extends StatelessWidget {
   final Widget authenticatedChild;
 
-  const SessionGate({
-    super.key,
-    required this.authenticatedChild,
-  });
+  const SessionGate({super.key, required this.authenticatedChild});
 
   @override
   Widget build(BuildContext context) {
-    final session =
-        UserSessionScope.of(context);
+    final session = UserSessionScope.of(context);
 
-    if (session.loading) {
-      return const _SessionLoadingScreen();
-    }
+    if (session.loading) return const _SessionLoadingScreen();
+    if (!session.isAuthenticated) return const AuthScreen();
 
-    if (!session.isAuthenticated) {
-      return const UserSetupScreen();
-    }
-
-    return authenticatedChild;
+    return Stack(
+      children: [
+        Positioned.fill(child: authenticatedChild),
+        if (session.isOffline)
+          Positioned(
+            left: 12,
+            right: 12,
+            top: 8,
+            child: SafeArea(
+              bottom: false,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: TactixTheme.panel2,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: TactixTheme.line),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    child: Text(
+                      'OFFLINE MODE - Cached server profile',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: TactixTheme.textMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }
 
-class _SessionLoadingScreen
-    extends StatelessWidget {
+class _SessionLoadingScreen extends StatelessWidget {
   const _SessionLoadingScreen();
 
   @override
@@ -41,15 +65,9 @@ class _SessionLoadingScreen
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.shield_outlined,
-              color: TactixTheme.gold,
-              size: 44,
-            ),
+            Icon(Icons.shield_outlined, color: TactixTheme.gold, size: 44),
             SizedBox(height: 18),
-            CircularProgressIndicator(
-              color: TactixTheme.gold,
-            ),
+            CircularProgressIndicator(color: TactixTheme.gold),
             SizedBox(height: 14),
             Text(
               'TACTIX',
@@ -61,10 +79,10 @@ class _SessionLoadingScreen
             ),
             SizedBox(height: 5),
             Text(
-              'ЗАГРУЗКА ПРОФИЛЯ',
+              'RESTORING SESSION',
               style: TextStyle(
                 color: TactixTheme.textMuted,
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
               ),
@@ -75,4 +93,3 @@ class _SessionLoadingScreen
     );
   }
 }
-
