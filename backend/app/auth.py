@@ -259,8 +259,13 @@ def register(request: RegisterRequest, db: Db) -> TokenResponse:
             raise HTTPException(status_code=400, detail="Недействительный код приглашения.")
 
         user = User(id=uuid.uuid4(), email=request.email, password_hash=password_hash, first_name=request.first_name, callsign=request.callsign)
+        db.add(user)
+        # These dependent objects only carry user_id values and have no ORM
+        # relationship to `user`, so persist the parent before adding them.
+        db.flush()
+
         membership = OrganizationMembership(organization_id=invite.organization_id, user_id=user.id, role=invite.role)
-        db.add_all([user, membership])
+        db.add(membership)
         invite.used_count += 1
         refresh = _new_refresh_token()
         session = AuthSession(user_id=user.id, refresh_token_hash=_hash(refresh), expires_at=now + REFRESH_TTL)
@@ -274,7 +279,10 @@ def register(request: RegisterRequest, db: Db) -> TokenResponse:
         raise
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Не удалось зарегистрировать пользователя с указанными данными.")
+        raise HTTPException(
+            status_code=409,
+            detail="Не удалось зарегистрировать пользователя с указанными данными.",
+        )
 
 
 @router.post("/v1/auth/login", response_model=TokenResponse)

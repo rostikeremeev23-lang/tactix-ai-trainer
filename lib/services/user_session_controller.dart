@@ -132,7 +132,7 @@ class UserSessionController extends ChangeNotifier {
       }
       await _persistServerUser(profile, AuthSessionState.authenticatedOnline);
     } catch (_) {
-      _accessToken = null;
+      await _discardAuthTokens();
       rethrow;
     } finally {
       _loading = false;
@@ -167,12 +167,56 @@ class UserSessionController extends ChangeNotifier {
       }
       await _persistServerUser(profile, AuthSessionState.authenticatedOnline);
     } catch (_) {
-      _accessToken = null;
+      await _discardAuthTokens();
       rethrow;
     } finally {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  Future<InviteResult> createInvite({
+    required String role,
+    int maxUses = 1,
+    int? expiresInDays = 30,
+  }) async {
+    if (!canManageTraining) {
+      throw const AuthFailure(
+        AuthFailureKind.rejected,
+        'Недостаточно прав для создания приглашений.',
+      );
+    }
+
+    if (role != 'trainee' && role != 'instructor') {
+      throw const AuthFailure(
+        AuthFailureKind.invalidInput,
+        'Некорректная роль приглашения.',
+      );
+    }
+
+    if (isInstructor && role != 'trainee') {
+      throw const AuthFailure(
+        AuthFailureKind.rejected,
+        'Инструктор может приглашать только обучаемых.',
+      );
+    }
+
+    final token = _accessToken;
+    if (token == null ||
+        token.isEmpty ||
+        _state != AuthSessionState.authenticatedOnline) {
+      throw const AuthFailure(
+        AuthFailureKind.network,
+        'Для создания приглашения требуется подключение к серверу.',
+      );
+    }
+
+    return _auth.createInvite(
+      accessToken: token,
+      role: role,
+      maxUses: maxUses,
+      expiresInDays: expiresInDays,
+    );
   }
 
   Future<void> _persistServerUser(
@@ -200,11 +244,15 @@ class UserSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _invalidateServerSession() async {
+  Future<void> _discardAuthTokens() async {
     _accessToken = null;
     try {
       await _auth.clearRefreshToken();
     } catch (_) {}
+  }
+
+  Future<void> _invalidateServerSession() async {
+    await _discardAuthTokens();
     try {
       await _users.clearCurrentUser();
     } catch (_) {}

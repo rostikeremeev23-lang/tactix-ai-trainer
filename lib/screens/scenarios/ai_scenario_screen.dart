@@ -239,7 +239,7 @@ $idea
                     title: 'AI SCENARIO GENERATOR',
                     icon: Icons.auto_awesome_rounded,
                     trailing: const Text(
-                      'GEMMA 3 4B',
+                      'GEMMA 3 1B',
                       style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800),
                     ),
                     child: Column(

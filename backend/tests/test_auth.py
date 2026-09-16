@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -33,6 +33,11 @@ def system(monkeypatch):
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+    @event.listens_for(engine, "connect")
+    def enable_foreign_keys(connection, _):
+        connection.execute("PRAGMA foreign_keys=ON")
+
     Base.metadata.create_all(engine, tables=AUTH_TABLES)
     factory = sessionmaker(bind=engine, expire_on_commit=False)
     def override_db():
@@ -135,8 +140,12 @@ def test_valid_registration_creates_membership_and_consumes_invite(system):
 
 
 def test_invalid_invite(system):
-    response = _register(system[0], "TACTIX-TRN-unknown-code")
+    client, factory, _ = system
+    response = _register(client, "TACTIX-TRN-unknown-code")
     assert response.status_code == 400
+    with factory() as db:
+        assert db.query(User).filter_by(email="new@example.test").count() == 0
+        assert db.query(AuthSession).count() == 0
 
 
 @pytest.mark.parametrize("expires", [datetime.now(timezone.utc) - timedelta(seconds=5)])
@@ -144,6 +153,10 @@ def test_expired_invite(system, expires):
     client, factory, ids = system
     code = _invite(factory, ids["organization"], ids["admin"], expires=expires)
     assert _register(client, code).status_code == 400
+    with factory() as db:
+        assert db.query(User).filter_by(email="new@example.test").count() == 0
+        assert db.query(AuthSession).count() == 0
+        assert db.query(InviteCode).one().used_count == 0
 
 
 def test_exhausted_invite(system):
@@ -151,6 +164,10 @@ def test_exhausted_invite(system):
     code = _invite(factory, ids["organization"], ids["admin"], uses=1)
     assert _register(client, code).status_code == 201
     assert _register(client, code, "second@example.test").status_code == 400
+    with factory() as db:
+        assert db.query(User).filter_by(email="second@example.test").count() == 0
+        assert db.query(AuthSession).count() == 1
+        assert db.query(InviteCode).one().used_count == 1
 
 
 def test_duplicate_email(system):
@@ -192,6 +209,7 @@ def test_refresh_rotates_token_and_rejects_old_token(system):
     with factory() as db:
         session = db.query(AuthSession).one()
         assert session.refresh_token_hash == hashlib.sha256(rotated["refresh_token"].encode()).hexdigest()
+        assert session.revoked_at is None
 
 
 def test_logout_revokes_session_and_access_token(system):
@@ -204,9 +222,11 @@ def test_logout_revokes_session_and_access_token(system):
 
 
 def test_trainee_cannot_create_invite(system):
-    client, _, _ = system
+    client, factory, _ = system
     response = client.post("/v1/invites", headers=_auth_headers(client, "trainee@example.test"), json={"role": "trainee"})
     assert response.status_code == 403
+    with factory() as db:
+        assert db.query(InviteCode).count() == 0
 
 
 def test_instructor_can_create_trainee_invite_but_not_instructor(system):
@@ -220,16 +240,22 @@ def test_instructor_can_create_trainee_invite_but_not_instructor(system):
         assert row.created_by == ids["instructor"]
     forbidden = client.post("/v1/invites", headers=headers, json={"role": "instructor"})
     assert forbidden.status_code == 403
+    with factory() as db:
+        assert db.query(InviteCode).count() == 1
 
 
-def test_admin_can_create_instructor_invite(system):
+@pytest.mark.parametrize("role,prefix", [("trainee", "TACTIX-TRN-"), ("instructor", "TACTIX-INS-")])
+def test_admin_can_create_invites(system, role, prefix):
     client, factory, ids = system
-    response = client.post("/v1/invites", headers=_auth_headers(client, "admin@example.test"), json={"role": "instructor"})
+    response = client.post("/v1/invites", headers=_auth_headers(client, "admin@example.test"), json={"role": role})
     assert response.status_code == 201
-    assert response.json()["role"] == "instructor"
+    assert response.json()["role"] == role
+    assert response.json()["code"].startswith(prefix)
     with factory() as db:
         invite = db.query(InviteCode).one()
         assert invite.organization_id == ids["organization"]
+        assert invite.created_by == ids["admin"]
+        assert invite.role == role
         assert invite.code_hash != response.json()["code"]
 
 

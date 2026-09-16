@@ -33,6 +33,22 @@ class AuthTokens {
   });
 }
 
+class InviteResult {
+  final String code;
+  final String role;
+  final String organizationId;
+  final DateTime? expiresAt;
+  final int maxUses;
+
+  const InviteResult({
+    required this.code,
+    required this.role,
+    required this.organizationId,
+    required this.expiresAt,
+    required this.maxUses,
+  });
+}
+
 abstract interface class AuthClient {
   Future<String?> readRefreshToken();
   Future<void> writeRefreshToken(String token);
@@ -48,6 +64,13 @@ abstract interface class AuthClient {
   Future<AuthTokens> refresh(String refreshToken);
   Future<AppUser> me(String accessToken);
   Future<void> logout(String refreshToken);
+
+  Future<InviteResult> createInvite({
+    required String accessToken,
+    required String role,
+    int maxUses = 1,
+    int? expiresInDays = 30,
+  });
 }
 
 abstract interface class RefreshTokenStore {
@@ -173,6 +196,54 @@ class AuthService implements AuthClient {
       '/v1/auth/logout',
       body: {'refresh_token': refreshToken},
       accepted: const {200, 204},
+    );
+  }
+
+  @override
+  Future<InviteResult> createInvite({
+    required String accessToken,
+    required String role,
+    int maxUses = 1,
+    int? expiresInDays = 30,
+  }) async {
+    final json = await _request(
+      'POST',
+      '/v1/invites',
+      headers: {'Authorization': 'Bearer $accessToken'},
+      body: {
+        'role': role,
+        'max_uses': maxUses,
+        'expires_in_days': expiresInDays,
+      },
+    );
+
+    final code = json['code'];
+    final inviteRole = json['role'];
+    final organizationId = json['organization_id'];
+    final maxUsesValue = json['max_uses'];
+    final expiresAtValue = json['expires_at'];
+
+    if (code is! String ||
+        inviteRole is! String ||
+        organizationId is! String ||
+        maxUsesValue is! int) {
+      throw const AuthFailure(
+        AuthFailureKind.server,
+        'Сервер вернул некорректные данные приглашения.',
+      );
+    }
+
+    DateTime? expiresAt;
+    if (expiresAtValue is String && expiresAtValue.isNotEmpty) {
+      expiresAt = DateTime.tryParse(expiresAtValue);
+    }
+
+    return InviteResult(
+      code: code,
+      role: inviteRole,
+      organizationId: organizationId,
+      expiresAt: expiresAt,
+      maxUses: maxUsesValue,
     );
   }
 

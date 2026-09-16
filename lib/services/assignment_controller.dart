@@ -7,6 +7,7 @@ class AssignmentController
     extends ChangeNotifier {
   List<TrainingAssignment> _items = const [];
   bool _loading = false;
+  int _loadGeneration = 0;
 
   List<TrainingAssignment> get items =>
       List.unmodifiable(_items);
@@ -40,33 +41,62 @@ class AssignmentController
   Future<void> loadForAssignee(
     String userId,
   ) async {
+    final generation =
+        ++_loadGeneration;
+    _items = const [];
     _loading = true;
     notifyListeners();
 
     try {
-      _items =
+      final items =
           await AssignmentStorageService
               .loadForAssignee(userId);
+      if (generation !=
+          _loadGeneration) {
+        return;
+      }
+      _items = items;
     } finally {
-      _loading = false;
-      notifyListeners();
+      if (generation ==
+          _loadGeneration) {
+        _loading = false;
+        notifyListeners();
+      }
     }
   }
 
   Future<void> loadAssignedBy(
     String userId,
   ) async {
+    final generation =
+        ++_loadGeneration;
+    _items = const [];
     _loading = true;
     notifyListeners();
 
     try {
-      _items =
+      final items =
           await AssignmentStorageService
               .loadAssignedBy(userId);
+      if (generation !=
+          _loadGeneration) {
+        return;
+      }
+      _items = items;
     } finally {
-      _loading = false;
-      notifyListeners();
+      if (generation ==
+          _loadGeneration) {
+        _loading = false;
+        notifyListeners();
+      }
     }
+  }
+
+  void resetLoaded() {
+    _loadGeneration++;
+    _items = const [];
+    _loading = false;
+    notifyListeners();
   }
 
   Future<void> create(

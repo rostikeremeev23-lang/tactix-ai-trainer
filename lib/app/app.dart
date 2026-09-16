@@ -53,6 +53,7 @@ class _TactixAppState
 
     if (user == null) {
       _loadedAssignmentUserId = null;
+      _assignmentController.resetLoaded();
       return;
     }
 

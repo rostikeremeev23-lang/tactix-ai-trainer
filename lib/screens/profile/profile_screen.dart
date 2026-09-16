@@ -8,6 +8,7 @@ import '../../services/result_storage_service.dart';
 import '../../widgets/achievements_panel.dart';
 import '../../widgets/common_widgets.dart';
 import '../scenarios/ai_scenario_screen.dart';
+import 'invite_screen.dart';
 import 'user_switcher_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -51,11 +52,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   int get average => _average(results.map((e) => e.score));
-  int get best => results.isEmpty ? 0 : results.map((e) => e.score).reduce((a, b) => a > b ? a : b);
+  int get best => results.isEmpty
+      ? 0
+      : results.map((e) => e.score).reduce((a, b) => a > b ? a : b);
   int get adaptation => _average(results.map((e) => e.adaptationScore));
   int get stability => _average(results.map((e) => e.stabilityScore));
   int get resource => _average(results.map((e) => e.resourceScore));
-  int get decisions => results.fold<int>(0, (sum, item) => sum + item.decisions);
+  int get decisions =>
+      results.fold<int>(0, (sum, item) => sum + item.decisions);
 
   String get rank {
     if (level >= 10) return 'ELITE OPERATOR';
@@ -86,12 +90,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               tooltip: 'Switch local profile',
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const UserSwitcherScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const UserSwitcherScreen()),
               ),
               icon: const Icon(
                 Icons.switch_account_outlined,
+                color: Colors.white70,
+              ),
+            ),
+          if (session.isServerUser && session.canManageTraining)
+            IconButton(
+              tooltip: 'Приглашения',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const InviteScreen()),
+              ),
+              icon: const Icon(
+                Icons.person_add_alt_1_rounded,
                 color: Colors.white70,
               ),
             ),
@@ -120,7 +134,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: TactixTheme.panel,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(phone ? 14 : 28, 12, phone ? 14 : 28, 28),
+          padding: EdgeInsets.fromLTRB(
+            phone ? 14 : 28,
+            12,
+            phone ? 14 : 28,
+            28,
+          ),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1250),
@@ -173,34 +192,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     aiOnline: aiOnline,
                   ),
                   const SizedBox(height: 16),
-                  LayoutBuilder(builder: (context, c) {
-                    final two = c.maxWidth >= 850;
-                    final gap = 12.0;
-                    final w = two ? (c.maxWidth - gap) / 2 : c.maxWidth;
-                    return Wrap(
-                      spacing: gap,
-                      runSpacing: gap,
-                      children: [
-                        SizedBox(
-                          width: w,
-                          child: _ProfileOverviewCard(
-                            trainings: results.length,
-                            decisions: decisions,
-                            average: average,
-                            best: best,
+                  LayoutBuilder(
+                    builder: (context, c) {
+                      final two = c.maxWidth >= 850;
+                      final gap = 12.0;
+                      final w = two ? (c.maxWidth - gap) / 2 : c.maxWidth;
+                      return Wrap(
+                        spacing: gap,
+                        runSpacing: gap,
+                        children: [
+                          SizedBox(
+                            width: w,
+                            child: _ProfileOverviewCard(
+                              trainings: results.length,
+                              decisions: decisions,
+                              average: average,
+                              best: best,
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: w,
-                          child: _ProfileSkillsCard(
-                            adaptation: adaptation,
-                            stability: stability,
-                            resource: resource,
+                          SizedBox(
+                            width: w,
+                            child: _ProfileSkillsCard(
+                              adaptation: adaptation,
+                              stability: stability,
+                              resource: resource,
+                            ),
                           ),
-                        ),
-                      ],
-                    );
-                  }),
+                        ],
+                      );
+                    },
+                  ),
                   const SizedBox(height: 16),
                   const SectionLabel('AI COACH'),
                   const SizedBox(height: 10),
@@ -252,10 +273,7 @@ class _ProfileHero extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            TactixTheme.panel2,
-            TactixTheme.panel,
-          ],
+          colors: [TactixTheme.panel2, TactixTheme.panel],
         ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: TactixTheme.line),
@@ -272,9 +290,15 @@ class _ProfileHero extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: TactixTheme.gold.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: TactixTheme.gold.withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: TactixTheme.gold.withValues(alpha: 0.4),
+                  ),
                 ),
-                child: const Icon(Icons.person_rounded, color: TactixTheme.gold, size: 32),
+                child: const Icon(
+                  Icons.person_rounded,
+                  color: TactixTheme.gold,
+                  size: 32,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -283,12 +307,21 @@ class _ProfileHero extends StatelessWidget {
                   children: [
                     const Text(
                       'TACTIX OPERATOR',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
+                      ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       rank,
-                      style: const TextStyle(color: TactixTheme.gold, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.3),
+                      style: const TextStyle(
+                        color: TactixTheme.gold,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.3,
+                      ),
                     ),
                   ],
                 ),
@@ -303,8 +336,20 @@ class _ProfileHero extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('LEVEL $level', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.1)),
-              Text('$levelXp / 500 XP', style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12)),
+              Text(
+                'LEVEL $level',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              Text(
+                '$levelXp / 500 XP',
+                style: const TextStyle(
+                  color: TactixTheme.textMuted,
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 9),
@@ -318,7 +363,10 @@ class _ProfileHero extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Text('Всего XP: $xp', style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12)),
+          Text(
+            'Всего XP: $xp',
+            style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
+          ),
         ],
       ),
     );
@@ -331,7 +379,12 @@ class _ProfileOverviewCard extends StatelessWidget {
   final int average;
   final int best;
 
-  const _ProfileOverviewCard({required this.trainings, required this.decisions, required this.average, required this.best});
+  const _ProfileOverviewCard({
+    required this.trainings,
+    required this.decisions,
+    required this.average,
+    required this.best,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -371,9 +424,15 @@ class _MiniProfileStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: TactixTheme.textMuted, fontSize: 10)),
+          Text(
+            label,
+            style: const TextStyle(color: TactixTheme.textMuted, fontSize: 10),
+          ),
           const SizedBox(height: 6),
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+          ),
         ],
       ),
     );
@@ -384,7 +443,11 @@ class _ProfileSkillsCard extends StatelessWidget {
   final int adaptation;
   final int stability;
   final int resource;
-  const _ProfileSkillsCard({required this.adaptation, required this.stability, required this.resource});
+  const _ProfileSkillsCard({
+    required this.adaptation,
+    required this.stability,
+    required this.resource,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -414,7 +477,13 @@ class _SkillBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(width: 90, child: Text(label, style: const TextStyle(color: TactixTheme.textMuted, fontSize: 11))),
+        SizedBox(
+          width: 90,
+          child: Text(
+            label,
+            style: const TextStyle(color: TactixTheme.textMuted, fontSize: 11),
+          ),
+        ),
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(99),
@@ -427,7 +496,14 @@ class _SkillBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        SizedBox(width: 32, child: Text('$value', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w800))),
+        SizedBox(
+          width: 32,
+          child: Text(
+            '$value',
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
       ],
     );
   }
@@ -462,7 +538,9 @@ class _CoachCardState extends State<_CoachCard> {
   String? aiError;
 
   String get recommendedDifficulty {
-    if (widget.average >= 90 && widget.adaptation >= 85 && widget.stability >= 80) {
+    if (widget.average >= 90 &&
+        widget.adaptation >= 85 &&
+        widget.stability >= 80) {
       return 'CHALLENGE';
     }
     if (widget.average >= 80 && widget.adaptation >= 70) {
@@ -502,16 +580,20 @@ class _CoachCardState extends State<_CoachCard> {
 
   List<dynamic> _historyForCoach() {
     final recent = widget.results.reversed.take(8).toList().reversed;
-    return recent.map((result) => {
-      'scenario': result.scenarioTitle,
-      'score': result.score,
-      'decisions': result.decisions,
-      'durationSeconds': result.durationSeconds,
-      'resource': result.resourceScore,
-      'stability': result.stabilityScore,
-      'progress': result.progressScore,
-      'adaptation': result.adaptationScore,
-    }).toList();
+    return recent
+        .map(
+          (result) => {
+            'scenario': result.scenarioTitle,
+            'score': result.score,
+            'decisions': result.decisions,
+            'durationSeconds': result.durationSeconds,
+            'resource': result.resourceScore,
+            'stability': result.stabilityScore,
+            'progress': result.progressScore,
+            'adaptation': result.adaptationScore,
+          },
+        )
+        .toList();
   }
 
   Future<void> _generateCoach() async {
@@ -549,7 +631,8 @@ class _CoachCardState extends State<_CoachCard> {
         uncertainty: (100 - avgAdaptation).clamp(0, 100),
       );
 
-      final prompt = '''Ты персональный AI Coach в приложении TACTIX.
+      final prompt =
+          '''Ты персональный AI Coach в приложении TACTIX.
 Проанализируй последние учебные тренировки оператора и составь краткий персональный план развития.
 Все ситуации являются учебными и вымышленными.
 
@@ -576,7 +659,8 @@ class _CoachCardState extends State<_CoachCard> {
 
       final text = await AIService.analyze(
         situation: prompt,
-        decision: 'Сформировать персональный план следующей учебной тренировки.',
+        decision:
+            'Сформировать персональный план следующей учебной тренировки.',
         goal: 'Улучшить следующий учебный результат оператора.',
         criteria: const [
           'Опора на статистику',
@@ -634,7 +718,7 @@ class _CoachCardState extends State<_CoachCard> {
       title: live ? 'AI COACH • LIVE' : 'AI COACH',
       icon: Icons.auto_awesome_rounded,
       trailing: Text(
-        widget.online ? 'GEMMA 3 4B' : 'LOCAL',
+        widget.online ? 'GEMMA 3 1B' : 'LOCAL',
         style: const TextStyle(
           color: Colors.white54,
           fontSize: 10,
@@ -658,7 +742,11 @@ class _CoachCardState extends State<_CoachCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.psychology_rounded, color: TactixTheme.gold, size: 25),
+              const Icon(
+                Icons.psychology_rounded,
+                color: TactixTheme.gold,
+                size: 25,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -720,9 +808,7 @@ class _CoachCardState extends State<_CoachCard> {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.auto_awesome, size: 18),
-      label: Text(
-        generating ? 'AI АНАЛИЗИРУЕТ...' : 'ОБНОВИТЬ AI АНАЛИЗ',
-      ),
+      label: Text(generating ? 'AI АНАЛИЗИРУЕТ...' : 'ОБНОВИТЬ AI АНАЛИЗ'),
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(44),
         backgroundColor: TactixTheme.gold.withValues(alpha: 0.14),
@@ -778,14 +864,10 @@ class _CoachMetric extends StatelessWidget {
           const SizedBox(width: 7),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
           ),
         ],
       ),
     );
   }
 }
-

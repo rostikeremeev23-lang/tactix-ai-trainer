@@ -54,6 +54,68 @@ void main() {
     expect(user.role, UserRole.instructor);
   });
 
+  test('registration persists tokens and server identity', () async {
+    final auth = _FakeAuth(user: serverUser);
+    final users = _FakeUsers();
+    final controller = UserSessionController(
+      authClient: auth,
+      userStore: users,
+    );
+
+    await controller.register(
+      email: 'instructor@example.test',
+      password: 'long-enough-password',
+      firstName: 'Alex',
+      callsign: 'ECHO',
+      inviteCode: 'TACTIX-INS-TEST',
+    );
+
+    expect(auth.registerCalled, isTrue);
+    expect(auth.meCalled, isTrue);
+    expect(auth.savedRefreshToken, 'refresh-rotated');
+    expect(controller.state, AuthSessionState.authenticatedOnline);
+    expect(controller.currentUser?.role, UserRole.instructor);
+    controller.dispose();
+  });
+
+  test('restart rotates refresh token and restores server profile', () async {
+    final auth = _FakeAuth(user: serverUser)
+      ..storedRefreshToken = 'refresh-old';
+    final users = _FakeUsers()..current = serverUser;
+    final controller = UserSessionController(
+      authClient: auth,
+      userStore: users,
+    );
+
+    await controller.load();
+
+    expect(auth.refreshCalled, isTrue);
+    expect(auth.meCalled, isTrue);
+    expect(auth.storedRefreshToken, 'refresh-rotated');
+    expect(controller.state, AuthSessionState.authenticatedOnline);
+    expect(controller.currentUser?.role, UserRole.instructor);
+    controller.dispose();
+  });
+
+  test('failed server profile validation removes newly stored token', () async {
+    final auth = _FakeAuth(user: serverUser)
+      ..meFailure = const AuthFailure(AuthFailureKind.rejected, 'revoked');
+    final controller = UserSessionController(
+      authClient: auth,
+      userStore: _FakeUsers(),
+    );
+
+    await expectLater(
+      controller.login('instructor@example.test', 'secret'),
+      throwsA(isA<AuthFailure>()),
+    );
+
+    expect(auth.storedRefreshToken, isNull);
+    expect(controller.accessToken, isNull);
+    expect(controller.state, AuthSessionState.unauthenticated);
+    controller.dispose();
+  });
+
   test(
     'login transitions to authenticated online using server identity',
     () async {
@@ -111,6 +173,51 @@ void main() {
     controller.dispose();
   });
 
+  test(
+    'instructor invite permissions and offline guard are enforced',
+    () async {
+      final auth = _FakeAuth(user: serverUser);
+      final controller = UserSessionController(
+        authClient: auth,
+        userStore: _FakeUsers(),
+      );
+      await controller.login('instructor@example.test', 'secret');
+
+      final invite = await controller.createInvite(role: 'trainee');
+      expect(invite.role, 'trainee');
+      expect(auth.inviteCalled, isTrue);
+      await expectLater(
+        controller.createInvite(role: 'instructor'),
+        throwsA(isA<AuthFailure>()),
+      );
+
+      final offlineAuth = _FakeAuth(user: serverUser)
+        ..storedRefreshToken = 'refresh-old'
+        ..refreshFailure = const AuthFailure(
+          AuthFailureKind.network,
+          'offline',
+        );
+      final offlineController = UserSessionController(
+        authClient: offlineAuth,
+        userStore: _FakeUsers()..current = serverUser,
+      );
+      await offlineController.load();
+      await expectLater(
+        offlineController.createInvite(role: 'trainee'),
+        throwsA(
+          isA<AuthFailure>().having(
+            (error) => error.kind,
+            'kind',
+            AuthFailureKind.network,
+          ),
+        ),
+      );
+
+      controller.dispose();
+      offlineController.dispose();
+    },
+  );
+
   test('logout revokes where possible and clears local auth session', () async {
     final auth = _FakeAuth(user: serverUser)
       ..storedRefreshToken = 'refresh-old';
@@ -138,6 +245,11 @@ class _FakeAuth implements AuthClient {
   String? storedRefreshToken;
   String? savedRefreshToken;
   AuthFailure? refreshFailure;
+  AuthFailure? meFailure;
+  bool registerCalled = false;
+  bool refreshCalled = false;
+  bool meCalled = false;
+  bool inviteCalled = false;
   bool logoutCalled = false;
 
   @override
@@ -159,17 +271,44 @@ class _FakeAuth implements AuthClient {
     required String firstName,
     required String callsign,
     required String inviteCode,
-  }) async => _tokens();
+  }) async {
+    registerCalled = true;
+    return _tokens();
+  }
+
   @override
   Future<AuthTokens> refresh(String refreshToken) async {
+    refreshCalled = true;
     if (refreshFailure case final failure?) throw failure;
     return _tokens();
   }
 
   @override
-  Future<AppUser> me(String accessToken) async => user;
+  Future<AppUser> me(String accessToken) async {
+    meCalled = true;
+    if (meFailure case final failure?) throw failure;
+    return user;
+  }
+
   @override
   Future<void> logout(String refreshToken) async => logoutCalled = true;
+
+  @override
+  Future<InviteResult> createInvite({
+    required String accessToken,
+    required String role,
+    int maxUses = 1,
+    int? expiresInDays = 30,
+  }) async {
+    inviteCalled = true;
+    return InviteResult(
+      code: 'TACTIX-TEST-CODE',
+      role: role,
+      organizationId: 'test-org',
+      expiresAt: null,
+      maxUses: maxUses,
+    );
+  }
 
   AuthTokens _tokens() => AuthTokens(
     accessToken: 'access',
