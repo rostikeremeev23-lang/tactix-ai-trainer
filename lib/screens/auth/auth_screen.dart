@@ -14,13 +14,16 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
+
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _firstName = TextEditingController();
   final _callsign = TextEditingController();
   final _invite = TextEditingController();
+
   bool _register = false;
   bool _loading = false;
+
   String? _error;
   String? _notice;
 
@@ -31,18 +34,24 @@ class _AuthScreenState extends State<AuthScreen> {
     _firstName.dispose();
     _callsign.dispose();
     _invite.dispose();
+
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
       _notice = null;
     });
+
     try {
       final session = UserSessionScope.read(context);
+
       if (_register) {
         await session.register(
           email: _email.text,
@@ -51,31 +60,58 @@ class _AuthScreenState extends State<AuthScreen> {
           callsign: _callsign.text,
           inviteCode: _invite.text,
         );
+
         _notice = 'Регистрация завершена.';
       } else {
         await session.login(_email.text, _password.text);
+
         _notice = 'Вход выполнен.';
       }
-      if (!mounted) return;
+
+      if (!mounted) {
+        return;
+      }
+
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(_notice!)));
     } on AuthFailure catch (failure) {
-      if (mounted) setState(() => _error = failure.message);
+      if (mounted) {
+        setState(() {
+          _error = failure.message;
+        });
+      }
     } catch (_) {
       if (mounted) {
-        setState(() => _error = 'Не удалось выполнить запрос. Проверьте сеть.');
+        setState(() {
+          _error = 'Не удалось выполнить запрос. Проверьте подключение к сети.';
+        });
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
-  String? _required(String? value, String label) =>
-      value == null || value.trim().isEmpty ? 'Enter $label' : null;
+  String? _required(String? value, String label) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Введите $label';
+    }
+
+    return null;
+  }
+
+  Future<void> _openOfflineProfile() async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const UserSetupScreen()));
+  }
 
   @override
   Widget build(BuildContext context) {
     final isRegister = _register;
+
     return Scaffold(
       backgroundColor: TactixTheme.bg,
       body: SafeArea(
@@ -101,7 +137,9 @@ class _AuthScreenState extends State<AuthScreen> {
                         color: TactixTheme.gold,
                         size: 42,
                       ),
+
                       const SizedBox(height: 12),
+
                       const Text(
                         'TACTIX',
                         textAlign: TextAlign.center,
@@ -111,7 +149,9 @@ class _AuthScreenState extends State<AuthScreen> {
                           letterSpacing: 2,
                         ),
                       ),
+
                       const SizedBox(height: 5),
+
                       Text(
                         isRegister ? 'РЕГИСТРАЦИЯ ПО ПРИГЛАШЕНИЮ' : 'ВХОД',
                         textAlign: TextAlign.center,
@@ -122,34 +162,45 @@ class _AuthScreenState extends State<AuthScreen> {
                           letterSpacing: .8,
                         ),
                       ),
+
                       const SizedBox(height: 22),
+
                       if (isRegister) ...[
                         _field(
                           _firstName,
                           'Имя',
                           Icons.person_outline,
-                          validator: (value) => _required(value, 'first name'),
+                          validator: (value) => _required(value, 'имя'),
                         ),
+
                         const SizedBox(height: 12),
+
                         _field(
                           _callsign,
                           'Позывной',
                           Icons.badge_outlined,
-                          validator: (value) => _required(value, 'callsign'),
+                          validator: (value) => _required(value, 'позывной'),
                         ),
+
                         const SizedBox(height: 12),
                       ],
+
                       _field(
                         _email,
                         'Email',
                         Icons.alternate_email,
                         keyboardType: TextInputType.emailAddress,
-                        validator: (value) =>
-                            value == null || !value.contains('@')
-                            ? 'Введите корректный Email'
-                            : null,
+                        validator: (value) {
+                          if (value == null || !value.contains('@')) {
+                            return 'Введите корректный Email';
+                          }
+
+                          return null;
+                        },
                       ),
+
                       const SizedBox(height: 12),
+
                       _field(
                         _password,
                         'Пароль',
@@ -160,25 +211,33 @@ class _AuthScreenState extends State<AuthScreen> {
                             : TextInputAction.done,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Enter password';
+                            return 'Введите пароль';
                           }
+
                           if (isRegister && value.length < 12) {
-                            return 'Use at least 12 characters';
+                            return 'Используйте минимум 12 символов';
                           }
+
                           return null;
                         },
                       ),
+
                       if (isRegister) ...[
                         const SizedBox(height: 12),
+
                         _field(
                           _invite,
                           'Код приглашения',
                           Icons.confirmation_number_outlined,
-                          validator: (value) => _required(value, 'invite code'),
+                          validator: (value) =>
+                              _required(value, 'код приглашения'),
                         ),
+
                         const SizedBox(height: 9),
+
                         const Text(
-                          'Организация и роль определяются кодом приглашения.',
+                          'Организация и роль определяются '
+                          'кодом приглашения.',
                           style: TextStyle(
                             color: TactixTheme.textMuted,
                             fontSize: 12,
@@ -186,15 +245,19 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                         ),
                       ],
+
                       if (_error != null) ...[
                         const SizedBox(height: 14),
                         _Message(text: _error!, error: true),
                       ],
+
                       if (_notice != null && _error == null) ...[
                         const SizedBox(height: 14),
                         _Message(text: _notice!, error: false),
                       ],
+
                       const SizedBox(height: 20),
+
                       FilledButton(
                         onPressed: _loading ? null : _submit,
                         style: FilledButton.styleFrom(
@@ -211,41 +274,88 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ),
                               )
                             : Text(
-                                isRegister ? 'СОЗДАТЬ АККАУНТ' : 'ВХОД',
+                                isRegister ? 'СОЗДАТЬ АККАУНТ' : 'ВОЙТИ',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: .6,
                                 ),
                               ),
                       ),
+
                       const SizedBox(height: 8),
+
                       TextButton(
                         onPressed: _loading
                             ? null
-                            : () => setState(() {
-                                _register = !_register;
-                                _error = null;
-                                _notice = null;
-                              }),
+                            : () {
+                                setState(() {
+                                  _register = !_register;
+                                  _error = null;
+                                  _notice = null;
+                                });
+                              },
                         child: Text(
                           isRegister
                               ? 'Уже есть аккаунт? Войти'
                               : 'Нет аккаунта? Зарегистрироваться',
                         ),
                       ),
-                      const Divider(color: TactixTheme.line, height: 24),
-                      OutlinedButton.icon(
-                        onPressed: _loading
-                            ? null
-                            : () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => const UserSetupScreen(),
-                                ),
+
+                      const Divider(color: TactixTheme.line, height: 28),
+
+                      const Row(
+                        children: [
+                          Expanded(child: Divider(color: TactixTheme.line)),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              'OFFLINE',
+                              style: TextStyle(
+                                color: TactixTheme.textMuted,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.2,
                               ),
-                        icon: const Icon(Icons.offline_bolt_outlined),
+                            ),
+                          ),
+                          Expanded(child: Divider(color: TactixTheme.line)),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      OutlinedButton.icon(
+                        onPressed: _loading ? null : _openOfflineProfile,
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          side: const BorderSide(color: TactixTheme.gold),
+                        ),
+                        icon: const Icon(
+                          Icons.offline_bolt_outlined,
+                          color: TactixTheme.gold,
+                        ),
                         label: const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                          child: Text('ЛОКАЛЬНЫЙ DEMO-ПРОФИЛЬ'),
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Text(
+                            'РАБОТАТЬ ОФЛАЙН',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: .6,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      const Text(
+                        'Интернет не требуется. Профиль и '
+                        'данные сохраняются локально на этом устройстве.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: TactixTheme.textMuted,
+                          fontSize: 11,
+                          height: 1.4,
                         ),
                       ),
                     ],
@@ -290,11 +400,13 @@ class _AuthScreenState extends State<AuthScreen> {
 class _Message extends StatelessWidget {
   final String text;
   final bool error;
+
   const _Message({required this.text, required this.error});
 
   @override
   Widget build(BuildContext context) {
     final color = error ? const Color(0xFFFF7B78) : TactixTheme.cyan;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

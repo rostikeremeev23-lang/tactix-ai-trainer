@@ -5,7 +5,6 @@ import '../../app/user_session_scope.dart';
 import '../../app/assignment_scope.dart';
 import '../../models/scenario.dart';
 import '../../models/training_result.dart';
-import '../../services/ai_service.dart';
 import '../../services/environment_service.dart';
 import '../../services/result_storage_service.dart';
 import '../../widgets/achievements_panel.dart';
@@ -44,21 +43,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadDashboard() async {
+    if (mounted) {
+      setState(() {
+        loading = true;
+      });
+    }
+
     try {
       final loaded = await ResultStorageService.load();
-      final online = await AIService.isServerAvailable();
+
       if (!mounted) return;
+
       setState(() {
         results = loaded;
-        aiOnline = online;
+        aiOnline = false;
         loading = false;
       });
     } catch (_) {
-      final online = await AIService.isServerAvailable();
       if (!mounted) return;
+
       setState(() {
         results = const [];
-        aiOnline = online;
+        aiOnline = false;
         loading = false;
       });
     }
@@ -1216,6 +1222,7 @@ class _EnvironmentDashboard extends StatefulWidget {
 class _EnvironmentDashboardState extends State<_EnvironmentDashboard> {
   EnvironmentData? data;
   bool loading = true;
+  bool syncedOnline = false;
   String? error;
 
   @override
@@ -1234,18 +1241,42 @@ class _EnvironmentDashboardState extends State<_EnvironmentDashboard> {
 
     try {
       final value = await EnvironmentService.fetch();
+
       if (!mounted) return;
+
       setState(() {
         data = value;
         loading = false;
+        syncedOnline = false;
       });
     } catch (_) {
       if (!mounted) return;
+
       setState(() {
         loading = false;
-        error = 'Не удалось получить внешние данные.';
+        syncedOnline = false;
+        error = 'Локальные данные среды недоступны.';
       });
     }
+  }
+
+  Future<void> _sync() async {
+    if (mounted) {
+      setState(() {
+        loading = true;
+        error = null;
+      });
+    }
+
+    final value = await EnvironmentService.syncRemote();
+
+    if (!mounted) return;
+
+    setState(() {
+      data = value;
+      loading = false;
+      syncedOnline = true;
+    });
   }
 
   String _timeLabel(DateTime time) {
@@ -1261,7 +1292,7 @@ class _EnvironmentDashboardState extends State<_EnvironmentDashboard> {
       icon: Icons.public_rounded,
       accent: TactixTheme.textMuted,
       trailing: TextButton.icon(
-        onPressed: loading ? null : _load,
+        onPressed: loading ? null : _sync,
         icon: const Icon(Icons.refresh_rounded, size: 15),
         label: const Text('SYNC'),
         style: TextButton.styleFrom(
@@ -1316,8 +1347,10 @@ class _EnvironmentDashboardState extends State<_EnvironmentDashboard> {
                               ),
                             ),
                             StatusChip(
-                              text: 'LIVE • ${_timeLabel(weather.updatedAt)}',
-                              online: true,
+                              text: syncedOnline
+                                  ? 'LIVE • ${_timeLabel(weather.updatedAt)}'
+                                  : 'LOCAL • ${_timeLabel(weather.updatedAt)}',
+                              online: syncedOnline,
                             ),
                           ],
                         ),
