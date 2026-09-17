@@ -15,14 +15,11 @@ import '../../services/simulation_engine.dart';
 import '../../services/storage_service.dart';
 import '../../widgets/common_widgets.dart';
 
-class ScenarioRunScreen
-    extends StatefulWidget {
+class ScenarioRunScreen extends StatefulWidget {
   final TrainingScenario scenario;
   final bool forceOffline;
 
-  final Future<void> Function(
-    int score,
-  )? onCompleted;
+  final Future<void> Function(int score)? onCompleted;
 
   const ScenarioRunScreen({
     super.key,
@@ -32,8 +29,7 @@ class ScenarioRunScreen
   });
 
   @override
-  State<ScenarioRunScreen> createState() =>
-      _ScenarioRunScreenState();
+  State<ScenarioRunScreen> createState() => _ScenarioRunScreenState();
 }
 
 class _EnvironmentImpactPanel extends StatelessWidget {
@@ -58,7 +54,7 @@ class _EnvironmentImpactPanel extends StatelessWidget {
       icon: Icons.tune_rounded,
       accent: TactixTheme.gold,
       trailing: Text(
-        loading ? 'SYNC...' : impactLabel,
+        loading ? 'LOCAL...' : impactLabel,
         style: const TextStyle(
           color: TactixTheme.gold,
           fontSize: 9,
@@ -69,87 +65,82 @@ class _EnvironmentImpactPanel extends StatelessWidget {
       child: loading && env == null
           ? const SizedBox(
               height: 55,
-              child: Center(
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
             )
           : env == null
-              ? const Text(
-                  'Внешние параметры пока недоступны. Симуляция работает в базовом режиме.',
-                  style: TextStyle(
-                    color: TactixTheme.textMuted,
-                    fontSize: 11,
-                    height: 1.4,
-                  ),
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          ? const Text(
+              'Внешние параметры пока недоступны. Симуляция работает в базовом режиме.',
+              style: TextStyle(
+                color: TactixTheme.textMuted,
+                fontSize: 11,
+                height: 1.4,
+              ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'СРЕДА ВЛИЯЕТ НА СИМУЛЯЦИЮ',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: .9,
-                            ),
-                          ),
+                    Expanded(
+                      child: Text(
+                        'СРЕДА ВЛИЯЕТ НА СИМУЛЯЦИЮ',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: .9,
                         ),
-                        Text(
-                          '$difficultyScore / 43',
-                          style: const TextStyle(
-                            color: TactixTheme.textMuted,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(99),
-                      child: LinearProgressIndicator(
-                        value: (difficultyScore / 43).clamp(0.0, 1.0),
-                        minHeight: 7,
-                        backgroundColor: Colors.white10,
-                        color: TactixTheme.gold,
                       ),
                     ),
-                    const SizedBox(height: 10),
                     Text(
-                      'Ветер ${env.windKmh.toStringAsFixed(0)} км/ч • Видимость ${env.visibilityLabel} • ${env.weatherLabel}',
+                      '$difficultyScore / 43',
                       style: const TextStyle(
                         color: TactixTheme.textMuted,
-                        fontSize: 11,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      'Параметры среды увеличивают неопределённость и/или ресурсную нагрузку в учебной симуляции.',
-                      style: TextStyle(
-                        color: Colors.white54,
                         fontSize: 10,
-                        height: 1.4,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: LinearProgressIndicator(
+                    value: (difficultyScore / 43).clamp(0.0, 1.0),
+                    minHeight: 7,
+                    backgroundColor: Colors.white10,
+                    color: TactixTheme.gold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Ветер ${env.windKmh.toStringAsFixed(0)} км/ч • Видимость ${env.visibilityLabel} • ${env.weatherLabel}',
+                  style: const TextStyle(
+                    color: TactixTheme.textMuted,
+                    fontSize: 11,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                const Text(
+                  'Параметры среды увеличивают неопределённость и/или ресурсную нагрузку в учебной симуляции.',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 10,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
 
-class _ScenarioRunScreenState
-    extends State<ScenarioRunScreen> {
-  final ScrollController scrollController =
-      ScrollController();
+class _ScenarioRunScreenState extends State<ScenarioRunScreen> {
+  final ScrollController scrollController = ScrollController();
 
   late SimulationState state;
 
-  final List<DecisionRecord>
-      history = [];
+  final List<DecisionRecord> history = [];
 
   Timer? timer;
 
@@ -192,48 +183,33 @@ class _ScenarioRunScreenState
     super.initState();
 
     state = SimulationState(
-      time: parseNumber(
-        widget.scenario.time,
-        45,
-      ).clamp(0, 120),
-      resources:
-          parseNumber(
-        widget.scenario.resources,
-        80,
-      ).clamp(0, 100),
+      time: parseNumber(widget.scenario.time, 45).clamp(0, 120),
+      resources: parseNumber(widget.scenario.resources, 80).clamp(0, 100),
       stability: 75,
       progress: 20,
       uncertainty: 25,
       turn: 1,
     );
 
-    currentSituation =
-        widget.scenario.description;
+    currentSituation = widget.scenario.description;
 
-    currentOptionA =
-        widget.scenario.optionA;
-    currentOptionB =
-        widget.scenario.optionB;
-    currentOptionC =
-        widget.scenario.optionC;
+    currentOptionA = widget.scenario.optionA;
+    currentOptionB = widget.scenario.optionB;
+    currentOptionC = widget.scenario.optionC;
 
     if (!widget.forceOffline) {
       _loadTrainingEnvironment();
     }
 
-    timer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) {
-        if (!mounted ||
-            completed) {
-          return;
-        }
+    timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || completed) {
+        return;
+      }
 
-        setState(() {
-          elapsedSeconds++;
-        });
-      },
-    );
+      setState(() {
+        elapsedSeconds++;
+      });
+    });
   }
 
   Future<void> _loadTrainingEnvironment() async {
@@ -289,7 +265,27 @@ class _ScenarioRunScreenState
       }
     }
 
-    if ([45, 48, 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82].contains(value.weatherCode)) {
+    if ([
+      45,
+      48,
+      51,
+      53,
+      55,
+      56,
+      57,
+      61,
+      63,
+      65,
+      66,
+      67,
+      71,
+      73,
+      75,
+      77,
+      80,
+      81,
+      82,
+    ].contains(value.weatherCode)) {
       delta += 3;
     }
 
@@ -323,7 +319,22 @@ class _ScenarioRunScreenState
 
     if ([95, 96, 99].contains(value.weatherCode)) {
       delta += 5;
-    } else if ([61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86].contains(value.weatherCode)) {
+    } else if ([
+      61,
+      63,
+      65,
+      66,
+      67,
+      71,
+      73,
+      75,
+      77,
+      80,
+      81,
+      82,
+      85,
+      86,
+    ].contains(value.weatherCode)) {
       delta += 2;
     }
 
@@ -398,46 +409,26 @@ class _ScenarioRunScreenState
     return 'STABLE';
   }
 
-  int parseNumber(
-    String text,
-    int fallback,
-  ) {
-    final match =
-        RegExp(r'\d+').firstMatch(text);
+  int parseNumber(String text, int fallback) {
+    final match = RegExp(r'\d+').firstMatch(text);
 
     if (match == null) {
       return fallback;
     }
 
-    return int.tryParse(
-          match.group(0)!,
-        ) ??
-        fallback;
+    return int.tryParse(match.group(0)!) ?? fallback;
   }
 
   String formatTime() {
-    final minutes =
-        elapsedSeconds ~/ 60;
+    final minutes = elapsedSeconds ~/ 60;
 
-    final seconds =
-        elapsedSeconds % 60;
+    final seconds = elapsedSeconds % 60;
 
     return '${minutes.toString().padLeft(2, '0')}:'
         '${seconds.toString().padLeft(2, '0')}';
   }
 
-  List<String> historyForAI() {
-    return history
-        .map(
-          (record) =>
-              'Ход ${record.turn}: решение ${record.decision}, оценка ${record.score}/100',
-        )
-        .toList();
-  }
-
-  String decisionText(
-    String choice,
-  ) {
+  String decisionText(String choice) {
     switch (choice) {
       case 'A':
         return currentOptionA;
@@ -450,82 +441,39 @@ class _ScenarioRunScreenState
     }
   }
 
-  String buildAISituation() {
-    return '''
-Сценарий:
-${widget.scenario.title}
-
-Исходное описание:
-${widget.scenario.description}
-
-Условия:
-${widget.scenario.conditions}
-
-Текущая учебная вводная:
-$currentSituation
-
-Текущее событие:
-$currentEvent
-
-Текущий фокус:
-$currentFocus
-
-Текущие варианты:
-A: $currentOptionA
-B: $currentOptionB
-C: $currentOptionC
-
-Текущий ход:
-${state.turn}
-''';
-  }
-
-  void updateDynamicOptions(
-    SimulationState value,
-  ) {
+  void updateDynamicOptions(SimulationState value) {
     final variant = runVersion % 3;
 
     if (value.turn <= 1) {
       if (variant == 0) {
-        currentOptionA =
-            'Ускорить продвижение по основной учебной цели, принимая более высокую нагрузку.';
-        currentOptionB =
-            'Сохранить сбалансированный темп и равномерно распределить условный ресурс.';
+        currentOptionA = 'Ускорить продвижение по основной учебной цели, принимая более высокую нагрузку.';
+        currentOptionB = 'Сохранить сбалансированный темп и равномерно распределить условный ресурс.';
         currentOptionC =
             'Сначала уточнить ситуацию и уменьшить неопределённость.';
       } else if (variant == 1) {
-        currentOptionA =
-            'Сделать ставку на быстрый прогресс, допустив больший расход ресурса.';
+        currentOptionA = 'Сделать ставку на быстрый прогресс, допустив больший расход ресурса.';
         currentOptionB =
             'Выбрать умеренный темп с контролем устойчивости и ресурса.';
-        currentOptionC =
-            'Сначала получить дополнительную информацию и снизить неопределённость.';
+        currentOptionC = 'Сначала получить дополнительную информацию и снизить неопределённость.';
       } else {
-        currentOptionA =
-            'Приоритетно продвинуть учебную задачу, принимая повышенную нагрузку.';
-        currentOptionB =
-            'Поддерживать равновесие между прогрессом, ресурсом и устойчивостью.';
-        currentOptionC =
-            'Сделать паузу для уточнения условий и уменьшения неопределённости.';
+        currentOptionA = 'Приоритетно продвинуть учебную задачу, принимая повышенную нагрузку.';
+        currentOptionB = 'Поддерживать равновесие между прогрессом, ресурсом и устойчивостью.';
+        currentOptionC = 'Сделать паузу для уточнения условий и уменьшения неопределённости.';
       }
       return;
     }
 
     if (value.turn == 2) {
       if (variant == 0) {
-        currentOptionA =
-            'Ускорить продвижение по основной учебной цели, принимая более высокую нагрузку.';
-        currentOptionB =
-            'Сохранить сбалансированный темп и распределить условный ресурс равномерно.';
+        currentOptionA = 'Ускорить продвижение по основной учебной цели, принимая более высокую нагрузку.';
+        currentOptionB = 'Сохранить сбалансированный темп и распределить условный ресурс равномерно.';
         currentOptionC =
             'Сначала уточнить ситуацию и уменьшить неопределённость.';
       } else if (variant == 1) {
         currentOptionA =
             'Сконцентрировать больше условных ресурсов на ускорении прогресса.';
-        currentOptionB =
-            'Сохранить устойчивый режим и не допустить резкого расхода ресурса.';
-        currentOptionC =
-            'Снизить неопределённость перед следующим решением.';
+        currentOptionB = 'Сохранить устойчивый режим и не допустить резкого расхода ресурса.';
+        currentOptionC = 'Снизить неопределённость перед следующим решением.';
       } else {
         currentOptionA =
             'Продолжить активное продвижение, увеличив допустимую нагрузку.';
@@ -546,12 +494,9 @@ ${state.turn}
         currentOptionC =
             'Проверить остаточные риски и затем завершить учебную задачу.';
       } else if (variant == 1) {
-        currentOptionA =
-            'Сделать финальный рывок к учебной цели, используя более высокий темп.';
-        currentOptionB =
-            'Завершить сценарий через наиболее устойчивый и сбалансированный вариант.';
-        currentOptionC =
-            'Сначала перепроверить оставшиеся риски и после этого завершить задачу.';
+        currentOptionA = 'Сделать финальный рывок к учебной цели, используя более высокий темп.';
+        currentOptionB = 'Завершить сценарий через наиболее устойчивый и сбалансированный вариант.';
+        currentOptionC = 'Сначала перепроверить оставшиеся риски и после этого завершить задачу.';
       } else {
         currentOptionA =
             'Поставить завершение цели выше сохранения части ресурса.';
@@ -563,48 +508,28 @@ ${state.turn}
     }
   }
 
-  int calculateTurnScore(
-    SimulationState value,
-  ) {
+  int calculateTurnScore(SimulationState value) {
     double score = 0;
 
-    score +=
-        value.resources * 0.25;
+    score += value.resources * 0.25;
 
-    score +=
-        value.stability * 0.25;
+    score += value.stability * 0.25;
 
-    score +=
-        value.progress * 0.35;
+    score += value.progress * 0.35;
 
-    score +=
-        (100 -
-                value.uncertainty) *
-            0.15;
+    score += (100 - value.uncertainty) * 0.15;
 
-    return score
-        .round()
-        .clamp(0, 100);
+    return score.round().clamp(0, 100);
   }
 
-  int averageScore(
-    List<DecisionRecord> values,
-  ) {
+  int averageScore(List<DecisionRecord> values) {
     if (values.isEmpty) {
       return 0;
     }
 
-    final total =
-        values.fold<int>(
-      0,
-      (sum, item) =>
-          sum + item.score,
-    );
+    final total = values.fold<int>(0, (sum, item) => sum + item.score);
 
-    return (total /
-            values.length)
-        .round()
-        .clamp(0, 100);
+    return (total / values.length).round().clamp(0, 100);
   }
 
   int averageDecisionMetric(
@@ -615,21 +540,13 @@ ${state.turn}
       return 0;
     }
 
-    final total = values.fold<int>(
-      0,
-      (sum, item) => sum + selector(item),
-    );
+    final total = values.fold<int>(0, (sum, item) => sum + selector(item));
 
-    return (total / values.length)
-        .round()
-        .clamp(0, 100);
+    return (total / values.length).round().clamp(0, 100);
   }
 
-  Future<void> makeDecision(
-    String decision,
-  ) async {
-    if (processing ||
-        completed) {
+  Future<void> makeDecision(String decision) async {
+    if (processing || completed) {
       return;
     }
 
@@ -645,14 +562,9 @@ ${state.turn}
       // 1. SIMULATION
       // ==========================================
 
-      final engine =
-          SimulationEngine();
+      final engine = SimulationEngine();
 
-      final result =
-          engine.applyDecision(
-        state,
-        decision,
-      );
+      final result = engine.applyDecision(state, decision);
 
       final rawState = result.state;
       final newState = environment == null
@@ -676,314 +588,127 @@ ${state.turn}
       );
 
       final chosenDecisionText = decisionText(decision);
-      final chosenSituation = buildAISituation();
-
       updateDynamicOptions(newState);
 
-      final simulationData =
-          SimulationData(
-        time:
-            newState.time,
-        resources:
-            newState.resources,
-        stability:
-            newState.stability,
-        progress:
-            newState.progress,
-        uncertainty:
-            newState.uncertainty,
+      final simulationData = SimulationData(
+        time: newState.time,
+        resources: newState.resources,
+        stability: newState.stability,
+        progress: newState.progress,
+        uncertainty: newState.uncertainty,
       );
 
       // ==========================================
-      // 2. AI / LOCAL OFFLINE EXPLANATION
+      // 2. LOCAL TACTIX EXPLANATION
       // ==========================================
 
-      String analysis;
-      String summary;
-      bool aiAvailableForTurn = false;
+      final analysis = AIService.localObjectiveScoreExplanation(
+        decision: '$decision: $chosenDecisionText',
+        objectiveScore: decisionScore.total,
+        level: decisionScore.level,
+        scoreBreakdown: {
+          'goal': decisionScore.goal,
+          'resources': decisionScore.resources,
+          'stability': decisionScore.stability,
+          'uncertainty': decisionScore.uncertainty,
+          'time': decisionScore.time,
+        },
+        stateDelta: stateDelta.toJson(),
+      );
 
-      if (widget.forceOffline) {
-        analysis =
-            AIService.localObjectiveScoreExplanation(
-          decision:
-              '$decision: $chosenDecisionText',
-          objectiveScore:
-              decisionScore.total,
-          level:
-              decisionScore.level,
-          scoreBreakdown: {
-            'goal': decisionScore.goal,
-            'resources': decisionScore.resources,
-            'stability': decisionScore.stability,
-            'uncertainty': decisionScore.uncertainty,
-            'time': decisionScore.time,
-          },
-          stateDelta:
-              stateDelta.toJson(),
-        );
-
-        summary =
-            AIService.localSummary(
-          simulation:
-              simulationData,
-          events:
-              result.events,
-        );
-      } else {
-        analysis =
-            AIService.localObjectiveScoreExplanation(
-          decision:
-              '$decision: $chosenDecisionText',
-          objectiveScore:
-              decisionScore.total,
-          level:
-              decisionScore.level,
-          scoreBreakdown: {
-            'goal': decisionScore.goal,
-            'resources': decisionScore.resources,
-            'stability': decisionScore.stability,
-            'uncertainty': decisionScore.uncertainty,
-            'time': decisionScore.time,
-          },
-          stateDelta:
-              stateDelta.toJson(),
-        );
-
-        summary =
-            AIService.localSummary(
-          simulation:
-              simulationData,
-          events:
-              result.events,
-        );
-
-        aiAvailableForTurn = await AIService.isServerAvailable();
-
-        if (aiAvailableForTurn) {
-          try {
-            analysis =
-                await AIService.explainObjectiveScore(
-              situation:
-                  chosenSituation,
-              decision:
-                  '$decision: $chosenDecisionText',
-              goal:
-                  widget.scenario.goal,
-              criteria:
-                  widget.scenario.criteria,
-              objectiveScore:
-                  decisionScore.total,
-              level:
-                  decisionScore.level,
-              scoreBreakdown: {
-                'goal': decisionScore.goal,
-                'resources': decisionScore.resources,
-                'stability': decisionScore.stability,
-                'uncertainty': decisionScore.uncertainty,
-                'time': decisionScore.time,
-              },
-              stateDelta:
-                  stateDelta.toJson(),
-              simulation:
-                  simulationData,
-              history:
-                  historyForAI(),
-            );
-          } catch (_) {
-            aiAvailableForTurn = false;
-          }
-        }
-
-        if (aiAvailableForTurn) {
-          try {
-            summary =
-                await AIService
-                    .generateSituationSummary(
-              situation:
-                  chosenSituation,
-              simulation:
-                  simulationData,
-              events:
-                  result.events,
-              history:
-                  historyForAI(),
-            );
-          } catch (_) {
-            aiAvailableForTurn = false;
-          }
-        }
-      }
+      final summary = AIService.localSummary(
+        simulation: simulationData,
+        events: result.events,
+      );
 
       // ==========================================
       // 3. RECORD
       // ==========================================
 
-      final record =
-          DecisionRecord(
-        turn:
-            state.turn,
-        decision:
-            decision,
-        score:
-            decisionScore.total,
-        goalScore:
-            decisionScore.goal,
-        resourceScore:
-            decisionScore.resources,
-        stabilityScore:
-            decisionScore.stability,
-        uncertaintyScore:
-            decisionScore.uncertainty,
-        timeScore:
-            decisionScore.time,
-        level:
-            decisionScore.level,
-        delta:
-            stateDelta.toJson(),
+      final record = DecisionRecord(
+        turn: state.turn,
+        decision: decision,
+        score: decisionScore.total,
+        goalScore: decisionScore.goal,
+        resourceScore: decisionScore.resources,
+        stabilityScore: decisionScore.stability,
+        uncertaintyScore: decisionScore.uncertainty,
+        timeScore: decisionScore.time,
+        level: decisionScore.level,
+        delta: stateDelta.toJson(),
       );
 
-      final updatedHistory =
-          List<DecisionRecord>.from(
-        history,
-      )..add(record);
+      final updatedHistory = List<DecisionRecord>.from(history)..add(record);
 
-      final isCompleted =
-          result.completed;
+      final isCompleted = result.completed;
 
       // ==========================================
       // 4. NEXT SITUATION
       // ==========================================
 
-      String nextSituation =
-          result.summary;
+      String nextSituation = result.summary;
 
-      String nextEvent =
-          result.events.isNotEmpty
-              ? result.events.last
-              : '';
+      String nextEvent = result.events.isNotEmpty ? result.events.last : '';
 
-      String nextFocus =
-          environment == null
-              ? 'Следите за изменением состояния симуляции.'
-              : _environmentFocus(environment!);
-
-      if (!isCompleted && !widget.forceOffline && aiAvailableForTurn) {
-        try {
-          final next =
-              await AIService
-                  .generateNextSituation(
-            scenario:
-                widget.scenario
-                    .description,
-            history:
-                updatedHistory
-                    .map(
-                      (item) =>
-                          'Ход ${item.turn}: решение ${item.decision}',
-                    )
-                    .toList(),
-            events:
-                result.events,
-            simulation:
-                simulationData,
-            turn:
-                newState.turn,
-          );
-
-          nextSituation =
-              next.situation;
-
-          nextEvent =
-              next.event;
-
-          nextFocus =
-              next.focus;
-        } catch (_) {
-          // Остаёмся на локальной вводной.
-        }
-      }
+      String nextFocus = environment == null
+          ? 'Следите за изменением состояния симуляции.'
+          : _environmentFocus(environment!);
 
       // ==========================================
       // 5. SAVE RESULT
       // ==========================================
 
       if (isCompleted) {
-        final finalScore =
-            averageScore(
-          updatedHistory,
-        );
+        final finalScore = averageScore(updatedHistory);
 
-        final finalResult =
-            TrainingResult(
-          scenarioTitle:
-              widget.scenario.title,
-          date:
-              DateTime.now(),
-          score:
-              finalScore,
-          decisions:
-              updatedHistory.length,
-          durationSeconds:
-              elapsedSeconds,
-          resourceScore:
-              averageDecisionMetric(
+        final finalResult = TrainingResult(
+          scenarioTitle: widget.scenario.title,
+          date: DateTime.now(),
+          score: finalScore,
+          decisions: updatedHistory.length,
+          durationSeconds: elapsedSeconds,
+          resourceScore: averageDecisionMetric(
             updatedHistory,
             (item) => item.resourceScore,
           ),
-          stabilityScore:
-              averageDecisionMetric(
+          stabilityScore: averageDecisionMetric(
             updatedHistory,
             (item) => item.stabilityScore,
           ),
-          progressScore:
-              newState.progress,
-          adaptationScore:
-              (100 -
-                      newState
-                          .uncertainty)
-                  .clamp(0, 100),
-          goalScore:
-              averageDecisionMetric(
+          progressScore: newState.progress,
+          adaptationScore: (100 - newState.uncertainty).clamp(0, 100),
+          goalScore: averageDecisionMetric(
             updatedHistory,
             (item) => item.goalScore,
           ),
-          uncertaintyScore:
-              averageDecisionMetric(
+          uncertaintyScore: averageDecisionMetric(
             updatedHistory,
             (item) => item.uncertaintyScore,
           ),
-          timeScore:
-              averageDecisionMetric(
+          timeScore: averageDecisionMetric(
             updatedHistory,
             (item) => item.timeScore,
           ),
-          level:
-              finalScore >= 85
-                  ? 'Отлично'
-                  : finalScore >= 70
-                      ? 'Хорошо'
-                      : finalScore >= 55
-                          ? 'Удовлетворительно'
-                          : 'Требует развития',
-          outcome:
-              result.outcome,
-          decisionHistory:
-              updatedHistory
-                  .map(
-                    (item) =>
-                        'Ход ${item.turn}: ${item.decision} — ${item.score}/100 (${item.level})',
-                  )
-                  .toList(),
+          level: finalScore >= 85
+              ? 'Отлично'
+              : finalScore >= 70
+              ? 'Хорошо'
+              : finalScore >= 55
+              ? 'Удовлетворительно'
+              : 'Требует развития',
+          outcome: result.outcome,
+          decisionHistory: updatedHistory
+              .map(
+                (item) =>
+                    'Ход ${item.turn}: ${item.decision} — ${item.score}/100 (${item.level})',
+              )
+              .toList(),
         );
 
-        await ResultStorageService.save(
-          finalResult,
-        );
+        await ResultStorageService.save(finalResult);
 
         if (widget.onCompleted != null) {
-          await widget.onCompleted!(
-            finalScore,
-          );
+          await widget.onCompleted!(finalScore);
         }
       }
 
@@ -994,38 +719,26 @@ ${state.turn}
 
         history
           ..clear()
-          ..addAll(
-            updatedHistory,
-          );
+          ..addAll(updatedHistory);
 
-        lastEvents =
-            result.events;
+        lastEvents = result.events;
 
-        aiAnalysis =
-            analysis;
+        aiAnalysis = analysis;
 
-        aiSummary =
-            summary;
+        aiSummary = summary;
 
-        lastDecisionScore =
-            decisionScore;
-        lastStateDelta =
-            stateDelta;
+        lastDecisionScore = decisionScore;
+        lastStateDelta = stateDelta;
 
-        currentSituation =
-            nextSituation;
+        currentSituation = nextSituation;
 
-        currentEvent =
-            nextEvent;
+        currentEvent = nextEvent;
 
-        currentFocus =
-            nextFocus;
+        currentFocus = nextFocus;
 
-        completed =
-            isCompleted;
+        completed = isCompleted;
 
-        selectedOption =
-            null;
+        selectedOption = null;
 
         showResult = true;
         processing = false;
@@ -1038,71 +751,42 @@ ${state.turn}
       });
 
       ScaffoldMessenger.of(context)
-          .showSnackBar(
-        SnackBar(
-          content:
-              Text('Ошибка: $e'),
-        ),
-      );
+          .showSnackBar(SnackBar(content: Text('Ошибка: $e')));
     }
   }
 
   Future<void> saveCurrentScenario() async {
     try {
-      final savedScenario =
-          TrainingScenario(
-        title:
-            widget.scenario.title,
-        description:
-            widget.scenario.description,
-        time:
-            widget.scenario.time,
-        resources:
-            widget.scenario.resources,
-        conditions:
-            widget.scenario.conditions,
-        optionA:
-            currentOptionA.isNotEmpty
-                ? currentOptionA
-                : widget.scenario.optionA,
-        optionB:
-            currentOptionB.isNotEmpty
-                ? currentOptionB
-                : widget.scenario.optionB,
-        optionC:
-            currentOptionC.isNotEmpty
-                ? currentOptionC
-                : widget.scenario.optionC,
-        goal:
-            widget.scenario.goal,
-        criteria:
-            widget.scenario.criteria,
+      final savedScenario = TrainingScenario(
+        title: widget.scenario.title,
+        description: widget.scenario.description,
+        time: widget.scenario.time,
+        resources: widget.scenario.resources,
+        conditions: widget.scenario.conditions,
+        optionA: currentOptionA.isNotEmpty
+            ? currentOptionA
+            : widget.scenario.optionA,
+        optionB: currentOptionB.isNotEmpty
+            ? currentOptionB
+            : widget.scenario.optionB,
+        optionC: currentOptionC.isNotEmpty
+            ? currentOptionC
+            : widget.scenario.optionC,
+        goal: widget.scenario.goal,
+        criteria: widget.scenario.criteria,
       );
 
-      await ScenarioStorage.save(
-        savedScenario,
-      );
+      await ScenarioStorage.save(savedScenario);
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context)
-          .showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Сценарий сохранён.',
-          ),
-        ),
-      );
+          .showSnackBar(const SnackBar(content: Text('Сценарий сохранён.')));
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context)
-          .showSnackBar(
-        SnackBar(
-          content:
-              Text('Ошибка сохранения: $e'),
-        ),
-      );
+          .showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
     }
   }
 
@@ -1111,16 +795,8 @@ ${state.turn}
       runVersion++;
 
       state = SimulationState(
-        time:
-            parseNumber(
-          widget.scenario.time,
-          45,
-        ).clamp(0, 120),
-        resources:
-            parseNumber(
-          widget.scenario.resources,
-          80,
-        ).clamp(0, 100),
+        time: parseNumber(widget.scenario.time, 45).clamp(0, 120),
+        resources: parseNumber(widget.scenario.resources, 80).clamp(0, 100),
         stability: 75,
         progress: 20,
         uncertainty: 25,
@@ -1131,8 +807,7 @@ ${state.turn}
 
       elapsedSeconds = 0;
 
-      currentSituation =
-          widget.scenario.description;
+      currentSituation = widget.scenario.description;
 
       currentOptionA = '';
       currentOptionB = '';
@@ -1140,14 +815,8 @@ ${state.turn}
 
       updateDynamicOptions(
         SimulationState(
-          time: parseNumber(
-            widget.scenario.time,
-            45,
-          ).clamp(0, 120),
-          resources: parseNumber(
-            widget.scenario.resources,
-            80,
-          ).clamp(0, 100),
+          time: parseNumber(widget.scenario.time, 45).clamp(0, 120),
+          resources: parseNumber(widget.scenario.resources, 80).clamp(0, 100),
           stability: 75,
           progress: 20,
           uncertainty: 25,
@@ -1171,10 +840,12 @@ ${state.turn}
       showResult = false;
     });
 
-    if (environment != null) {
-      _applyEnvironmentToCurrentState(environment!);
-    } else {
-      _loadTrainingEnvironment();
+    if (!widget.forceOffline) {
+      if (environment != null) {
+        _applyEnvironmentToCurrentState(environment!);
+      } else {
+        _loadTrainingEnvironment();
+      }
     }
   }
 
@@ -1193,20 +864,13 @@ ${state.turn}
       lastEvents = [];
     });
 
-    await Future.delayed(
-      const Duration(
-        milliseconds: 100,
-      ),
-    );
+    await Future.delayed(const Duration(milliseconds: 100));
 
     if (!mounted) return;
 
     await scrollController.animateTo(
       0,
-      duration:
-          const Duration(
-        milliseconds: 350,
-      ),
+      duration: const Duration(milliseconds: 350),
       curve: Curves.easeOut,
     );
   }
@@ -1220,54 +884,30 @@ ${state.turn}
 
   @override
   Widget build(BuildContext context) {
-    final score =
-        averageScore(history);
-    final progress =
-        (history.length / 3)
-            .clamp(0.0, 1.0);
-    final primary =
-        Theme.of(context)
-            .colorScheme
-            .primary;
+    final score = averageScore(history);
+    final progress = (history.length / 3).clamp(0.0, 1.0);
+    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
-        title:
-            const Text(
-          'ЦЕНТР ТРЕНИРОВКИ',
-        ),
+        title: const Text('ЦЕНТР ТРЕНИРОВКИ'),
         actions: [
           IconButton(
-            onPressed:
-                processing
-                    ? null
-                    : saveCurrentScenario,
-            tooltip:
-                'Сохранить сценарий',
-            icon:
-                const Icon(
-              Icons.save_outlined,
-            ),
+            onPressed: processing ? null : saveCurrentScenario,
+            tooltip: 'Сохранить сценарий',
+            icon: const Icon(Icons.save_outlined),
           ),
           IconButton(
-            onPressed:
-                processing
-                    ? null
-                    : resetTraining,
-            tooltip:
-                'Начать заново',
-            icon:
-                const Icon(
-              Icons.restart_alt,
-            ),
+            onPressed: processing ? null : resetTraining,
+            tooltip: 'Начать заново',
+            icon: const Icon(Icons.restart_alt),
           ),
           const SizedBox(width: 4),
         ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          controller:
-              scrollController,
+          controller: scrollController,
           padding: EdgeInsets.fromLTRB(
             TactixResponsive.horizontalPadding(context),
             12,
@@ -1275,104 +915,65 @@ ${state.turn}
             28,
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                padding:
-                    EdgeInsets.all(widget.forceOffline ? 18 : 14),
+                padding: EdgeInsets.all(widget.forceOffline ? 18 : 14),
                 decoration: BoxDecoration(
-                  borderRadius:
-                      BorderRadius.circular(
-                    20,
-                  ),
-                  border:
-                      Border.all(
-                    color: Colors.white12,
-                  ),
-                  gradient:
-                      LinearGradient(
-                    begin:
-                        Alignment.topLeft,
-                    end:
-                        Alignment.bottomRight,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white12),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                     colors: [
                       primary.withValues(
                         alpha: widget.forceOffline ? .20 : .06,
                       ),
-                      Colors.white.withValues(
-                        alpha: .04,
-                      ),
+                      Colors.white.withValues(alpha: .04),
                     ],
                   ),
                 ),
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .stretch,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Row(
                       children: [
                         Container(
                           width: widget.forceOffline ? 46 : 38,
                           height: widget.forceOffline ? 46 : 38,
-                          decoration:
-                              BoxDecoration(
-                            borderRadius:
-                                BorderRadius
-                                    .circular(
-                              14,
-                            ),
-                            color:
-                                primary
-                                    .withValues(
-                              alpha: .18,
-                            ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            color: primary.withValues(alpha: .18),
                           ),
                           child: Icon(
-                            Icons
-                                .psychology_alt_outlined,
-                            color:
-                                primary,
+                            Icons.psychology_alt_outlined,
+                            color: primary,
                           ),
                         ),
-                        const SizedBox(
-                          width: 12,
-                        ),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment
-                                    .start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 widget.scenario.title,
                                 maxLines: 2,
-                                overflow:
-                                    TextOverflow.ellipsis,
-                                style:
-                                    const TextStyle(
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
                                   fontSize: 21,
-                                  fontWeight:
-                                      FontWeight.w800,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
-                              const SizedBox(
-                                height: 4,
-                              ),
+                              const SizedBox(height: 4),
                               Text(
                                 completed
                                     ? 'ТРЕНИРОВКА ЗАВЕРШЕНА'
                                     : 'АДАПТИВНАЯ СИМУЛЯЦИЯ',
-                                style:
-                                    TextStyle(
-                                  color:
-                                      primary,
+                                style: TextStyle(
+                                  color: primary,
                                   fontSize: 11,
-                                  fontWeight:
-                                      FontWeight.w800,
-                                  letterSpacing:
-                                      1.1,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.1,
                                 ),
                               ),
                             ],
@@ -1380,80 +981,53 @@ ${state.turn}
                         ),
                         _StatusPill(
                           preserveDemo: widget.forceOffline,
-                          label:
-                              completed
-                                  ? 'ГОТОВО'
-                                  : processing
-                                      ? 'AI'
-                                      : 'LIVE',
-                          icon:
-                              completed
-                                  ? Icons
-                                      .check_circle_outline
-                                  : processing
-                                      ? Icons
-                                          .auto_awesome
-                                      : Icons
-                                          .circle,
+                          label: completed
+                              ? 'ГОТОВО'
+                              : processing
+                              ? 'РАСЧЁТ'
+                              : 'OFFLINE',
+                          icon: completed
+                              ? Icons.check_circle_outline
+                              : processing
+                              ? Icons.auto_awesome
+                              : Icons.circle,
                         ),
                       ],
                     ),
-                    SizedBox(
-                      height: widget.forceOffline ? 18 : 12,
-                    ),
+                    SizedBox(height: widget.forceOffline ? 18 : 12),
                     Row(
                       children: [
                         Text(
                           'ЭТАП ${state.turn.clamp(1, 3)} ИЗ 3',
-                          style:
-                              const TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
-                            fontWeight:
-                                FontWeight.w800,
+                            fontWeight: FontWeight.w800,
                             letterSpacing: .8,
                           ),
                         ),
                         const Spacer(),
                         Text(
                           formatTime(),
-                          style:
-                              const TextStyle(
-                            fontFeatures: [
-                              FontFeature
-                                  .tabularFigures(),
-                            ],
-                            fontWeight:
-                                FontWeight.w800,
+                          style: const TextStyle(
+                            fontFeatures: [FontFeature.tabularFigures()],
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(
-                      height: 9,
-                    ),
+                    const SizedBox(height: 9),
                     ClipRRect(
-                      borderRadius:
-                          BorderRadius.circular(
-                        99,
-                      ),
-                      child:
-                          LinearProgressIndicator(
+                      borderRadius: BorderRadius.circular(99),
+                      child: LinearProgressIndicator(
                         minHeight: widget.forceOffline ? 7 : 4,
                         value: progress,
-                        backgroundColor:
-                            Colors.white10,
+                        backgroundColor: Colors.white10,
                       ),
                     ),
-                    const SizedBox(
-                      height: 8,
-                    ),
+                    const SizedBox(height: 8),
                     const Text(
                       'ПРОГРЕСС ПО ХОДАМ',
-                      style: TextStyle(
-                        color:
-                            Colors.white54,
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: Colors.white54, fontSize: 11),
                     ),
                   ],
                 ),
@@ -1462,56 +1036,41 @@ ${state.turn}
               if (widget.scenario.goal.isNotEmpty ||
                   widget.scenario.conditions.isNotEmpty) ...[
                 PanelCard(
-                  title:
-                      'БРИФИНГ СЦЕНАРИЯ',
-                  icon: Icons
-                      .assignment_turned_in_outlined,
+                  title: 'БРИФИНГ СЦЕНАРИЯ',
+                  icon: Icons.assignment_turned_in_outlined,
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment
-                            .stretch,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (widget.scenario.goal.isNotEmpty) ...[
                         _MiniLabel(
                           preserveDemo: widget.forceOffline,
                           text: 'ЦЕЛЬ',
                         ),
-                        const SizedBox(
-                          height: 5,
-                        ),
+                        const SizedBox(height: 5),
                         Text(
                           widget.scenario.goal,
-                          style:
-                              const TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             height: 1.45,
-                            fontWeight:
-                                FontWeight.w700,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
                       if (widget.scenario.goal.isNotEmpty &&
                           widget.scenario.conditions.isNotEmpty)
-                        const SizedBox(
-                          height: 12,
-                        ),
+                        const SizedBox(height: 12),
                       if (widget.scenario.conditions.isNotEmpty) ...[
                         _MiniLabel(
                           preserveDemo: widget.forceOffline,
-                          text:
-                              'УЧЕБНЫЕ УСЛОВИЯ',
+                          text: 'УЧЕБНЫЕ УСЛОВИЯ',
                         ),
-                        const SizedBox(
-                          height: 5,
-                        ),
+                        const SizedBox(height: 5),
                         Text(
                           widget.scenario.conditions,
-                          style:
-                              const TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             height: 1.45,
-                            color:
-                                Colors.white70,
+                            color: Colors.white70,
                           ),
                         ),
                       ],
@@ -1520,10 +1079,7 @@ ${state.turn}
                 ),
                 const SizedBox(height: 16),
               ],
-              const SectionTitle(
-                text:
-                    'МОНИТОРИНГ СОСТОЯНИЯ',
-              ),
+              const SectionTitle(text: 'МОНИТОРИНГ СОСТОЯНИЯ'),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 9,
@@ -1532,55 +1088,37 @@ ${state.turn}
                   _TrainingMetricCard(
                     preserveDemo: widget.forceOffline,
                     title: 'Время',
-                    value:
-                        '${state.time} мин',
-                    icon: Icons
-                        .schedule_outlined,
-                    progress:
-                        (state.time / 120)
-                            .clamp(0.0, 1.0),
+                    value: '${state.time} мин',
+                    icon: Icons.schedule_outlined,
+                    progress: (state.time / 120).clamp(0.0, 1.0),
                   ),
                   _TrainingMetricCard(
                     preserveDemo: widget.forceOffline,
                     title: 'Ресурсы',
-                    value:
-                        '${state.resources}%',
-                    icon: Icons
-                        .battery_4_bar_outlined,
-                    progress:
-                        state.resources / 100,
+                    value: '${state.resources}%',
+                    icon: Icons.battery_4_bar_outlined,
+                    progress: state.resources / 100,
                   ),
                   _TrainingMetricCard(
                     preserveDemo: widget.forceOffline,
-                    title:
-                        'Стабильность',
-                    value:
-                        '${state.stability}%',
-                    icon: Icons
-                        .shield_outlined,
-                    progress:
-                        state.stability / 100,
+                    title: 'Стабильность',
+                    value: '${state.stability}%',
+                    icon: Icons.shield_outlined,
+                    progress: state.stability / 100,
                   ),
                   _TrainingMetricCard(
                     preserveDemo: widget.forceOffline,
                     title: 'Прогресс',
-                    value:
-                        '${state.progress}%',
+                    value: '${state.progress}%',
                     icon: Icons.trending_up,
-                    progress:
-                        state.progress / 100,
+                    progress: state.progress / 100,
                   ),
                   _TrainingMetricCard(
                     preserveDemo: widget.forceOffline,
-                    title:
-                        'Неопределённость',
-                    value:
-                        '${state.uncertainty}%',
-                    icon:
-                        Icons.help_outline,
-                    progress:
-                        state.uncertainty /
-                            100,
+                    title: 'Неопределённость',
+                    value: '${state.uncertainty}%',
+                    icon: Icons.help_outline,
+                    progress: state.uncertainty / 100,
                     inverted: true,
                   ),
                 ],
@@ -1596,47 +1134,31 @@ ${state.turn}
               ],
               const SizedBox(height: 16),
               PanelCard(
-                title:
-                    'ТЕКУЩАЯ УЧЕБНАЯ ВВОДНАЯ',
-                icon:
-                    Icons.radar_outlined,
+                title: 'ТЕКУЩАЯ УЧЕБНАЯ ВВОДНАЯ',
+                icon: Icons.radar_outlined,
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .stretch,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
                       currentSituation,
-                      style:
-                          const TextStyle(
-                        fontSize: 15,
-                        height: 1.55,
-                      ),
+                      style: const TextStyle(fontSize: 15, height: 1.55),
                     ),
                     if (currentEvent.isNotEmpty) ...[
-                      const SizedBox(
-                        height: 14,
-                      ),
+                      const SizedBox(height: 14),
                       _SignalBlock(
                         preserveDemo: widget.forceOffline,
-                        title:
-                            'НОВОЕ СОБЫТИЕ',
+                        title: 'НОВОЕ СОБЫТИЕ',
                         icon: Icons.bolt,
-                        text:
-                            currentEvent,
+                        text: currentEvent,
                       ),
                     ],
                     if (currentFocus.isNotEmpty) ...[
-                      const SizedBox(
-                        height: 10,
-                      ),
+                      const SizedBox(height: 10),
                       _SignalBlock(
                         preserveDemo: widget.forceOffline,
                         title: 'ФОКУС',
-                        icon: Icons
-                            .center_focus_strong,
-                        text:
-                            currentFocus,
+                        icon: Icons.center_focus_strong,
+                        text: currentFocus,
                       ),
                     ],
                   ],
@@ -1645,69 +1167,47 @@ ${state.turn}
               if (history.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 PanelCard(
-                  title:
-                      'ЖУРНАЛ РЕШЕНИЙ',
-                  icon:
-                      Icons.route_outlined,
+                  title: 'ЖУРНАЛ РЕШЕНИЙ',
+                  icon: Icons.route_outlined,
                   accent: widget.forceOffline ? null : TactixTheme.textMuted,
                   trailing: Text(
                     'Средняя оценка: $score',
-                    style:
-                        const TextStyle(
-                      fontSize: 12,
-                      color:
-                          Colors.white60,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.white60),
                   ),
                   child: Column(
-                    children:
-                        history.map(
-                      (item) => Padding(
-                        padding:
-                            EdgeInsets.only(
-                          bottom:
-                              item ==
-                                      history
-                                          .last
-                                  ? 0
-                                  : 8,
-                        ),
-                        child:
-                            _HistoryRow(
-                          preserveDemo: widget.forceOffline,
-                          item: item,
-                        ),
-                      ),
-                    ).toList(),
+                    children: history
+                        .map(
+                          (item) => Padding(
+                            padding: EdgeInsets.only(
+                              bottom: item == history.last ? 0 : 8,
+                            ),
+                            child: _HistoryRow(
+                              preserveDemo: widget.forceOffline,
+                              item: item,
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
               ],
               const SizedBox(height: 18),
               Row(
                 children: [
-                  const Expanded(
-                    child: SectionTitle(
-                      text:
-                          'ПРИНЯТИЕ РЕШЕНИЯ',
-                    ),
-                  ),
-                  if (selectedOption !=
-                      null)
+                  const Expanded(child: SectionTitle(text: 'ПРИНЯТИЕ РЕШЕНИЯ')),
+                  if (selectedOption != null)
                     _StatusPill(
-                          preserveDemo: widget.forceOffline,
-                      label:
-                          'ВЫБОР ${selectedOption!}',
-                      icon:
-                          Icons.touch_app_outlined,
+                      preserveDemo: widget.forceOffline,
+                      label: 'ВЫБОР ${selectedOption!}',
+                      icon: Icons.touch_app_outlined,
                     ),
                 ],
               ),
               const SizedBox(height: 6),
               const Text(
-                'Выберите один вариант. После подтверждения симуляция рассчитает последствия и AI сформирует разбор.',
+                'Выберите один вариант. После подтверждения симуляция рассчитает последствия и TACTIX сформирует локальный разбор.',
                 style: TextStyle(
-                  color:
-                      Colors.white54,
+                  color: Colors.white54,
                   fontSize: 12,
                   height: 1.45,
                 ),
@@ -1715,17 +1215,12 @@ ${state.turn}
               const SizedBox(height: 12),
               widget.forceOffline
                   ? DecisionButton(
-                letter: 'A',
-                text: currentOptionA,
-                selected:
-                    selectedOption == 'A',
-                enabled:
-                    !processing &&
-                        !completed,
-                onTap: () => setState(
-                  () => selectedOption = 'A',
-                ),
-              )
+                      letter: 'A',
+                      text: currentOptionA,
+                      selected: selectedOption == 'A',
+                      enabled: !processing && !completed,
+                      onTap: () => setState(() => selectedOption = 'A'),
+                    )
                   : Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Material(
@@ -1743,9 +1238,7 @@ ${state.turn}
                         ),
                         child: InkWell(
                           onTap: !processing && !completed
-                              ? () => setState(
-                                    () => selectedOption = 'A',
-                                  )
+                              ? () => setState(() => selectedOption = 'A')
                               : null,
                           borderRadius: BorderRadius.circular(16),
                           child: Padding(
@@ -1803,17 +1296,12 @@ ${state.turn}
                     ),
               widget.forceOffline
                   ? DecisionButton(
-                letter: 'B',
-                text: currentOptionB,
-                selected:
-                    selectedOption == 'B',
-                enabled:
-                    !processing &&
-                        !completed,
-                onTap: () => setState(
-                  () => selectedOption = 'B',
-                ),
-              )
+                      letter: 'B',
+                      text: currentOptionB,
+                      selected: selectedOption == 'B',
+                      enabled: !processing && !completed,
+                      onTap: () => setState(() => selectedOption = 'B'),
+                    )
                   : Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Material(
@@ -1831,9 +1319,7 @@ ${state.turn}
                         ),
                         child: InkWell(
                           onTap: !processing && !completed
-                              ? () => setState(
-                                    () => selectedOption = 'B',
-                                  )
+                              ? () => setState(() => selectedOption = 'B')
                               : null,
                           borderRadius: BorderRadius.circular(16),
                           child: Padding(
@@ -1891,17 +1377,12 @@ ${state.turn}
                     ),
               widget.forceOffline
                   ? DecisionButton(
-                letter: 'C',
-                text: currentOptionC,
-                selected:
-                    selectedOption == 'C',
-                enabled:
-                    !processing &&
-                        !completed,
-                onTap: () => setState(
-                  () => selectedOption = 'C',
-                ),
-              )
+                      letter: 'C',
+                      text: currentOptionC,
+                      selected: selectedOption == 'C',
+                      enabled: !processing && !completed,
+                      onTap: () => setState(() => selectedOption = 'C'),
+                    )
                   : Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Material(
@@ -1919,9 +1400,7 @@ ${state.turn}
                         ),
                         child: InkWell(
                           onTap: !processing && !completed
-                              ? () => setState(
-                                    () => selectedOption = 'C',
-                                  )
+                              ? () => setState(() => selectedOption = 'C')
                               : null,
                           borderRadius: BorderRadius.circular(16),
                           child: Padding(
@@ -1992,42 +1471,26 @@ ${state.turn}
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                onPressed:
-                    selectedOption ==
-                                null ||
-                            processing ||
-                            completed
-                        ? null
-                        : () => makeDecision(
-                              selectedOption!,
-                            ),
+                onPressed: selectedOption == null || processing || completed
+                    ? null
+                    : () => makeDecision(selectedOption!),
                 icon: processing
                     ? const SizedBox(
                         width: 19,
                         height: 19,
-                        child:
-                            CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(
-                        Icons.check_circle_outline,
-                      ),
+                    : const Icon(Icons.check_circle_outline),
                 label: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(
-                    vertical: 15,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
                   child: Text(
                     processing
                         ? (widget.forceOffline
-                            ? 'LOCAL ENGINE ОБРАБАТЫВАЕТ…'
-                            : 'AI ОБРАБАТЫВАЕТ РЕШЕНИЕ…')
+                              ? 'LOCAL ENGINE ОБРАБАТЫВАЕТ…'
+                              : 'TACTIX ВЫПОЛНЯЕТ РАСЧЁТ…')
                         : 'ПОДТВЕРДИТЬ РЕШЕНИЕ',
-                    style:
-                        const TextStyle(
-                      fontWeight:
-                          FontWeight.w800,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
                       letterSpacing: .3,
                     ),
                   ),
@@ -2036,20 +1499,12 @@ ${state.turn}
               if (showResult) ...[
                 const SizedBox(height: 20),
                 PanelCard(
-                  title:
-                      completed
-                          ? 'ФИНАЛЬНЫЙ РЕЗУЛЬТАТ'
-                          : 'РЕЗУЛЬТАТ ХОДА',
-                  icon:
-                      completed
-                          ? Icons
-                              .emoji_events_outlined
-                          : Icons
-                              .insights_outlined,
+                  title: completed ? 'ФИНАЛЬНЫЙ РЕЗУЛЬТАТ' : 'РЕЗУЛЬТАТ ХОДА',
+                  icon: completed
+                      ? Icons.emoji_events_outlined
+                      : Icons.insights_outlined,
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment
-                            .stretch,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (lastDecisionScore != null &&
                           lastStateDelta != null) ...[
@@ -2062,41 +1517,20 @@ ${state.turn}
                       ],
                       if (lastEvents.isNotEmpty)
                         ...lastEvents.map(
-                          (event) =>
-                              Padding(
-                            padding:
-                                const EdgeInsets
-                                    .only(
-                              bottom: 8,
-                            ),
+                          (event) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
                             child: Row(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Padding(
-                                  padding:
-                                      EdgeInsets.only(
-                                    top: 3,
-                                  ),
-                                  child:
-                                      Icon(
-                                    Icons
-                                        .chevron_right,
-                                    size: 18,
-                                  ),
+                                  padding: EdgeInsets.only(top: 3),
+                                  child: Icon(Icons.chevron_right, size: 18),
                                 ),
-                                const SizedBox(
-                                  width: 4,
-                                ),
+                                const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
                                     event,
-                                    style:
-                                        const TextStyle(
-                                      height:
-                                          1.45,
-                                    ),
+                                    style: const TextStyle(height: 1.45),
                                   ),
                                 ),
                               ],
@@ -2104,56 +1538,32 @@ ${state.turn}
                           ),
                         ),
                       if (aiSummary != null) ...[
-                        const SizedBox(
-                          height: 12,
-                        ),
+                        const SizedBox(height: 12),
                         _SignalBlock(
-                        preserveDemo: widget.forceOffline,
-                          title:
-                              'AI-СВОДКА',
-                          icon: Icons
-                              .auto_awesome,
-                          text:
-                              aiSummary!,
+                          preserveDemo: widget.forceOffline,
+                          title: 'TACTIX-СВОДКА',
+                          icon: Icons.auto_awesome,
+                          text: aiSummary!,
                         ),
                       ],
                       if (aiAnalysis != null) ...[
-                        const SizedBox(
-                          height: 10,
-                        ),
+                        const SizedBox(height: 10),
                         ExpansionTile(
-                          tilePadding:
-                              EdgeInsets.zero,
-                          childrenPadding:
-                              const EdgeInsets
-                                  .fromLTRB(
+                          tilePadding: EdgeInsets.zero,
+                          childrenPadding: const EdgeInsets.fromLTRB(
                             0,
                             0,
                             0,
                             4,
                           ),
-                          title:
-                              const Text(
-                            'AI-АНАЛИЗ',
-                          ),
-                          leading:
-                              const Icon(
-                            Icons
-                                .analytics_outlined,
-                          ),
+                          title: const Text('TACTIX-АНАЛИЗ'),
+                          leading: const Icon(Icons.analytics_outlined),
                           children: [
                             Align(
-                              alignment:
-                                  Alignment
-                                      .centerLeft,
-                              child:
-                                  SelectableText(
+                              alignment: Alignment.centerLeft,
+                              child: SelectableText(
                                 aiAnalysis!,
-                                style:
-                                    const TextStyle(
-                                  height:
-                                      1.5,
-                                ),
+                                style: const TextStyle(height: 1.5),
                               ),
                             ),
                           ],
@@ -2172,28 +1582,15 @@ ${state.turn}
                     goal: widget.scenario.goal,
                     durationSeconds: elapsedSeconds,
                     aiExplanation: aiAnalysis ?? '',
-                    onRestart:
-                        resetTraining,
+                    onRestart: resetTraining,
                   )
                 else
                   OutlinedButton.icon(
-                    onPressed:
-                        processing
-                            ? null
-                            : nextTurn,
-                    icon: const Icon(
-                      Icons
-                          .arrow_forward_rounded,
-                    ),
+                    onPressed: processing ? null : nextTurn,
+                    icon: const Icon(Icons.arrow_forward_rounded),
                     label: Padding(
-                      padding:
-                          const EdgeInsets
-                              .symmetric(
-                        vertical: 13,
-                      ),
-                      child: Text(
-                        'ПРОДОЛЖИТЬ в†’ ХОД ${state.turn}',
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      child: Text('ПРОДОЛЖИТЬ в†’ ХОД ${state.turn}'),
                     ),
                   ),
               ],
@@ -2205,9 +1602,7 @@ ${state.turn}
   }
 }
 
-
 // TACTIX SCORE CARD
-
 
 class _TactixDecisionScoreCard extends StatelessWidget {
   final DecisionScore score;
@@ -2255,7 +1650,9 @@ class _TactixDecisionScoreCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      preserveDemo ? 'TACTIX SCORE' : 'TACTIX SCORE\nScore этого хода',
+                      preserveDemo
+                          ? 'TACTIX SCORE'
+                          : 'TACTIX SCORE\nScore этого хода',
                       style: TextStyle(
                         color: TactixTheme.textMuted,
                         fontSize: preserveDemo ? 9 : 12,
@@ -2305,16 +1702,38 @@ class _TactixDecisionScoreCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _TactixMetricChip(preserveDemo: preserveDemo, label: 'ЦЕЛЬ', value: score.goal),
-              _TactixMetricChip(preserveDemo: preserveDemo, label: 'РЕСУРСЫ', value: score.resources),
-              _TactixMetricChip(preserveDemo: preserveDemo, label: 'УСТОЙЧИВОСТЬ', value: score.stability),
-              _TactixMetricChip(preserveDemo: preserveDemo, label: preserveDemo ? 'НЕОПРЕД.' : 'НЕОПРЕДЕЛЁННОСТЬ', value: score.uncertainty),
-              _TactixMetricChip(preserveDemo: preserveDemo, label: 'ВРЕМЯ', value: score.time),
+              _TactixMetricChip(
+                preserveDemo: preserveDemo,
+                label: 'ЦЕЛЬ',
+                value: score.goal,
+              ),
+              _TactixMetricChip(
+                preserveDemo: preserveDemo,
+                label: 'РЕСУРСЫ',
+                value: score.resources,
+              ),
+              _TactixMetricChip(
+                preserveDemo: preserveDemo,
+                label: 'УСТОЙЧИВОСТЬ',
+                value: score.stability,
+              ),
+              _TactixMetricChip(
+                preserveDemo: preserveDemo,
+                label: preserveDemo ? 'НЕОПРЕД.' : 'НЕОПРЕДЕЛЁННОСТЬ',
+                value: score.uncertainty,
+              ),
+              _TactixMetricChip(
+                preserveDemo: preserveDemo,
+                label: 'ВРЕМЯ',
+                value: score.time,
+              ),
             ],
           ),
           Container(
             height: preserveDemo ? 14 : 1,
-            margin: preserveDemo ? EdgeInsets.zero : const EdgeInsets.symmetric(vertical: 16),
+            margin: preserveDemo
+                ? EdgeInsets.zero
+                : const EdgeInsets.symmetric(vertical: 16),
             color: preserveDemo ? null : TactixTheme.line,
           ),
           Text(
@@ -2340,7 +1759,7 @@ class _TactixDecisionScoreCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Оценка рассчитана локально. AI только объясняет результат.',
+            'Оценка и объяснение результата рассчитываются локально на устройстве.',
             style: TextStyle(
               color: Colors.white54,
               fontSize: preserveDemo ? 10 : 12,
@@ -2367,10 +1786,7 @@ class _TactixMetricChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 7,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.035),
         borderRadius: BorderRadius.circular(9),
@@ -2389,8 +1805,7 @@ class _TactixMetricChip extends StatelessWidget {
 
 // FINISH CARD
 
-class FinishCard
-    extends StatelessWidget {
+class FinishCard extends StatelessWidget {
   final int score;
   final List<DecisionRecord> history;
   final SimulationState state;
@@ -2439,72 +1854,46 @@ class FinishCard
     }
   }
 
-  int _averageMetric(
-    int Function(DecisionRecord item) selector,
-  ) {
+  int _averageMetric(int Function(DecisionRecord item) selector) {
     if (history.isEmpty) return 0;
 
-    final total = history.fold<int>(
-      0,
-      (sum, item) => sum + selector(item),
-    );
+    final total = history.fold<int>(0, (sum, item) => sum + selector(item));
 
-    return (total / history.length)
-        .round()
-        .clamp(0, 100);
+    return (total / history.length).round().clamp(0, 100);
   }
 
   Map<String, int> get _criteria => {
-        'Достижение цели': _averageMetric(
-          (item) => item.goalScore,
-        ),
-        'Эффективность ресурсов': _averageMetric(
-          (item) => item.resourceScore,
-        ),
-        'Устойчивость': _averageMetric(
-          (item) => item.stabilityScore,
-        ),
-        'Контроль неопределённости': _averageMetric(
-          (item) => item.uncertaintyScore,
-        ),
-        'Использование времени': _averageMetric(
-          (item) => item.timeScore,
-        ),
-      };
+    'Достижение цели': _averageMetric((item) => item.goalScore),
+    'Эффективность ресурсов': _averageMetric((item) => item.resourceScore),
+    'Устойчивость': _averageMetric((item) => item.stabilityScore),
+    'Контроль неопределённости': _averageMetric(
+      (item) => item.uncertaintyScore,
+    ),
+    'Использование времени': _averageMetric((item) => item.timeScore),
+  };
 
   MapEntry<String, int>? get _strongestCriterion {
     if (_criteria.isEmpty) return null;
-    return _criteria.entries.reduce(
-      (a, b) => a.value >= b.value ? a : b,
-    );
+    return _criteria.entries.reduce((a, b) => a.value >= b.value ? a : b);
   }
 
   MapEntry<String, int>? get _weakestCriterion {
     if (_criteria.isEmpty) return null;
-    return _criteria.entries.reduce(
-      (a, b) => a.value <= b.value ? a : b,
-    );
+    return _criteria.entries.reduce((a, b) => a.value <= b.value ? a : b);
   }
 
   DecisionRecord? get _bestDecision {
     if (history.isEmpty) return null;
-    return history.reduce(
-      (a, b) => a.score >= b.score ? a : b,
-    );
+    return history.reduce((a, b) => a.score >= b.score ? a : b);
   }
 
   DecisionRecord? get _weakestDecision {
     if (history.isEmpty) return null;
-    return history.reduce(
-      (a, b) => a.score <= b.score ? a : b,
-    );
+    return history.reduce((a, b) => a.score <= b.score ? a : b);
   }
 
   int _aggregateDelta(String key) {
-    return history.fold<int>(
-      0,
-      (sum, item) => sum + (item.delta[key] ?? 0),
-    );
+    return history.fold<int>(0, (sum, item) => sum + (item.delta[key] ?? 0));
   }
 
   String _deltaText(int value) {
@@ -2558,8 +1947,7 @@ class FinishCard
     final weakDecision = _weakestDecision;
     final generatedAt = DateTime.now();
 
-    String two(int value) =>
-        value.toString().padLeft(2, '0');
+    String two(int value) => value.toString().padLeft(2, '0');
 
     final dateText =
         '${two(generatedAt.day)}.${two(generatedAt.month)}.${generatedAt.year} '
@@ -2606,21 +1994,13 @@ class FinishCard
       )
       ..writeln()
       ..writeln('СУММАРНЫЕ ИЗМЕНЕНИЯ СОСТОЯНИЯ')
-      ..writeln(
-        '- Ресурсы: ${_deltaText(_aggregateDelta('resources'))}',
-      )
-      ..writeln(
-        '- Устойчивость: ${_deltaText(_aggregateDelta('stability'))}',
-      )
-      ..writeln(
-        '- Прогресс: ${_deltaText(_aggregateDelta('progress'))}',
-      )
+      ..writeln('- Ресурсы: ${_deltaText(_aggregateDelta('resources'))}')
+      ..writeln('- Устойчивость: ${_deltaText(_aggregateDelta('stability'))}')
+      ..writeln('- Прогресс: ${_deltaText(_aggregateDelta('progress'))}')
       ..writeln(
         '- Неопределённость: ${_deltaText(_aggregateDelta('uncertainty'))}',
       )
-      ..writeln(
-        '- Время: ${_deltaText(_aggregateDelta('time'))}',
-      )
+      ..writeln('- Время: ${_deltaText(_aggregateDelta('time'))}')
       ..writeln()
       ..writeln('ФИНАЛЬНОЕ СОСТОЯНИЕ')
       ..writeln('- Ресурсы: ${state.resources}%')
@@ -2661,28 +2041,24 @@ class FinishCard
       ..writeln('РЕКОМЕНДАЦИЯ')
       ..writeln(improvementAdvice())
       ..writeln()
-      ..writeln('AI-ИНТЕРПРЕТАЦИЯ')
+      ..writeln('TACTIX-ИНТЕРПРЕТАЦИЯ')
       ..writeln(
         aiExplanation.trim().isEmpty
-            ? 'AI-разбор для этого прохождения недоступен.'
+            ? 'Локальный разбор для этого прохождения недоступен.'
             : aiExplanation.trim(),
       )
       ..writeln()
       ..writeln('========================================')
       ..writeln(
         'Числовая оценка сформирована локальным TACTIX Score Engine. '
-        'AI используется только для интерпретации результата.',
+        'Интерпретация результата выполняется локальным движком TACTIX.',
       )
-      ..writeln(
-        'Материал предназначен для учебной симуляции.',
-      );
+      ..writeln('Материал предназначен для учебной симуляции.');
 
     return buffer.toString();
   }
 
-  Future<void> _showAarReport(
-    BuildContext context,
-  ) async {
+  Future<void> _showAarReport(BuildContext context) async {
     final report = _buildAarReport();
 
     await showDialog<void>(
@@ -2690,15 +2066,11 @@ class FinishCard
       builder: (dialogContext) {
         return Dialog(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 820,
-              maxHeight: 720,
-            ),
+            constraints: const BoxConstraints(maxWidth: 820, maxHeight: 720),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
                     children: [
@@ -2712,21 +2084,15 @@ class FinishCard
                           'TACTIX • AAR REPORT',
                           style: TextStyle(
                             fontSize: 16,
-                            fontWeight:
-                                FontWeight.w900,
+                            fontWeight: FontWeight.w900,
                             letterSpacing: .8,
                           ),
                         ),
                       ),
                       IconButton(
                         tooltip: 'Закрыть',
-                        onPressed: () =>
-                            Navigator.pop(
-                          dialogContext,
-                        ),
-                        icon: const Icon(
-                          Icons.close,
-                        ),
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(Icons.close),
                       ),
                     ],
                   ),
@@ -2741,27 +2107,19 @@ class FinishCard
                   const SizedBox(height: 14),
                   Expanded(
                     child: Container(
-                      padding:
-                          const EdgeInsets.all(15),
+                      padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
-                        color: Colors.black
-                            .withValues(alpha: .16),
-                        borderRadius:
-                            BorderRadius.circular(12),
-                        border: Border.all(
-                          color: TactixTheme.line,
-                        ),
+                        color: Colors.black.withValues(alpha: .16),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: TactixTheme.line),
                       ),
-                      child:
-                          SingleChildScrollView(
+                      child: SingleChildScrollView(
                         child: SelectableText(
                           report,
-                          style:
-                              const TextStyle(
+                          style: const TextStyle(
                             height: 1.55,
                             fontSize: 11,
-                            fontFamily:
-                                'monospace',
+                            fontFamily: 'monospace',
                           ),
                         ),
                       ),
@@ -2770,40 +2128,24 @@ class FinishCard
                   const SizedBox(height: 14),
                   FilledButton.icon(
                     onPressed: () async {
-                      await Clipboard.setData(
-                        ClipboardData(
-                          text: report,
-                        ),
-                      );
+                      await Clipboard.setData(ClipboardData(text: report));
 
                       if (!context.mounted) {
                         return;
                       }
 
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(
+                      ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text(
-                            'AAR-отчёт скопирован в буфер обмена.',
-                          ),
+                          content: Text('AAR-отчёт скопирован в буфер обмена.'),
                         ),
                       );
                     },
-                    icon: const Icon(
-                      Icons.copy_all_outlined,
-                    ),
+                    icon: const Icon(Icons.copy_all_outlined),
                     label: const Padding(
-                      padding:
-                          EdgeInsets.symmetric(
-                        vertical: 13,
-                      ),
+                      padding: EdgeInsets.symmetric(vertical: 13),
                       child: Text(
                         'СКОПИРОВАТЬ ОТЧЁТ',
-                        style: TextStyle(
-                          fontWeight:
-                              FontWeight.w800,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
                   ),
@@ -3030,7 +2372,7 @@ class FinishCard
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'LOCAL SCORE • AI EXPLANATION',
+                  'LOCAL SCORE • LOCAL EXPLANATION',
                   style: TextStyle(
                     color: TactixTheme.textMuted,
                     fontSize: 8,
@@ -3501,7 +2843,7 @@ class FinishCard
                   ),
                   child: SelectableText(
                     aiExplanation.trim().isEmpty
-                        ? 'TACTIX Score рассчитан локально по пяти критериям. AI-разбор для этого прохождения недоступен.'
+                        ? 'TACTIX Score рассчитан локально по пяти критериям. Локальный разбор для этого прохождения недоступен.'
                         : aiExplanation,
                     style: const TextStyle(
                       color: Colors.white70,
@@ -3543,7 +2885,7 @@ class FinishCard
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text(
-                        'Числовая оценка сформирована локальным TACTIX Score Engine. AI используется только для интерпретации результата.',
+                        'Числовая оценка и интерпретация сформированы локальным TACTIX Score Engine.',
                         style: TextStyle(
                           color: TactixTheme.textMuted,
                           fontSize: 9,
@@ -3556,64 +2898,38 @@ class FinishCard
                 const SizedBox(height: 18),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final compact =
-                        constraints.maxWidth < 560;
+                    final compact = constraints.maxWidth < 560;
 
-                    final reportButton =
-                        FilledButton.icon(
-                      onPressed: () =>
-                          _showAarReport(
-                        context,
-                      ),
-                      icon: const Icon(
-                        Icons.description_outlined,
-                      ),
+                    final reportButton = FilledButton.icon(
+                      onPressed: () => _showAarReport(context),
+                      icon: const Icon(Icons.description_outlined),
                       label: const Padding(
-                        padding:
-                            EdgeInsets.symmetric(
-                          vertical: 14,
-                        ),
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         child: Text(
                           'СФОРМИРОВАТЬ ОТЧЁТ',
-                          style: TextStyle(
-                            fontWeight:
-                                FontWeight.w800,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),
                     );
 
-                    final restartButton =
-                        OutlinedButton.icon(
+                    final restartButton = OutlinedButton.icon(
                       onPressed: onRestart,
-                      icon: const Icon(
-                        Icons.restart_alt,
-                      ),
+                      icon: const Icon(Icons.restart_alt),
                       label: const Padding(
-                        padding:
-                            EdgeInsets.symmetric(
-                          vertical: 14,
-                        ),
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         child: Text(
                           'ПРОЙТИ ЗАНОВО',
-                          style: TextStyle(
-                            fontWeight:
-                                FontWeight.w800,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),
                     );
 
                     if (compact) {
                       return Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment
-                                .stretch,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           reportButton,
-                          const SizedBox(
-                            height: 9,
-                          ),
+                          const SizedBox(height: 9),
                           restartButton,
                         ],
                       );
@@ -3621,17 +2937,9 @@ class FinishCard
 
                     return Row(
                       children: [
-                        Expanded(
-                          child:
-                              reportButton,
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        Expanded(
-                          child:
-                              restartButton,
-                        ),
+                        Expanded(child: reportButton),
+                        const SizedBox(width: 10),
+                        Expanded(child: restartButton),
                       ],
                     );
                   },
@@ -3677,8 +2985,7 @@ class FinishCard
 // TRAINING UI HELPERS
 // =====================================================
 
-class _StatusPill
-    extends StatelessWidget {
+class _StatusPill extends StatelessWidget {
   final String label;
   final IconData icon;
 
@@ -3692,54 +2999,25 @@ class _StatusPill
 
   @override
   Widget build(BuildContext context) {
-    final primary =
-        Theme.of(context)
-            .colorScheme
-            .primary;
+    final primary = Theme.of(context).colorScheme.primary;
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 7,
-      ),
-      decoration:
-          BoxDecoration(
-        borderRadius:
-            BorderRadius.circular(
-          99,
-        ),
-        color:
-            primary.withValues(
-          alpha: .12,
-        ),
-        border:
-            Border.all(
-          color:
-              primary.withValues(
-            alpha: .35,
-          ),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(99),
+        color: primary.withValues(alpha: .12),
+        border: Border.all(color: primary.withValues(alpha: .35)),
       ),
       child: Row(
-        mainAxisSize:
-            MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 13,
-            color: primary,
-          ),
-          const SizedBox(
-            width: 5,
-          ),
+          Icon(icon, size: 13, color: primary),
+          const SizedBox(width: 5),
           Text(
             label,
-            style:
-                TextStyle(
+            style: TextStyle(
               fontSize: preserveDemo ? 10 : 12,
-              fontWeight:
-                  FontWeight.w900,
+              fontWeight: FontWeight.w900,
               color: primary,
             ),
           ),
@@ -3749,8 +3027,7 @@ class _StatusPill
   }
 }
 
-class _TrainingMetricCard
-    extends StatelessWidget {
+class _TrainingMetricCard extends StatelessWidget {
   final String title;
   final String value;
   final IconData icon;
@@ -3769,106 +3046,67 @@ class _TrainingMetricCard
 
   @override
   Widget build(BuildContext context) {
-    final primary =
-        Theme.of(context)
-            .colorScheme
-            .primary;
+    final primary = Theme.of(context).colorScheme.primary;
 
-    final width =
-        (MediaQuery.sizeOf(context).width -
-                37) /
-            2;
+    final width = (MediaQuery.sizeOf(context).width - 37) / 2;
 
-    final safeWidth =
-        width < 140 ? 140.0 : width;
+    final safeWidth = width < 140 ? 140.0 : width;
 
-    final safeProgress =
-        progress.clamp(0.0, 1.0);
+    final safeProgress = progress.clamp(0.0, 1.0);
 
     return SizedBox(
-      width: preserveDemo ? safeWidth : (MediaQuery.sizeOf(context).width >= 900 ? 210 : (MediaQuery.sizeOf(context).width - 2 * TactixResponsive.horizontalPadding(context) - 9) / 2),
+      width: preserveDemo
+          ? safeWidth
+          : (MediaQuery.sizeOf(context).width >= 900
+                ? 210
+                : (MediaQuery.sizeOf(context).width -
+                          2 * TactixResponsive.horizontalPadding(context) -
+                          9) /
+                      2),
       child: Container(
-        padding:
-            EdgeInsets.all(preserveDemo ? 13 : 10),
-        decoration:
-            BoxDecoration(
-          color:
-              Colors.white.withValues(
-            alpha: .035,
-          ),
-          borderRadius:
-              BorderRadius.circular(
-            16,
-          ),
-          border:
-              Border.all(
-            color: Colors.white10,
-          ),
+        padding: EdgeInsets.all(preserveDemo ? 13 : 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .035),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
         ),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color:
-                      Colors.white70,
-                ),
-                const SizedBox(
-                  width: 9,
-                ),
+                Icon(icon, size: 20, color: Colors.white70),
+                const SizedBox(width: 9),
                 Expanded(
                   child: Text(
                     title,
                     maxLines: preserveDemo ? 1 : null,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        TextStyle(
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
                       fontSize: preserveDemo ? 10.5 : 12,
-                      color:
-                          preserveDemo ? Colors.white54 : TactixTheme.textMuted,
-                      fontWeight:
-                          FontWeight.w700,
+                      color: preserveDemo
+                          ? Colors.white54
+                          : TactixTheme.textMuted,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
                 Text(
                   value,
-                  style:
-                      TextStyle(
-                    fontSize: 15,
-                    fontWeight:
-                        FontWeight.w900,
-                  ),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                 ),
               ],
             ),
-            const SizedBox(
-              height: 10,
-            ),
+            const SizedBox(height: 10),
             ClipRRect(
-              borderRadius:
-                  BorderRadius.circular(
-                99,
-              ),
-              child:
-                  LinearProgressIndicator(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
                 minHeight: preserveDemo ? 5 : 3,
                 value: safeProgress,
-                backgroundColor:
-                    Colors.white10,
-                valueColor:
-                    AlwaysStoppedAnimation<
-                        Color>(
-                  inverted &&
-                          safeProgress >
-                              .60
-                      ? Colors
-                          .orangeAccent
+                backgroundColor: Colors.white10,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  inverted && safeProgress > .60
+                      ? Colors.orangeAccent
                       : primary,
                 ),
               ),
@@ -3880,16 +3118,12 @@ class _TrainingMetricCard
   }
 }
 
-class _MiniLabel
-    extends StatelessWidget {
+class _MiniLabel extends StatelessWidget {
   final String text;
 
   final bool preserveDemo;
 
-  const _MiniLabel({
-    this.preserveDemo = false,
-    required this.text,
-  });
+  const _MiniLabel({this.preserveDemo = false, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -3897,8 +3131,7 @@ class _MiniLabel
       text,
       style: TextStyle(
         fontSize: preserveDemo ? 10 : 12,
-        fontWeight:
-            FontWeight.w900,
+        fontWeight: FontWeight.w900,
         color: Colors.white54,
         letterSpacing: .9,
       ),
@@ -3906,8 +3139,7 @@ class _MiniLabel
   }
 }
 
-class _SignalBlock
-    extends StatelessWidget {
+class _SignalBlock extends StatelessWidget {
   final String title;
   final IconData icon;
   final String text;
@@ -3924,61 +3156,32 @@ class _SignalBlock
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.all(12),
-      decoration:
-          BoxDecoration(
-        borderRadius:
-            BorderRadius.circular(
-          14,
-        ),
-        color:
-            Colors.white.withValues(
-          alpha: .035,
-        ),
-        border:
-            Border.all(
-          color: Colors.white10,
-        ),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: Colors.white.withValues(alpha: .035),
+        border: Border.all(color: Colors.white10),
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 18,
-          ),
-          const SizedBox(
-            width: 9,
-          ),
+          Icon(icon, size: 18),
+          const SizedBox(width: 9),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style:
-                      TextStyle(
+                  style: TextStyle(
                     fontSize: preserveDemo ? 10 : 12,
-                    fontWeight:
-                        FontWeight.w900,
-                    color:
-                        Colors.white54,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white54,
                     letterSpacing: .8,
                   ),
                 ),
-                const SizedBox(
-                  height: 4,
-                ),
-                Text(
-                  text,
-                  style:
-                      TextStyle(
-                    height: 1.45,
-                  ),
-                ),
+                const SizedBox(height: 4),
+                Text(text, style: TextStyle(height: 1.45)),
               ],
             ),
           ),
@@ -3988,87 +3191,55 @@ class _SignalBlock
   }
 }
 
-class _HistoryRow
-    extends StatelessWidget {
+class _HistoryRow extends StatelessWidget {
   final DecisionRecord item;
   final bool preserveDemo;
 
-  const _HistoryRow({
-    required this.item,
-    this.preserveDemo = false,
-  });
+  const _HistoryRow({required this.item, this.preserveDemo = false});
 
   @override
   Widget build(BuildContext context) {
-    final primary =
-        preserveDemo
-            ? Theme.of(context).colorScheme.primary
-            : TactixTheme.textMuted;
+    final primary = preserveDemo
+        ? Theme.of(context).colorScheme.primary
+        : TactixTheme.textMuted;
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 11,
-        vertical: 10,
-      ),
-      decoration:
-          BoxDecoration(
-        color:
-            Colors.white.withValues(
-          alpha: .025,
-        ),
-        borderRadius:
-            BorderRadius.circular(
-          12,
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .025),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
           Container(
             width: 32,
             height: 32,
-            alignment:
-                Alignment.center,
-            decoration:
-                BoxDecoration(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              color:
-                  primary.withValues(
-                alpha: .13,
-              ),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: primary.withValues(alpha: .13),
             ),
             child: Text(
               item.turn.toString(),
-              style:
-                  TextStyle(
-                fontWeight:
-                    preserveDemo ? FontWeight.w900 : FontWeight.w600,
+              style: TextStyle(
+                fontWeight: preserveDemo ? FontWeight.w900 : FontWeight.w600,
                 color: primary,
               ),
             ),
           ),
-          const SizedBox(
-            width: 10,
-          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Решение ${item.decision}',
-              style:
-                  TextStyle(
-                fontWeight:
-                    preserveDemo ? FontWeight.w700 : FontWeight.w500,
+              style: TextStyle(
+                fontWeight: preserveDemo ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ),
           Text(
             '${item.score}/100',
-            style:
-                TextStyle(
-              fontWeight:
-                  preserveDemo ? FontWeight.w900 : FontWeight.w600,
+            style: TextStyle(
+              fontWeight: preserveDemo ? FontWeight.w900 : FontWeight.w600,
             ),
           ),
         ],
@@ -4076,4 +3247,3 @@ class _HistoryRow
     );
   }
 }
-

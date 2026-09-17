@@ -56,6 +56,7 @@ class _AIScenarioScreenState extends State<AIScenarioScreen> {
 
   Future<void> generateScenario() async {
     final idea = ideaController.text.trim();
+
     if (idea.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Опишите учебную ситуацию.')),
@@ -64,6 +65,7 @@ class _AIScenarioScreenState extends State<AIScenarioScreen> {
     }
 
     FocusScope.of(context).unfocus();
+
     setState(() {
       loading = true;
       error = null;
@@ -71,32 +73,14 @@ class _AIScenarioScreenState extends State<AIScenarioScreen> {
     });
 
     try {
-      final env = EnvironmentService.lastData;
-      final envText = env == null
-          ? 'Внешняя среда: данные недоступны.'
-          : 'Внешняя среда: температура ${env.temperature.toStringAsFixed(1)}В°C, '
-              'влажность ${env.humidity}%, ветер ${env.windKmh.toStringAsFixed(0)} км/ч, '
-              'видимость ${env.visibilityLabel}, погода ${env.weatherLabel}.';
+      // EnvironmentService.fetch() теперь работает offline-first:
+      // берёт кэш или локальный безопасный профиль среды.
+      final env = await EnvironmentService.fetch();
 
-      final adaptive = '''
-Создай УЧЕБНЫЙ, ВЫМЫШЛЕННЫЙ сценарий для приложения TACTIX.
-Сценарий не должен содержать реальных боевых операций, реального оружия или инструкций по причинению вреда.
-Уровень сложности: $difficulty.
-Фокус тренировки: $focus.
-$envText
-
-Идея пользователя:
-$idea
-
-Сделай ситуацию динамичной, чтобы оператору нужно было оценивать условия, управлять ограниченными учебными ресурсами и адаптироваться к изменениям.
-Сценарий должен подходить для существующей системы из трёх решений A/B/C.
-''';
-
-      final result = await AIService.generateScenario(
-        userDescription: adaptive,
-      );
+      final result = _generateLocalScenario(idea: idea, env: env);
 
       if (!mounted) return;
+
       setState(() {
         generated = result;
         titleController.text = result.title;
@@ -111,11 +95,111 @@ $idea
       });
     } catch (e) {
       if (!mounted) return;
+
       setState(() {
         loading = false;
-        error = 'Не удалось создать сценарий.\n\n$e';
+        error = 'Не удалось создать локальный сценарий.\n\n$e';
       });
     }
+  }
+
+  GeneratedScenario _generateLocalScenario({
+    required String idea,
+    required EnvironmentData env,
+  }) {
+    int time;
+    int resources;
+
+    if (difficulty == 'BEGINNER') {
+      time = 60;
+      resources = 85;
+    } else if (difficulty == 'ADVANCED') {
+      time = 35;
+      resources = 65;
+    } else {
+      time = 45;
+      resources = 75;
+    }
+
+    String title;
+    String goal;
+    String optionA;
+    String optionB;
+    String optionC;
+
+    switch (focus) {
+      case 'СТАБИЛЬНОСТЬ':
+        title = 'Сценарий устойчивого управления';
+        goal = 'Выполнить учебную задачу, сохранив устойчивость системы и не допустив резкого ухудшения ключевых показателей.';
+        optionA = 'Ускорить выполнение основной задачи, принимая повышенную нагрузку на устойчивость.';
+        optionB = 'Сохранить сбалансированный темп и удерживать устойчивость на безопасном уровне.';
+        optionC = 'Сначала стабилизировать состояние и только затем продолжить выполнение основной задачи.';
+        break;
+
+      case 'РЕСУРСЫ':
+        title = 'Сценарий управления ресурсами';
+        goal = 'Достичь учебной цели, сохранив достаточный резерв ресурсов до завершения сценария.';
+        optionA = 'Направить больше условного ресурса на быстрый прогресс.';
+        optionB =
+            'Распределить ресурс равномерно между прогрессом и устойчивостью.';
+        optionC = 'Снизить расход ресурса и сначала уточнить текущие условия.';
+        break;
+
+      case 'АНАЛИТИКА':
+        title = 'Сценарий аналитического решения';
+        goal = 'Выполнить учебную задачу, последовательно снижая неопределённость и проверяя последствия каждого решения.';
+        optionA = 'Действовать быстро на основании текущих данных, принимая повышенную неопределённость.';
+        optionB = 'Использовать сбалансированный вариант с контролем данных, ресурса и прогресса.';
+        optionC = 'Сначала собрать и перепроверить больше информации, снизив неопределённость.';
+        break;
+
+      case 'АДАПТАЦИЯ':
+      default:
+        title = 'Адаптивный учебный сценарий';
+        goal = 'Выполнить учебную задачу, адаптируясь к изменениям условий и сохраняя управляемость системы.';
+        optionA = 'Ускорить продвижение по основной цели, принимая более высокую нагрузку.';
+        optionB = 'Сохранить сбалансированный темп и адаптироваться по мере изменения условий.';
+        optionC = 'Сначала снизить неопределённость и уточнить условия перед следующим действием.';
+        break;
+    }
+
+    final environmentText =
+        'Температура ${env.temperature.toStringAsFixed(1)}°C, '
+        'влажность ${env.humidity}%, '
+        'ветер ${env.windKmh.toStringAsFixed(0)} км/ч, '
+        'видимость ${env.visibilityLabel}, '
+        'условия: ${env.weatherLabel}.';
+
+    final difficultyText = difficulty == 'BEGINNER'
+        ? 'базовая'
+        : difficulty == 'ADVANCED'
+        ? 'повышенная'
+        : 'средняя';
+
+    return GeneratedScenario(
+      title: title,
+      description:
+          '$idea\n\n'
+          'Сложность: $difficultyText. Фокус: $focus. '
+          'Ситуация развивается в три этапа. На каждом этапе необходимо '
+          'оценивать состояние, выбирать один из вариантов A/B/C и учитывать '
+          'изменение прогресса, ресурсов, устойчивости и неопределённости.',
+      time: time,
+      resources: resources,
+      conditions:
+          'Автономный режим TACTIX. $environmentText Все расчёты выполняются локально на устройстве.',
+      optionA: optionA,
+      optionB: optionB,
+      optionC: optionC,
+      criteria: const [
+        'Достижение цели',
+        'Эффективность ресурсов',
+        'Устойчивость',
+        'Работа с неопределённостью',
+        'Использование времени',
+      ],
+      goal: goal,
+    );
   }
 
   TrainingScenario buildScenario() {
@@ -128,6 +212,8 @@ $idea
       optionA: optionAController.text.trim(),
       optionB: optionBController.text.trim(),
       optionC: optionCController.text.trim(),
+      goal: generated?.goal ?? '',
+      criteria: generated?.criteria ?? const [],
     );
   }
 
@@ -143,7 +229,9 @@ $idea
     final scenario = buildScenario();
     if (!isValid(scenario)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Заполните название, описание и варианты A/B/C.')),
+        const SnackBar(
+          content: Text('Заполните название, описание и варианты A/B/C.'),
+        ),
       );
       return;
     }
@@ -153,24 +241,22 @@ $idea
       await ScenarioStorage.save(scenario);
       if (!mounted) return;
       setState(() => saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Сценарий сохранён.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Сценарий сохранён.')));
     } catch (e) {
       if (!mounted) return;
       setState(() => saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Ошибка: $e')));
     }
   }
 
   void startTraining() {
     final scenario = buildScenario();
     if (!isValid(scenario)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Проверьте основные поля.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Проверьте основные поля.')));
       return;
     }
 
@@ -217,9 +303,7 @@ $idea
     final env = EnvironmentService.lastData;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Scenario Generator'),
-      ),
+      appBar: AppBar(title: const Text('ГЕНЕРАТОР СЦЕНАРИЕВ')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
@@ -236,54 +320,114 @@ $idea
                 children: [
                   PanelCard(
                     accent: TactixTheme.cyan,
-                    title: 'AI SCENARIO GENERATOR',
+                    title: 'TACTIX SCENARIO GENERATOR',
                     icon: Icons.auto_awesome_rounded,
                     trailing: const Text(
-                      'GEMMA 3 1B',
-                      style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800),
+                      'OFFLINE ENGINE',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Генерируй новую учебную ситуацию с учётом выбранной сложности и текущей внешней среды.',
-                          style: TextStyle(color: TactixTheme.textMuted, height: 1.45, fontSize: 12),
+                          'Сценарий создаётся локально на устройстве с учётом сложности, фокуса и сохранённых данных среды.',
+                          style: TextStyle(
+                            color: TactixTheme.textMuted,
+                            height: 1.45,
+                            fontSize: 12,
+                          ),
                         ),
                         const SizedBox(height: 18),
-                        const Text('СЛОЖНОСТЬ', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
+                        const Text(
+                          'СЛОЖНОСТЬ',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            _choiceChip('BEGINNER', difficulty == 'BEGINNER', () => setState(() => difficulty = 'BEGINNER')),
-                            _choiceChip('INTERMEDIATE', difficulty == 'INTERMEDIATE', () => setState(() => difficulty = 'INTERMEDIATE')),
-                            _choiceChip('ADVANCED', difficulty == 'ADVANCED', () => setState(() => difficulty = 'ADVANCED')),
+                            _choiceChip(
+                              'BEGINNER',
+                              difficulty == 'BEGINNER',
+                              () => setState(() => difficulty = 'BEGINNER'),
+                            ),
+                            _choiceChip(
+                              'INTERMEDIATE',
+                              difficulty == 'INTERMEDIATE',
+                              () => setState(() => difficulty = 'INTERMEDIATE'),
+                            ),
+                            _choiceChip(
+                              'ADVANCED',
+                              difficulty == 'ADVANCED',
+                              () => setState(() => difficulty = 'ADVANCED'),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        const Text('ФОКУС', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
+                        const Text(
+                          'ФОКУС',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            _choiceChip('АДАПТАЦИЯ', focus == 'АДАПТАЦИЯ', () => setState(() => focus = 'АДАПТАЦИЯ')),
-                            _choiceChip('СТАБИЛЬНОСТЬ', focus == 'СТАБИЛЬНОСТЬ', () => setState(() => focus = 'СТАБИЛЬНОСТЬ')),
-                            _choiceChip('РЕСУРСЫ', focus == 'РЕСУРСЫ', () => setState(() => focus = 'РЕСУРСЫ')),
-                            _choiceChip('АНАЛИТИКА', focus == 'АНАЛИТИКА', () => setState(() => focus = 'АНАЛИТИКА')),
+                            _choiceChip(
+                              'АДАПТАЦИЯ',
+                              focus == 'АДАПТАЦИЯ',
+                              () => setState(() => focus = 'АДАПТАЦИЯ'),
+                            ),
+                            _choiceChip(
+                              'СТАБИЛЬНОСТЬ',
+                              focus == 'СТАБИЛЬНОСТЬ',
+                              () => setState(() => focus = 'СТАБИЛЬНОСТЬ'),
+                            ),
+                            _choiceChip(
+                              'РЕСУРСЫ',
+                              focus == 'РЕСУРСЫ',
+                              () => setState(() => focus = 'РЕСУРСЫ'),
+                            ),
+                            _choiceChip(
+                              'АНАЛИТИКА',
+                              focus == 'АНАЛИТИКА',
+                              () => setState(() => focus = 'АНАЛИТИКА'),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            Icon(Icons.public_rounded, size: 16, color: env == null ? Colors.white38 : const Color(0xFF4EE39A)),
+                            Icon(
+                              Icons.public_rounded,
+                              size: 16,
+                              color: env == null
+                                  ? Colors.white38
+                                  : const Color(0xFF4EE39A),
+                            ),
                             const SizedBox(width: 7),
                             Expanded(
                               child: Text(
-                                env == null ? 'ENVIRONMENT DATA OFFLINE' : 'ENVIRONMENT DATA READY • ${env.weatherLabel}',
+                                env == null
+                                    ? 'ENVIRONMENT DATA LOCAL'
+                                    : 'ENVIRONMENT DATA LOCAL • ${env.weatherLabel}',
                                 style: TextStyle(
-                                  color: env == null ? Colors.white38 : const Color(0xFF7FE7B8),
+                                  color: env == null
+                                      ? Colors.white38
+                                      : const Color(0xFF7FE7B8),
                                   fontSize: 9,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: .8,
@@ -305,11 +449,19 @@ $idea
                         FilledButton.icon(
                           onPressed: loading ? null : generateScenario,
                           icon: loading
-                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
                               : const Icon(Icons.auto_awesome, size: 18),
                           label: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 13),
-                            child: Text(loading ? 'GEMMA ГЕНЕРИРУЕТ...' : 'GENERATE SCENARIO'),
+                            child: Text(
+                              loading ? 'СОЗДАНИЕ...' : 'СОЗДАТЬ СЦЕНАРИЙ',
+                            ),
                           ),
                         ),
                       ],
@@ -321,39 +473,90 @@ $idea
                       accent: Colors.redAccent,
                       title: 'GENERATION ERROR',
                       icon: Icons.error_outline,
-                      child: Text(error!, style: const TextStyle(color: Colors.redAccent, height: 1.45, fontSize: 12)),
+                      child: Text(
+                        error!,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          height: 1.45,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                   ],
                   if (generated != null) ...[
                     const SizedBox(height: 14),
                     PanelCard(
                       accent: TactixTheme.gold,
-                      title: 'AI GENERATED SCENARIO',
+                      title: 'ЛОКАЛЬНЫЙ СЦЕНАРИЙ',
                       icon: Icons.extension_rounded,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
                             'Профиль генерации: $difficulty • $focus',
-                            style: const TextStyle(color: TactixTheme.textMuted, fontSize: 10, fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                              color: TactixTheme.textMuted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           const SizedBox(height: 12),
-                          AppTextField(controller: titleController, label: 'Название'),
-                          AppTextField(controller: descriptionController, label: 'Описание', maxLines: 6),
+                          AppTextField(
+                            controller: titleController,
+                            label: 'Название',
+                          ),
+                          AppTextField(
+                            controller: descriptionController,
+                            label: 'Описание',
+                            maxLines: 6,
+                          ),
                           Row(
                             children: [
-                              Expanded(child: AppTextField(controller: timeController, label: 'Время')),
+                              Expanded(
+                                child: AppTextField(
+                                  controller: timeController,
+                                  label: 'Время',
+                                ),
+                              ),
                               const SizedBox(width: 10),
-                              Expanded(child: AppTextField(controller: resourcesController, label: 'Ресурсы')),
+                              Expanded(
+                                child: AppTextField(
+                                  controller: resourcesController,
+                                  label: 'Ресурсы',
+                                ),
+                              ),
                             ],
                           ),
-                          AppTextField(controller: conditionsController, label: 'Условия', maxLines: 3),
-                          AppTextField(controller: optionAController, label: 'Вариант A', maxLines: 4),
-                          AppTextField(controller: optionBController, label: 'Вариант B', maxLines: 4),
-                          AppTextField(controller: optionCController, label: 'Вариант C', maxLines: 4),
+                          AppTextField(
+                            controller: conditionsController,
+                            label: 'Условия',
+                            maxLines: 3,
+                          ),
+                          AppTextField(
+                            controller: optionAController,
+                            label: 'Вариант A',
+                            maxLines: 4,
+                          ),
+                          AppTextField(
+                            controller: optionBController,
+                            label: 'Вариант B',
+                            maxLines: 4,
+                          ),
+                          AppTextField(
+                            controller: optionCController,
+                            label: 'Вариант C',
+                            maxLines: 4,
+                          ),
                           if (generated!.criteria.isNotEmpty) ...[
                             const SizedBox(height: 8),
-                            const Text('КРИТЕРИИ ОЦЕНКИ', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
+                            const Text(
+                              'КРИТЕРИИ ОЦЕНКИ',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
                             const SizedBox(height: 9),
                             ...generated!.criteria.map(
                               (item) => Padding(
@@ -361,9 +564,21 @@ $idea
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(Icons.check_circle_outline, size: 18, color: TactixTheme.cyan),
+                                    const Icon(
+                                      Icons.check_circle_outline,
+                                      size: 18,
+                                      color: TactixTheme.cyan,
+                                    ),
                                     const SizedBox(width: 8),
-                                    Expanded(child: Text(item, style: const TextStyle(fontSize: 11, color: Colors.white70))),
+                                    Expanded(
+                                      child: Text(
+                                        item,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -375,7 +590,7 @@ $idea
                             icon: const Icon(Icons.play_arrow_rounded),
                             label: const Padding(
                               padding: EdgeInsets.symmetric(vertical: 13),
-                              child: Text('START TRAINING'),
+                              child: Text('НАЧАТЬ ТРЕНИРОВКУ'),
                             ),
                           ),
                           const SizedBox(height: 9),
@@ -384,7 +599,7 @@ $idea
                             icon: const Icon(Icons.save_outlined),
                             label: const Padding(
                               padding: EdgeInsets.symmetric(vertical: 12),
-                              child: Text('SAVE SCENARIO'),
+                              child: Text('СОХРАНИТЬ СЦЕНАРИЙ'),
                             ),
                           ),
                         ],
@@ -400,4 +615,3 @@ $idea
     );
   }
 }
-
