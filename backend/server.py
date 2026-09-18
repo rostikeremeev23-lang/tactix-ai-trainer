@@ -1,5 +1,6 @@
 
 import json
+import os
 
 import requests
 from fastapi import FastAPI, HTTPException
@@ -30,14 +31,31 @@ app.include_router(auth_router)
 
 
 # =====================================================
-# OLLAMA CONFIG
+# AI CONFIG (Gemini cloud + Ollama local fallback)
 # =====================================================
 
-OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
-MODEL = "gemma3:1b"
+OLLAMA_URL = os.environ.get(
+    "OLLAMA_URL",
+    "http://127.0.0.1:11434/api/chat",
+).strip()
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "gemma3:1b").strip() or "gemma3:1b"
 
-REQUEST_TIMEOUT = 15
-SCENARIO_TIMEOUT = 30
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.environ.get("AI_MODEL", "gemini-3.8-flash").strip() or "gemini-3.8-flash"
+GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
+
+REQUEST_TIMEOUT = 30
+SCENARIO_TIMEOUT = 45
+HEALTH_TIMEOUT = 5
+
+SYSTEM_PROMPT = (
+    "Ты AI-модуль учебного симулятора TACTIX. "
+    "Все сценарии полностью вымышленные и предназначены только "
+    "для обучения принятию решений. "
+    "Не давай инструкции для реального насилия, применения оружия, "
+    "боевых операций или причинения вреда. "
+    "Отвечай на русском языке."
+)
 
 
 # =====================================================
@@ -120,8 +138,165 @@ class NextSituationResponse(BaseModel):
 
 
 # =====================================================
-# OLLAMA
+# AI PROVIDERS
 # =====================================================
+
+def _clean_json_text(raw: str) -> str:
+    text = raw.strip()
+    if text.startswith("```json"):
+        text = text[7:]
+    elif text.startswith("```"):
+        text = text[3:]
+    if text.endswith("```"):
+        text = text[:-3]
+    return text.strip()
+
+
+def _gemini_text(data: dict) -> str:
+    candidates = data.get("candidates")
+    if not isinstance(candidates, list) or not candidates:
+        raise HTTPException(
+            status_code=502,
+            detail="Gemini не вернул ни одного ответа.",
+        )
+
+    first = candidates[0]
+    if not isinstance(first, dict):
+        raise HTTPException(
+            status_code=502,
+            detail="Gemini вернул некорректный ответ.",
+        )
+
+    content = first.get("content")
+    if not isinstance(content, dict):
+        raise HTTPException(
+            status_code=502,
+            detail="Gemini не вернул текст ответа.",
+        )
+
+    parts = content.get("parts")
+    if not isinstance(parts, list):
+        raise HTTPException(
+            status_code=502,
+            detail="Gemini не вернул текст ответа.",
+        )
+
+    chunks = [
+        str(part.get("text"))
+        for part in parts
+        if isinstance(part, dict) and part.get("text")
+    ]
+    text = "\n".join(chunks).strip()
+
+    if not text:
+        raise HTTPException(
+            status_code=502,
+            detail="Gemini вернул пустой ответ.",
+        )
+
+    return text
+
+
+def ask_gemini(
+    prompt: str,
+    json_mode: bool = False,
+    timeout: int = REQUEST_TIMEOUT,
+) -> str:
+    if not GEMINI_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini не настроен: отсутствует GEMINI_API_KEY.",
+        )
+
+    url = (
+        f"{GEMINI_API_BASE}/models/"
+        f"{GEMINI_MODEL}:generateContent"
+    )
+
+    generation_config = {
+        "thinkingConfig": {
+            "thinkingLevel": "low",
+        },
+    }
+    if json_mode:
+        generation_config["responseMimeType"] = "application/json"
+
+    payload = {
+        "systemInstruction": {
+            "parts": [
+                {"text": SYSTEM_PROMPT},
+            ],
+        },
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {"text": prompt},
+                ],
+            },
+        ],
+        "generationConfig": generation_config,
+    }
+
+    try:
+        response = requests.post(
+            url,
+            headers={
+                "x-goog-api-key": GEMINI_API_KEY,
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=timeout,
+        )
+
+        if response.status_code == 429:
+            raise HTTPException(
+                status_code=429,
+                detail="Лимит Gemini временно исчерпан.",
+            )
+
+        if response.status_code in (401, 403):
+            raise HTTPException(
+                status_code=503,
+                detail="Gemini API key отклонён. Проверь GEMINI_API_KEY в Render.",
+            )
+
+        if response.status_code == 404:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Модель Gemini '{GEMINI_MODEL}' недоступна для этого API key.",
+            )
+
+        response.raise_for_status()
+        data = response.json()
+
+        if not isinstance(data, dict):
+            raise HTTPException(
+                status_code=502,
+                detail="Gemini вернул некорректный JSON ответа.",
+            )
+
+        text = _gemini_text(data)
+        return _clean_json_text(text) if json_mode else text
+
+    except HTTPException:
+        raise
+    except requests.Timeout:
+        raise HTTPException(
+            status_code=504,
+            detail="Gemini слишком долго отвечает.",
+        )
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Ошибка подключения к Gemini: {exc}",
+        )
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Gemini вернул некорректный ответ: {exc}",
+        )
+
 
 def ask_ollama(
     prompt: str,
@@ -129,20 +304,11 @@ def ask_ollama(
     timeout: int = REQUEST_TIMEOUT,
 ) -> str:
     payload = {
-        "model": MODEL,
+        "model": OLLAMA_MODEL,
         "messages": [
             {
                 "role": "system",
-                "content": (
-                    "Ты AI-модуль учебного симулятора "
-                    "TACTIX. Все сценарии полностью "
-                    "вымышленные и предназначены только "
-                    "для обучения принятию решений. "
-                    "Не давай инструкции для реального "
-                    "насилия, применения оружия, боевых "
-                    "операций или причинения вреда. "
-                    "Отвечай на русском языке."
-                ),
+                "content": SYSTEM_PROMPT,
             },
             {
                 "role": "user",
@@ -161,64 +327,137 @@ def ask_ollama(
             json=payload,
             timeout=timeout,
         )
-
         response.raise_for_status()
-
         data = response.json()
-
         message = data.get("message")
 
         if not isinstance(message, dict):
             raise HTTPException(
-                status_code=500,
+                status_code=502,
                 detail="Ollama вернула некорректный ответ.",
             )
 
         content = message.get("content")
-
         if not content:
             raise HTTPException(
-                status_code=500,
+                status_code=502,
                 detail="Ollama вернула пустой ответ.",
             )
 
-        return str(content)
+        text = str(content)
+        return _clean_json_text(text) if json_mode else text
 
+    except HTTPException:
+        raise
     except requests.Timeout:
         raise HTTPException(
             status_code=504,
             detail="Ollama слишком долго отвечает.",
         )
-
     except requests.ConnectionError:
         raise HTTPException(
             status_code=503,
-            detail=(
-                "Ollama недоступна. "
-                "Убедитесь, что Ollama запущена."
-            ),
+            detail="Ollama недоступна.",
         )
-
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=503,
             detail=f"Ошибка подключения к Ollama: {exc}",
         )
-
     except (ValueError, KeyError) as exc:
         raise HTTPException(
-            status_code=500,
+            status_code=502,
             detail=f"Ollama вернула некорректный JSON: {exc}",
         )
 
 
-def parse_json_object(raw: str) -> dict:
+def ask_ai(
+    prompt: str,
+    json_mode: bool = False,
+    timeout: int = REQUEST_TIMEOUT,
+) -> str:
+    """Cloud-first AI with local Ollama fallback."""
+    gemini_error: HTTPException | None = None
+
+    if GEMINI_API_KEY:
+        try:
+            return ask_gemini(
+                prompt,
+                json_mode=json_mode,
+                timeout=timeout,
+            )
+        except HTTPException as exc:
+            gemini_error = exc
+
     try:
-        data = json.loads(raw)
+        return ask_ollama(
+            prompt,
+            json_mode=json_mode,
+            timeout=timeout,
+        )
+    except HTTPException as ollama_error:
+        if gemini_error is not None:
+            raise HTTPException(
+                status_code=gemini_error.status_code,
+                detail=(
+                    f"{gemini_error.detail} "
+                    f"Локальный резерв Ollama также недоступен."
+                ),
+            )
+        raise ollama_error
+
+
+def _check_gemini() -> bool:
+    if not GEMINI_API_KEY:
+        return False
+
+    try:
+        response = requests.get(
+            f"{GEMINI_API_BASE}/models/{GEMINI_MODEL}",
+            headers={"x-goog-api-key": GEMINI_API_KEY},
+            timeout=HEALTH_TIMEOUT,
+        )
+        return 200 <= response.status_code < 300
+    except requests.RequestException:
+        return False
+
+
+def _check_ollama() -> tuple[bool, bool]:
+    try:
+        response = requests.get(
+            "http://127.0.0.1:11434/api/tags",
+            timeout=HEALTH_TIMEOUT,
+        )
+        ollama_available = 200 <= response.status_code < 300
+        if not ollama_available:
+            return False, False
+
+        data = response.json()
+        models = data.get("models") if isinstance(data, dict) else None
+        if not isinstance(models, list):
+            return True, False
+
+        model_available = any(
+            isinstance(item, dict)
+            and (
+                item.get("name") == OLLAMA_MODEL
+                or item.get("model") == OLLAMA_MODEL
+            )
+            for item in models
+        )
+        return True, model_available
+    except (requests.RequestException, ValueError):
+        return False, False
+
+
+def parse_json_object(raw: str) -> dict:
+    cleaned = _clean_json_text(raw)
+    try:
+        data = json.loads(cleaned)
     except json.JSONDecodeError as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Ollama вернула некорректный JSON: {exc}",
+            detail=f"AI вернул некорректный JSON: {exc}",
         )
 
     if not isinstance(data, dict):
@@ -236,10 +475,12 @@ def parse_json_object(raw: str) -> dict:
 
 @app.get("/")
 def root():
+    provider = "gemini" if GEMINI_API_KEY else "ollama"
+    model = GEMINI_MODEL if GEMINI_API_KEY else OLLAMA_MODEL
     return {
         "status": "TACTIX backend работает",
-        "model": MODEL,
-        "ollama_url": OLLAMA_URL,
+        "ai_provider": provider,
+        "model": model,
         "endpoints": [
             "/",
             "/health",
@@ -248,6 +489,7 @@ def root():
             "/generate-scenario",
             "/next-situation",
             "/explain-score",
+            "/v1/auth/login",
         ],
     }
 
@@ -258,37 +500,33 @@ def root():
 
 @app.get("/health")
 def health():
-    ollama_available = False
-    model_available = False
+    gemini_available = _check_gemini()
+    ollama_available, ollama_model_available = _check_ollama()
 
-    try:
-        response = requests.get(
-            "http://127.0.0.1:11434/api/tags",
-            timeout=5,
-        )
+    if gemini_available:
+        provider = "gemini"
+        active_model = GEMINI_MODEL
+    elif ollama_available and ollama_model_available:
+        provider = "ollama"
+        active_model = OLLAMA_MODEL
+    else:
+        provider = "none"
+        active_model = GEMINI_MODEL if GEMINI_API_KEY else OLLAMA_MODEL
 
-        ollama_available = (
-            response.status_code >= 200
-            and response.status_code < 300
-        )
-        if ollama_available:
-            data = response.json()
-            models = data.get("models") if isinstance(data, dict) else None
-            if isinstance(models, list):
-                model_available = any(
-                    isinstance(item, dict)
-                    and (item.get("name") == MODEL or item.get("model") == MODEL)
-                    for item in models
-                )
-    except (requests.RequestException, ValueError):
-        model_available = False
+    ai_ready = (
+        gemini_available
+        or (ollama_available and ollama_model_available)
+    )
 
     return {
         "status": "ok",
-        "model": MODEL,
+        "provider": provider,
+        "model": active_model,
+        "gemini_configured": bool(GEMINI_API_KEY),
+        "gemini_available": gemini_available,
         "ollama_available": ollama_available,
-        "model_available": model_available,
-        "ai_ready": ollama_available and model_available,
+        "model_available": gemini_available or ollama_model_available,
+        "ai_ready": ai_ready,
     }
 
 
@@ -360,7 +598,7 @@ def analyze(request: AnalysisRequest):
 ...
 """
 
-    result = ask_ollama(prompt)
+    result = ask_ai(prompt)
 
     return {
         "analysis": result,
@@ -460,7 +698,7 @@ TACTIX SCORE: {request.objective_score}/100
 Одна короткая учебная рекомендация без реальных боевых инструкций.
 """
 
-    result = ask_ollama(prompt)
+    result = ask_ai(prompt)
 
     return {
         "explanation": result,
@@ -520,7 +758,7 @@ def summary(request: SummaryRequest):
 Язык: русский.
 """
 
-    raw = ask_ollama(
+    raw = ask_ai(
         prompt,
         json_mode=True,
     )
@@ -532,7 +770,7 @@ def summary(request: SummaryRequest):
     if summary_text is None:
         raise HTTPException(
             status_code=500,
-            detail="В ответе Ollama отсутствует поле summary.",
+            detail="В ответе AI отсутствует поле summary.",
         )
 
     return {
@@ -613,7 +851,7 @@ criteria = 3-5 элементов.
 Язык: русский.
 """
 
-    raw = ask_ollama(
+    raw = ask_ai(
         prompt,
         json_mode=True,
         timeout=SCENARIO_TIMEOUT,
@@ -762,7 +1000,7 @@ def next_situation(
 Только JSON.
 """
 
-    raw = ask_ollama(
+    raw = ask_ai(
         prompt,
         json_mode=True,
     )
