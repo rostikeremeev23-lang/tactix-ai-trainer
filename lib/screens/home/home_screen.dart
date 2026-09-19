@@ -12,6 +12,7 @@ import '../../widgets/achievements_panel.dart';
 import '../../widgets/common_widgets.dart';
 
 import '../analytics/statistics_screen.dart';
+import '../ai/ai_chat_screen.dart';
 import '../assignments/assignments_screen.dart';
 import '../demo/competition_demo_screen.dart';
 import '../instructor/instructor_mode_screen.dart';
@@ -271,6 +272,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   selectedIcon: Icon(Icons.analytics),
                   label: 'Аналитика',
                 ),
+                NavigationDestination(
+                  icon: Icon(Icons.forum_outlined),
+                  selectedIcon: Icon(Icons.forum),
+                  label: 'AI',
+                ),
               ],
               onDestinationSelected: (index) {
                 if (index == 1) {
@@ -282,6 +288,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ));
                 } else if (index == 2) {
                   _open(context, const StatisticsScreen());
+                } else if (index == 3) {
+                  _open(context, const AIChatScreen());
                 }
               },
             ),
@@ -497,6 +505,16 @@ onPressed: () {
                       subtitle: 'Создать учебную ситуацию',
                       accent: TactixTheme.cyan,
                       onTap: () => _open(context, const AIScenarioScreen()),
+                    ),
+                  ),
+                  SizedBox(
+                    width: tileWidth,
+                    child: _CommandTile(
+                      icon: Icons.forum_outlined,
+                      title: 'TACTIX AI',
+                      subtitle: 'Чат • Тренер • Разбор результата',
+                      accent: const Color(0xFF74E6FF),
+                      onTap: () => _open(context, const AIChatScreen()),
                     ),
                   ),
                   if (canManageTraining)

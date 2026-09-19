@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/ai_chat_message.dart';
+
 enum AIMode { auto, cloud, local, offline }
 
 enum AIBackendKind { none, cloud, local }
@@ -765,6 +767,224 @@ ${weaknesses.map((item) => '- $item').join('\n')}
     }
 
     return parts.join(' ');
+  }
+
+  // ============================================================
+  // TACTIX AI CHAT
+  // ============================================================
+
+  /// Унифицированный чат поверх существующей AI routing-системы.
+  /// AUTO: Cloud -> Local -> offline fallback.
+  /// CLOUD/LOCAL: ошибка выбранного backend показывается пользователю.
+  /// OFFLINE: используется локальный детерминированный помощник.
+  static Future<String> chat({
+    required String message,
+    required AIChatContextType contextType,
+    List<AIChatMessage> history = const [],
+    Map<String, dynamic> context = const {},
+  }) async {
+    final cleanMessage = message.trim();
+    if (cleanMessage.isEmpty) {
+      throw const FormatException('Сообщение пустое.');
+    }
+
+    await _ensureConfigLoaded();
+
+    if (_mode == AIMode.offline) {
+      return localChat(
+        message: cleanMessage,
+        contextType: contextType,
+        context: context,
+      );
+    }
+
+    final body = <String, dynamic>{
+      'message': cleanMessage,
+      'context_type': contextType.name,
+      'history': history
+          .where((item) => item.text.trim().isNotEmpty)
+          .toList()
+          .reversed
+          .take(12)
+          .toList()
+          .reversed
+          .map(
+            (item) => <String, dynamic>{
+              'role': item.role.name,
+              'text': item.text,
+            },
+          )
+          .toList(),
+      'context': context,
+    };
+
+    try {
+      final response = await _postJson(
+        '/chat',
+        body,
+        timeout: scenarioTimeout,
+      );
+
+      final data = _decodeResponse(response);
+      final text = _extractText(
+        data,
+        const [
+          'response',
+          'answer',
+          'text',
+          'result',
+          'message',
+          'content',
+        ],
+      );
+
+      if (text.isEmpty) {
+        throw Exception('TACTIX AI не вернул ответ.');
+      }
+
+      return text;
+    } catch (_) {
+      // В AUTO приложение не должно превращаться в пустой экран,
+      // даже если Cloud и Local AI временно недоступны.
+      if (_mode == AIMode.auto) {
+        return localChat(
+          message: cleanMessage,
+          contextType: contextType,
+          context: context,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  /// Ограниченный автономный помощник.
+  /// Это НЕ LLM: он честно работает только с локальными данными TACTIX.
+  static String localChat({
+    required String message,
+    required AIChatContextType contextType,
+    Map<String, dynamic> context = const {},
+  }) {
+    final q = message.trim().toLowerCase();
+
+    int intValue(String key) {
+      final value = context[key];
+      if (value is int) return value;
+      return int.tryParse(value?.toString() ?? '') ?? 0;
+    }
+
+    final scenarioTitle =
+        (context['scenario_title'] ?? context['scenarioTitle'] ?? '')
+            .toString()
+            .trim();
+    final score = intValue('score');
+    final level = (context['level'] ?? '').toString().trim();
+    final outcome = (context['outcome'] ?? '').toString().trim();
+
+    final rawMetrics = context['metrics'];
+    final metrics = rawMetrics is Map
+        ? Map<String, dynamic>.from(rawMetrics)
+        : <String, dynamic>{};
+
+    final rawDecisions = context['decisions'];
+    final decisions = rawDecisions is List
+        ? rawDecisions.map((item) => item.toString()).toList()
+        : <String>[];
+
+    String metric(String key, String label) {
+      final value = metrics[key];
+      if (value == null) return '';
+      return '$label: $value';
+    }
+
+    String scoreSummary() {
+      if (score <= 0) {
+        return 'Для точного разбора сначала завершите учебный сценарий. '
+            'TACTIX Score рассчитывается локальным детерминированным движком, '
+            'а AI только объясняет уже полученный результат.';
+      }
+
+      final parts = <String>[
+        'TACTIX Score: $score/100${level.isEmpty ? '' : ' • $level'}.',
+      ];
+
+      if (scenarioTitle.isNotEmpty) {
+        parts.add('Сценарий: $scenarioTitle.');
+      }
+      if (outcome.isNotEmpty) {
+        parts.add('Итог симуляции: $outcome.');
+      }
+
+      final metricLines = <String>[
+        metric('goal', 'Цель'),
+        metric('resources', 'Ресурсы'),
+        metric('stability', 'Устойчивость'),
+        metric('uncertainty', 'Контроль неопределённости'),
+        metric('time', 'Время'),
+      ].where((item) => item.isNotEmpty).toList();
+
+      if (metricLines.isNotEmpty) {
+        parts.add('Компоненты: ${metricLines.join(' • ')}.');
+      }
+
+      return parts.join('\n');
+    }
+
+    if (contextType == AIChatContextType.debrief || context.isNotEmpty) {
+      if (q.contains('почему') ||
+          q.contains('score') ||
+          q.contains('балл') ||
+          q.contains('результ')) {
+        return '${scoreSummary()}\n\n'
+            'Числовая оценка не генерируется AI. Она уже была рассчитана '
+            'SimulationEngine по изменениям цели, ресурсов, устойчивости, '
+            'неопределённости и времени. В автономном режиме я могу объяснить '
+            'эти данные, но не меняю итоговый балл.';
+      }
+
+      if (q.contains('решен') ||
+          q.contains('ход') ||
+          q.contains('ошиб') ||
+          q.contains('улучш')) {
+        final decisionText = decisions.isEmpty
+            ? 'История решений в сохранённом результате отсутствует.'
+            : 'Последние решения:\n${decisions.take(5).map((e) => '• $e').join('\n')}';
+        return '$decisionText\n\n'
+            'Для следующего учебного прохождения сравнивайте не только '
+            'краткосрочный прогресс, но и расход ресурса, устойчивость и '
+            'изменение неопределённости. В TACTIX эти показатели оцениваются '
+            'локально и одинаково для одинаковых входных данных.';
+      }
+
+      return '${scoreSummary()}\n\n'
+          'Спросите, например: «Почему такой Score?», '
+          '«Что улучшить?» или «Разбери мои решения». '
+          'Сейчас используется автономный помощник TACTIX.';
+    }
+
+    if (contextType == AIChatContextType.coach) {
+      return 'Режим ТРЕНЕР работает как учебный помощник. '
+          'Я могу помочь разобрать результат, сформулировать цель следующей '
+          'тренировки и предложить безопасное упражнение на принятие решений. '
+          'Например: завершите сценарий, затем сравните самый сильный и самый '
+          'слабый ход по TACTIX Score и объясните, какой компромисс вы сделали.';
+    }
+
+    if (q.contains('режим') || q.contains('cloud') || q.contains('offline')) {
+      return 'TACTIX AI поддерживает AUTO, CLOUD, LOCAL и OFFLINE. '
+          'AUTO сначала использует Cloud, затем Local, а при недоступности '
+          'обоих сохраняет базовые локальные функции. OFFLINE не требует сети.';
+    }
+
+    if (q.contains('score') || q.contains('оцен')) {
+      return 'TACTIX Score рассчитывается локальным SimulationEngine. '
+          'AI не придумывает числовую оценку: он только объясняет уже '
+          'рассчитанный результат и помогает провести учебный разбор.';
+    }
+
+    return 'Я TACTIX AI. В автономном режиме могу объяснить TACTIX Score, '
+        'помочь с интерфейсом и разобрать сохранённый учебный результат. '
+        'Для свободного диалога переключитесь на AUTO, CLOUD или LOCAL, '
+        'когда соответствующий AI backend доступен.';
   }
 
   // ============================================================

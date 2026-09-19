@@ -118,6 +118,20 @@ class ExplainScoreRequest(BaseModel):
     history: list[str] = Field(default_factory=list)
 
 
+
+
+class ChatMessageItem(BaseModel):
+    role: str
+    text: str
+
+
+class ChatRequest(BaseModel):
+    message: str
+    context_type: str = "general"
+    history: list[ChatMessageItem] = Field(default_factory=list)
+    context: dict = Field(default_factory=dict)
+
+
 class ScenarioResponse(BaseModel):
     title: str
     description: str
@@ -489,6 +503,7 @@ def root():
             "/generate-scenario",
             "/next-situation",
             "/explain-score",
+            "/chat",
             "/v1/auth/login",
         ],
     }
@@ -527,6 +542,100 @@ def health():
         "ollama_available": ollama_available,
         "model_available": gemini_available or ollama_model_available,
         "ai_ready": ai_ready,
+    }
+
+
+
+
+# =====================================================
+# TACTIX AI CHAT
+# =====================================================
+
+@app.post("/chat")
+def chat(request: ChatRequest):
+    message = request.message.strip()
+    if not message:
+        raise HTTPException(
+            status_code=400,
+            detail="Сообщение пустое.",
+        )
+
+    context_type = request.context_type.strip().lower() or "general"
+
+    context_instruction = {
+        "general": (
+            "Режим ОБЩИЙ: отвечай как встроенный помощник TACTIX. "
+            "Можно объяснять приложение, обучение и общие безопасные темы."
+        ),
+        "coach": (
+            "Режим ТРЕНЕР: помогай пользователю анализировать учебный процесс, "
+            "формулировать цели тренировки и развивать качество принятия решений. "
+            "Не давай реальные инструкции по насилию, оружию или боевым операциям."
+        ),
+        "debrief": (
+            "Режим РАЗБОР: отвечай только на основе переданного результата "
+            "учебной симуляции. TACTIX Score уже рассчитан локальным движком. "
+            "Никогда не придумывай и не изменяй числовой Score."
+        ),
+    }.get(
+        context_type,
+        "Отвечай как безопасный учебный помощник TACTIX.",
+    )
+
+    history_lines = []
+    for item in request.history[-12:]:
+        role = "Пользователь" if item.role.lower() == "user" else "TACTIX AI"
+        text = item.text.strip()
+        if text:
+            history_lines.append(f"{role}: {text[:1800]}")
+
+    history_text = "\n".join(history_lines) or "История отсутствует."
+
+    try:
+        context_text = json.dumps(
+            request.context,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    except (TypeError, ValueError):
+        context_text = "{}"
+
+    context_text = context_text[:7000]
+
+    prompt = f"""
+Ты работаешь внутри учебного приложения TACTIX.
+
+{context_instruction}
+
+КРИТИЧЕСКИЕ ПРАВИЛА:
+- Все сценарии учебные и вымышленные.
+- Не давай инструкции для реального насилия, применения оружия,
+  проведения боевых операций или причинения вреда.
+- Не меняй и не придумывай TACTIX Score.
+- Если в контексте нет нужного факта, прямо скажи об этом.
+- Не запрашивай пароли, токены, ключи API или секретные данные.
+- Отвечай на русском языке, ясно и компактно.
+
+БЕЗОПАСНЫЙ КОНТЕКСТ TACTIX:
+{context_text}
+
+ПОСЛЕДНИЕ СООБЩЕНИЯ:
+{history_text}
+
+НОВОЕ СООБЩЕНИЕ ПОЛЬЗОВАТЕЛЯ:
+{message}
+
+Ответь как TACTIX AI.
+""".strip()
+
+    answer = ask_ai(
+        prompt,
+        json_mode=False,
+        timeout=SCENARIO_TIMEOUT,
+    )
+
+    return {
+        "response": answer,
     }
 
 
