@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/scenario.dart';
 
 class ScenarioStorage {
@@ -10,13 +12,24 @@ class ScenarioStorage {
 
     final data = prefs.getStringList(_key) ?? [];
 
-    return data
-        .map(
-          (item) => TrainingScenario.fromJson(
-            jsonDecode(item) as Map<String, dynamic>,
-          ),
-        )
-        .toList();
+    final scenarios = <TrainingScenario>[];
+
+    for (final item in data) {
+      try {
+        final decoded = jsonDecode(item);
+        if (decoded is Map<String, dynamic>) {
+          scenarios.add(TrainingScenario.fromJson(decoded));
+        } else if (decoded is Map) {
+          scenarios.add(
+            TrainingScenario.fromJson(Map<String, dynamic>.from(decoded)),
+          );
+        }
+      } catch (_) {
+        // A single damaged legacy record must not block all saved scenarios.
+      }
+    }
+
+    return scenarios;
   }
 
   static Future<void> save(TrainingScenario scenario) async {
@@ -24,9 +37,7 @@ class ScenarioStorage {
 
     final data = prefs.getStringList(_key) ?? [];
 
-    data.add(
-      jsonEncode(scenario.toJson()),
-    );
+    data.add(jsonEncode(scenario.toJson()));
 
     await prefs.setStringList(_key, data);
   }

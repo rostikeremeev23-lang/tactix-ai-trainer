@@ -6,6 +6,7 @@ import '../../app/assignment_scope.dart';
 import '../../models/scenario.dart';
 import '../../models/training_result.dart';
 import '../../services/environment_service.dart';
+import '../../services/ai_service.dart';
 import '../../services/result_storage_service.dart';
 import '../../widgets/achievements_panel.dart';
 import '../../widgets/common_widgets.dart';
@@ -15,6 +16,7 @@ import '../assignments/assignments_screen.dart';
 import '../demo/competition_demo_screen.dart';
 import '../instructor/instructor_mode_screen.dart';
 import '../profile/profile_screen.dart';
+import '../settings/ai_mode_screen.dart';
 import '../scenarios/ai_scenario_screen.dart';
 import '../scenarios/create_scenario_screen.dart';
 import '../scenarios/my_scenarios_screen.dart';
@@ -51,20 +53,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final loaded = await ResultStorageService.load();
+      final online = await AIService.isServerAvailable();
 
       if (!mounted) return;
 
       setState(() {
         results = loaded;
-        aiOnline = false;
+        aiOnline = online;
         loading = false;
       });
     } catch (_) {
+      final online = await AIService.isServerAvailable();
+
       if (!mounted) return;
 
       setState(() {
         results = const [];
-        aiOnline = false;
+        aiOnline = online;
         loading = false;
       });
     }
@@ -322,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(width: 7),
                   Text(
-                    aiOnline ? 'AI ONLINE' : 'AI OFFLINE',
+                    AIService.statusLabel,
                     style: TextStyle(
                       color: aiOnline
                           ? const Color(0xFF7FE7B8)
@@ -333,9 +338,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Gemma 3 4B  |  Ollama',
-                    style: TextStyle(color: TactixTheme.textMuted, fontSize: 11),
+                  Text(
+                    '${AIService.modeLabel}  |  ${AIService.providerLabel}',
+                    style: const TextStyle(
+                      color: TactixTheme.textMuted,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
@@ -344,6 +352,19 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       actions: [
+        IconButton(
+          tooltip: 'AI режим',
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const AIModeScreen(),
+              ),
+            );
+            await _loadDashboard();
+          },
+          icon: const Icon(Icons.hub_outlined, color: Colors.white70),
+        ),
         if (!compact)
           IconButton(
             tooltip: 'Обновить данные',
@@ -352,7 +373,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         IconButton(
           tooltip: 'Уведомления',
-          onPressed: () {},
+onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Новых уведомлений нет.')),
+            );
+          },
           icon: const Icon(Icons.notifications_none_rounded, color: Colors.white70),
         ),
         Padding(
@@ -1362,7 +1387,7 @@ class _EnvironmentDashboardState extends State<_EnvironmentDashboard> {
                             _EnvironmentMetric(
                               icon: weather.isDay ? Icons.wb_sunny_outlined : Icons.nightlight_outlined,
                               label: 'ТЕМПЕРАТУРА',
-                              value: '${weather.temperature.toStringAsFixed(1)}В°C',
+                              value: '${weather.temperature.toStringAsFixed(1)}°C',
                               accent: TactixTheme.gold,
                             ),
                             _EnvironmentMetric(
@@ -1544,7 +1569,7 @@ class _IntelligencePanel extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      aiOnline ? 'AI ONLINE' : 'AI OFFLINE',
+                      AIService.statusLabel,
                       style: TextStyle(
                         color: aiOnline
                             ? const Color(0xFF70E6AF)
@@ -1556,9 +1581,12 @@ class _IntelligencePanel extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 7),
-                const Text(
-                  'Gemma 3 4B  •  Ollama',
-                  style: TextStyle(color: TactixTheme.textMuted, fontSize: 11),
+                Text(
+                  '${AIService.modeLabel}  •  ${AIService.providerLabel}',
+                  style: const TextStyle(
+                    color: TactixTheme.textMuted,
+                    fontSize: 11,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 _metric('СРЕДНИЙ БАЛЛ', '$average%', TactixTheme.cyan),
@@ -2181,4 +2209,3 @@ class _CommandTile extends StatelessWidget {
 // =====================================================
 // TRAINING
 // =====================================================
-

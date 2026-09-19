@@ -111,7 +111,7 @@ class _MyScenariosScreenState
             'Удалить сценарий?',
           ),
           content: Text(
-            'Удалить В«${scenario.title}В»?',
+            'Удалить «${scenario.title}»?',
           ),
           actions: [
             TextButton(
@@ -401,4 +401,3 @@ class _MyScenariosScreenState
     );
   }
 }
-

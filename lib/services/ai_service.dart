@@ -5,138 +5,306 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum AIMode { auto, cloud, local, offline }
+
+enum AIBackendKind { none, cloud, local }
+
 class AIService {
   AIService._();
 
   // ============================================================
-  // BACKEND URL
+  // AI MODE / BACKEND ROUTING
   // ============================================================
 
-  /// Backend можно переопределить при сборке через --dart-define:
-  ///
-  /// Chrome / Windows:
-  /// flutter run --dart-define=AI_BACKEND_URL=http://127.0.0.1:8000
-  ///
-  /// Android Emulator:
-  /// flutter run --dart-define=AI_BACKEND_URL=http://10.0.2.2:8000
-  ///
-  /// Планшет / телефон в одной Wi-Fi сети:
-  /// flutter run -d web-server
-  ///   --web-hostname 0.0.0.0
-  ///   --web-port 8080
-  ///   --dart-define=AI_BACKEND_URL=http://10.167.14.90:8000
-  ///
-  /// Release APK:
-  /// flutter build apk --release
-  ///   --dart-define=AI_BACKEND_URL=https://YOUR-BACKEND.example.com
-  ///
-  /// Если адрес не задан, используются локальные адреса
-  /// для текущей платформы.
-
   static const String _baseUrlKey = 'ai_backend_url';
+  static const String _modeKey = 'ai_mode';
 
   static const String _buildTimeBaseUrl =
       String.fromEnvironment('AI_BACKEND_URL');
 
+  static const String _defaultCloudBaseUrl =
+      'https://tactix-api.onrender.com';
+
   static String? _configuredBaseUrl;
+  static AIMode _mode = AIMode.auto;
+  static AIBackendKind _activeBackend = AIBackendKind.none;
+  static String? _activeBaseUrl;
+  static bool _configLoaded = false;
 
-  static String get baseUrl {
-    if (_buildTimeBaseUrl.trim().isNotEmpty) {
-      return _normalizeBaseUrl(
-        _buildTimeBaseUrl,
-      );
+  static AIMode get mode => _mode;
+  static AIBackendKind get activeBackend => _activeBackend;
+  static String? get activeBaseUrl => _activeBaseUrl;
+
+  static String get cloudBaseUrl {
+    final buildUrl = _buildTimeBaseUrl.trim();
+    if (buildUrl.startsWith('https://')) {
+      return _normalizeBaseUrl(buildUrl);
+    }
+    return _defaultCloudBaseUrl;
+  }
+
+  static String get localBaseUrl {
+    final configured = _configuredBaseUrl?.trim();
+    if (configured != null && configured.isNotEmpty) {
+      return _normalizeBaseUrl(configured);
     }
 
-    final configured =
-        _configuredBaseUrl?.trim();
-
-    if (configured != null &&
-        configured.isNotEmpty) {
-      return _normalizeBaseUrl(
-        configured,
-      );
-    }
-
-    // Flutter Web (Chrome):
-    // backend на этой же машине.
     if (kIsWeb) {
       return 'http://127.0.0.1:8000';
     }
 
-    // Android Emulator:
-    // 10.0.2.2 указывает на Windows-хост.
-    if (defaultTargetPlatform ==
-        TargetPlatform.android) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8000';
     }
 
-    // Windows / macOS / Linux.
     return 'http://127.0.0.1:8000';
   }
 
-  static Future<void> loadConfig() async {
-    final prefs =
-        await SharedPreferences.getInstance();
-
-    _configuredBaseUrl =
-        prefs.getString(
-      _baseUrlKey,
-    );
-  }
-
-  static Future<void> setBaseUrl(
-    String url,
-  ) async {
-    final normalized =
-        _normalizeBaseUrl(url);
-
-    final parsed =
-        Uri.tryParse(normalized);
-
-    if (parsed == null ||
-        !parsed.hasScheme ||
-        parsed.host.isEmpty) {
-      throw const FormatException(
-        'Некорректный адрес backend.',
-      );
+  /// Совместимость со старым кодом. Для AUTO возвращает
+  /// активный backend, а если он ещё не определён — cloud URL.
+  static String get baseUrl {
+    if (_activeBaseUrl != null && _activeBaseUrl!.isNotEmpty) {
+      return _activeBaseUrl!;
     }
 
-    final prefs =
-        await SharedPreferences.getInstance();
+    switch (_mode) {
+      case AIMode.cloud:
+        return cloudBaseUrl;
+      case AIMode.local:
+        return localBaseUrl;
+      case AIMode.offline:
+        return '';
+      case AIMode.auto:
+        return cloudBaseUrl;
+    }
+  }
 
-    await prefs.setString(
-      _baseUrlKey,
-      normalized,
+  static String get modeLabel {
+    switch (_mode) {
+      case AIMode.auto:
+        return 'AUTO';
+      case AIMode.cloud:
+        return 'CLOUD';
+      case AIMode.local:
+        return 'LOCAL';
+      case AIMode.offline:
+        return 'OFFLINE';
+    }
+  }
+
+  static String get statusLabel {
+    if (_mode == AIMode.offline || _activeBackend == AIBackendKind.none) {
+      return 'AI OFFLINE';
+    }
+    if (_activeBackend == AIBackendKind.cloud) {
+      return 'AI CLOUD';
+    }
+    return 'AI LOCAL';
+  }
+
+  static String get providerLabel {
+    if (_activeBackend == AIBackendKind.cloud) {
+      return 'Gemini';
+    }
+    if (_activeBackend == AIBackendKind.local) {
+      return 'Ollama';
+    }
+    return 'Offline Engine';
+  }
+
+  static Future<void> loadConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    _configuredBaseUrl = prefs.getString(_baseUrlKey);
+
+    final savedMode = prefs.getString(_modeKey);
+    _mode = AIMode.values.firstWhere(
+      (item) => item.name == savedMode,
+      orElse: () => AIMode.auto,
     );
 
-    _configuredBaseUrl =
-        normalized;
+    _configLoaded = true;
+  }
+
+  static Future<void> _ensureConfigLoaded() async {
+    if (_configLoaded) return;
+    await loadConfig();
+  }
+
+  static Future<void> setMode(AIMode mode) async {
+    await _ensureConfigLoaded();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_modeKey, mode.name);
+
+    _mode = mode;
+    _activeBackend = AIBackendKind.none;
+    _activeBaseUrl = null;
+  }
+
+  /// Пользовательский адрес LOCAL backend.
+  /// Для Windows обычно http://127.0.0.1:8000.
+  /// Для физического Android можно указать IP компьютера в Wi-Fi сети.
+  static Future<void> setBaseUrl(String url) async {
+    final normalized = _normalizeBaseUrl(url);
+    final parsed = Uri.tryParse(normalized);
+
+    if (parsed == null || !parsed.hasScheme || parsed.host.isEmpty) {
+      throw const FormatException('Некорректный адрес backend.');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_baseUrlKey, normalized);
+
+    _configuredBaseUrl = normalized;
+    _activeBackend = AIBackendKind.none;
+    _activeBaseUrl = null;
   }
 
   static Future<void> clearBaseUrl() async {
-    final prefs =
-        await SharedPreferences.getInstance();
-
-    await prefs.remove(
-      _baseUrlKey,
-    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_baseUrlKey);
 
     _configuredBaseUrl = null;
+    _activeBackend = AIBackendKind.none;
+    _activeBaseUrl = null;
   }
 
-  static String _normalizeBaseUrl(
-    String url,
-  ) {
+  static String _normalizeBaseUrl(String url) {
     var value = url.trim();
-
     while (value.endsWith('/')) {
-      value = value.substring(
-        0,
-        value.length - 1,
-      );
+      value = value.substring(0, value.length - 1);
+    }
+    return value;
+  }
+
+  static List<String> _candidateBaseUrls() {
+    switch (_mode) {
+      case AIMode.cloud:
+        return [cloudBaseUrl];
+      case AIMode.local:
+        return [localBaseUrl];
+      case AIMode.offline:
+        return const [];
+      case AIMode.auto:
+        final values = <String>[cloudBaseUrl, localBaseUrl];
+        return values.toSet().toList();
+    }
+  }
+
+  static AIBackendKind _kindForUrl(String url) {
+    if (_normalizeBaseUrl(url) == _normalizeBaseUrl(cloudBaseUrl)) {
+      return AIBackendKind.cloud;
+    }
+    return AIBackendKind.local;
+  }
+
+  static Future<bool> _healthAt(String url) async {
+    try {
+      final response = await http
+          .get(Uri.parse('${_normalizeBaseUrl(url)}/health'))
+          .timeout(const Duration(seconds: 12));
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return false;
+      }
+
+      final data = jsonDecode(response.body);
+      return data is Map<String, dynamic> && data['ai_ready'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> refreshStatus() async {
+    await _ensureConfigLoaded();
+
+    _activeBackend = AIBackendKind.none;
+    _activeBaseUrl = null;
+
+    if (_mode == AIMode.offline) {
+      return false;
     }
 
-    return value;
+    for (final url in _candidateBaseUrls()) {
+      if (await _healthAt(url)) {
+        _activeBaseUrl = _normalizeBaseUrl(url);
+        _activeBackend = _kindForUrl(url);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  static Future<http.Response> _postJson(
+    String path,
+    Map<String, dynamic> body, {
+    required Duration timeout,
+  }) async {
+    await _ensureConfigLoaded();
+
+    if (_mode == AIMode.offline) {
+      throw Exception('AI OFFLINE: выбран автономный режим.');
+    }
+
+    final candidates = _candidateBaseUrls();
+    final ordered = <String>[];
+
+    if (_activeBaseUrl != null && candidates.contains(_activeBaseUrl)) {
+      ordered.add(_activeBaseUrl!);
+    }
+    for (final url in candidates) {
+      if (!ordered.contains(url)) ordered.add(url);
+    }
+
+    Object? lastError;
+
+    for (final url in ordered) {
+      try {
+        final response = await http
+            .post(
+              Uri.parse('${_normalizeBaseUrl(url)}$path'),
+              headers: _headers,
+              body: jsonEncode(body),
+            )
+            .timeout(timeout);
+
+        final ok = response.statusCode >= 200 && response.statusCode < 300;
+        if (ok) {
+          _activeBaseUrl = _normalizeBaseUrl(url);
+          _activeBackend = _kindForUrl(url);
+          return response;
+        }
+
+        // В AUTO при лимите/ошибке cloud пробуем LOCAL Ollama.
+        final retryable = response.statusCode == 429 || response.statusCode >= 500;
+        if (_mode == AIMode.auto && retryable) {
+          lastError = Exception(
+            'AI backend ${response.statusCode}: ${response.body}',
+          );
+          continue;
+        }
+
+        return response;
+      } on TimeoutException catch (error) {
+        lastError = error;
+        if (_mode != AIMode.auto) rethrow;
+      } on http.ClientException catch (error) {
+        lastError = error;
+        if (_mode != AIMode.auto) rethrow;
+      } catch (error) {
+        lastError = error;
+        if (_mode != AIMode.auto) rethrow;
+      }
+    }
+
+    _activeBackend = AIBackendKind.none;
+    _activeBaseUrl = null;
+
+    throw Exception(
+      'AI backend недоступен. ${lastError ?? ''}'.trim(),
+    );
   }
 
   static const Duration requestTimeout =
@@ -192,18 +360,11 @@ class AIService {
           _serializeHistory(history),
     };
 
-    final response =
-        await http
-            .post(
-              Uri.parse(
-                '$baseUrl/analyze',
-              ),
-              headers: _headers,
-              body: jsonEncode(body),
-            )
-            .timeout(
-              requestTimeout,
-            );
+    final response = await _postJson(
+      '/analyze',
+      body,
+      timeout: requestTimeout,
+    );
 
     final data =
         _decodeResponse(response);
@@ -388,13 +549,11 @@ ${weaknesses.map((item) => '- $item').join('\n')}
       'history': _serializeHistory(history),
     };
 
-    final response = await http
-        .post(
-          Uri.parse('$baseUrl/explain-score'),
-          headers: _headers,
-          body: jsonEncode(body),
-        )
-        .timeout(requestTimeout);
+    final response = await _postJson(
+      '/explain-score',
+      body,
+      timeout: requestTimeout,
+    );
 
     final data = _decodeResponse(response);
 
@@ -501,18 +660,11 @@ ${weaknesses.map((item) => '- $item').join('\n')}
           _serializeHistory(history),
     };
 
-    final response =
-        await http
-            .post(
-              Uri.parse(
-                '$baseUrl/summary',
-              ),
-              headers: _headers,
-              body: jsonEncode(body),
-            )
-            .timeout(
-              requestTimeout,
-            );
+    final response = await _postJson(
+      '/summary',
+      body,
+      timeout: requestTimeout,
+    );
 
     final data =
         _decodeResponse(response);
@@ -633,21 +785,13 @@ ${weaknesses.map((item) => '- $item').join('\n')}
     }
 
     try {
-      final response =
-          await http
-              .post(
-                Uri.parse(
-                  '$baseUrl/generate-scenario',
-                ),
-                headers: _headers,
-                body: jsonEncode({
-                  'description':
-                      description,
-                }),
-              )
-              .timeout(
-                scenarioTimeout,
-              );
+      final response = await _postJson(
+        '/generate-scenario',
+        <String, dynamic>{
+          'description': description,
+        },
+        timeout: scenarioTimeout,
+      );
 
       final data =
           _decodeResponse(response);
@@ -721,18 +865,11 @@ ${weaknesses.map((item) => '- $item').join('\n')}
     };
 
     try {
-      final response =
-          await http
-              .post(
-                Uri.parse(
-                  '$baseUrl/next-situation',
-                ),
-                headers: _headers,
-                body: jsonEncode(body),
-              )
-              .timeout(
-                requestTimeout,
-              );
+      final response = await _postJson(
+        '/next-situation',
+        body,
+        timeout: requestTimeout,
+      );
 
       final data =
           _decodeResponse(response);
@@ -776,31 +913,7 @@ ${weaknesses.map((item) => '- $item').join('\n')}
 
   static Future<bool>
       isServerAvailable() async {
-    try {
-      final response =
-          await http
-              .get(
-                Uri.parse(
-                  '$baseUrl/health',
-                ),
-              )
-              .timeout(
-                const Duration(
-                  seconds: 5,
-                ),
-              );
-
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300) {
-        return false;
-      }
-
-      final data = jsonDecode(response.body);
-      return data is Map<String, dynamic> &&
-          data['ai_ready'] == true;
-    } catch (_) {
-      return false;
-    }
+    return refreshStatus();
   }
 
   // ============================================================

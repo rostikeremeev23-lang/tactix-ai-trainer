@@ -1590,7 +1590,7 @@ class _ScenarioRunScreenState extends State<ScenarioRunScreen> {
                     icon: const Icon(Icons.arrow_forward_rounded),
                     label: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 13),
-                      child: Text('ПРОДОЛЖИТЬ в†’ ХОД ${state.turn}'),
+                      child: Text('ПРОДОЛЖИТЬ → ХОД ${state.turn}'),
                     ),
                   ),
               ],
