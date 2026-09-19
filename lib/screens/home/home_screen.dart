@@ -14,7 +14,7 @@ import '../../widgets/common_widgets.dart';
 import '../analytics/statistics_screen.dart';
 import '../ai/ai_chat_screen.dart';
 import '../assignments/assignments_screen.dart';
-import '../demo/competition_demo_screen.dart';
+import '../demo/tactix_command_center_screen.dart';
 import '../instructor/instructor_mode_screen.dart';
 import '../profile/profile_screen.dart';
 import '../settings/ai_mode_screen.dart';
@@ -176,15 +176,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _openOfflineDemo(BuildContext context) async {
+  Future<void> _openCommandCenter(BuildContext context) async {
     await _open(
       context,
-      CompetitionDemoScreen(
-        scenario: _offlineDemoScenario(),
-        runScreenBuilder: (scenario) => ScenarioRunScreen(
-          scenario: scenario,
-          forceOffline: true,
-        ),
+      TactixCommandCenterScreen(
+        demoScenario: _offlineDemoScenario(),
       ),
     );
   }
@@ -427,11 +423,11 @@ onPressed: () {
           ),
           const SizedBox(height: 18),
           _CommandTile(
-            icon: Icons.rocket_launch_outlined,
-            title: 'DEMO ДЛЯ ЖЮРИ',
-            subtitle: 'OFFLINE READY • 3 хода • AAR',
+            icon: Icons.hub_rounded,
+            title: 'NU STEP • COMMAND CENTER',
+            subtitle: 'Live Demo • Replay • What If • AI Debrief',
             accent: TactixTheme.gold,
-            onTap: () => _openOfflineDemo(context),
+            onTap: () => _openCommandCenter(context),
           ),
           const SizedBox(height: 18),
           const SectionLabel('ЖИВЫЕ ДАННЫЕ'),

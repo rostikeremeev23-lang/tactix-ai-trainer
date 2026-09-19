@@ -8,12 +8,15 @@ import '../../app/theme.dart';
 import '../../models/decision_record.dart';
 import '../../models/scenario.dart';
 import '../../models/training_result.dart';
+import '../../models/training_debrief_data.dart';
 import '../../services/ai_service.dart';
 import '../../services/environment_service.dart';
 import '../../services/result_storage_service.dart';
 import '../../services/simulation_engine.dart';
 import '../../services/storage_service.dart';
 import '../../widgets/common_widgets.dart';
+import '../debrief/ai_debrief_screen.dart';
+import '../replay/tactix_replay_screen.dart';
 
 class ScenarioRunScreen extends StatefulWidget {
   final TrainingScenario scenario;
@@ -1578,6 +1581,7 @@ class _ScenarioRunScreenState extends State<ScenarioRunScreen> {
                     score: score,
                     history: history,
                     state: state,
+                    scenario: widget.scenario,
                     scenarioTitle: widget.scenario.title,
                     goal: widget.scenario.goal,
                     durationSeconds: elapsedSeconds,
@@ -1809,6 +1813,7 @@ class FinishCard extends StatelessWidget {
   final int score;
   final List<DecisionRecord> history;
   final SimulationState state;
+  final TrainingScenario scenario;
   final String scenarioTitle;
   final String goal;
   final int durationSeconds;
@@ -1820,6 +1825,7 @@ class FinishCard extends StatelessWidget {
     required this.score,
     required this.history,
     required this.state,
+    required this.scenario,
     required this.scenarioTitle,
     required this.goal,
     required this.durationSeconds,
@@ -2056,6 +2062,49 @@ class FinishCard extends StatelessWidget {
       ..writeln('Материал предназначен для учебной симуляции.');
 
     return buffer.toString();
+  }
+
+  TrainingDebriefData _buildDebriefData() {
+    int aggregate(String key) {
+      return history.fold<int>(
+        0,
+        (sum, item) => sum + (item.delta[key] ?? 0),
+      );
+    }
+
+    final initialState = SimulationState(
+      time: (state.time - aggregate('time')).clamp(0, 120),
+      resources: (state.resources - aggregate('resources')).clamp(0, 100),
+      stability: (state.stability - aggregate('stability')).clamp(0, 100),
+      progress: (state.progress - aggregate('progress')).clamp(0, 100),
+      uncertainty: (state.uncertainty - aggregate('uncertainty')).clamp(0, 100),
+      turn: history.isEmpty ? 1 : history.first.turn,
+    );
+
+    return TrainingDebriefData(
+      scenario: scenario,
+      initialState: initialState,
+      finalState: state,
+      history: List<DecisionRecord>.unmodifiable(history),
+      score: score,
+      aar: _buildAarReport(),
+    );
+  }
+
+  void _openDebrief(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AIDebriefScreen(data: _buildDebriefData()),
+      ),
+    );
+  }
+
+  void _openReplay(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => TactixReplayScreen(data: _buildDebriefData()),
+      ),
+    );
   }
 
   Future<void> _showAarReport(BuildContext context) async {
@@ -2898,15 +2947,39 @@ class FinishCard extends StatelessWidget {
                 const SizedBox(height: 18),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final compact = constraints.maxWidth < 560;
+                    final compact = constraints.maxWidth < 680;
 
-                    final reportButton = FilledButton.icon(
+                    final debriefButton = FilledButton.icon(
+                      onPressed: () => _openDebrief(context),
+                      icon: const Icon(Icons.auto_awesome_rounded),
+                      label: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: Text(
+                          'AI DEBRIEF',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    );
+
+                    final replayButton = OutlinedButton.icon(
+                      onPressed: () => _openReplay(context),
+                      icon: const Icon(Icons.account_tree_outlined),
+                      label: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: Text(
+                          'TACTIX REPLAY',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    );
+
+                    final reportButton = OutlinedButton.icon(
                       onPressed: () => _showAarReport(context),
                       icon: const Icon(Icons.description_outlined),
                       label: const Padding(
                         padding: EdgeInsets.symmetric(vertical: 14),
                         child: Text(
-                          'СФОРМИРОВАТЬ ОТЧЁТ',
+                          'AAR ОТЧЁТ',
                           style: TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),
@@ -2928,6 +3001,10 @@ class FinishCard extends StatelessWidget {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          debriefButton,
+                          const SizedBox(height: 9),
+                          replayButton,
+                          const SizedBox(height: 9),
                           reportButton,
                           const SizedBox(height: 9),
                           restartButton,
@@ -2935,11 +3012,23 @@ class FinishCard extends StatelessWidget {
                       );
                     }
 
-                    return Row(
+                    return Column(
                       children: [
-                        Expanded(child: reportButton),
-                        const SizedBox(width: 10),
-                        Expanded(child: restartButton),
+                        Row(
+                          children: [
+                            Expanded(child: debriefButton),
+                            const SizedBox(width: 10),
+                            Expanded(child: replayButton),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(child: reportButton),
+                            const SizedBox(width: 10),
+                            Expanded(child: restartButton),
+                          ],
+                        ),
                       ],
                     );
                   },

@@ -8,7 +8,12 @@ import '../../services/ai_service.dart';
 import '../../services/result_storage_service.dart';
 
 class AIChatScreen extends StatefulWidget {
-  const AIChatScreen({super.key});
+  final AIChatContextType initialContext;
+
+  const AIChatScreen({
+    super.key,
+    this.initialContext = AIChatContextType.general,
+  });
 
   @override
   State<AIChatScreen> createState() => _AIChatScreenState();
@@ -29,6 +34,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   @override
   void initState() {
     super.initState();
+    _contextType = widget.initialContext;
     _load();
   }
 
