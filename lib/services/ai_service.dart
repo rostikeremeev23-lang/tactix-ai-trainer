@@ -32,6 +32,7 @@ class AIService {
   static AIBackendKind _activeBackend = AIBackendKind.none;
   static String? _activeBaseUrl;
   static bool _configLoaded = false;
+  static String? _accessToken;
 
   static AIMode get mode => _mode;
   static AIBackendKind get activeBackend => _activeBackend;
@@ -131,6 +132,11 @@ class AIService {
   static Future<void> _ensureConfigLoaded() async {
     if (_configLoaded) return;
     await loadConfig();
+  }
+
+  static void setAccessToken(String? token) {
+    final value = token?.trim();
+    _accessToken = value == null || value.isEmpty ? null : value;
   }
 
   static Future<void> setMode(AIMode mode) async {
@@ -320,12 +326,19 @@ class AIService {
   // ============================================================
 
   static Map<String, String> get _headers {
-    return {
+    final headers = <String, String>{
       'Content-Type':
           'application/json; charset=utf-8',
       'Accept':
           'application/json',
     };
+
+    final token = _accessToken?.trim();
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    return headers;
   }
 
   // ============================================================

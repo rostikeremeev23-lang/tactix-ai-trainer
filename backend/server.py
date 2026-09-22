@@ -3,10 +3,14 @@ import json
 import os
 
 import requests
-from fastapi import FastAPI, HTTPException
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from app.auth import router as auth_router
+from app.auth import CurrentIdentity, bearer, get_current_user, router as auth_router
+from app.db import get_session_factory
 
 
 # =====================================================
@@ -44,6 +48,13 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.environ.get("AI_MODEL", "gemini-3.8-flash").strip() or "gemini-3.8-flash"
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
+_ai_auth_override = os.environ.get("AI_REQUIRE_AUTH")
+AI_REQUIRE_AUTH = (
+    bool(GEMINI_API_KEY)
+    if _ai_auth_override is None
+    else _ai_auth_override.strip().lower() in {"1", "true", "yes", "on"}
+)
+
 REQUEST_TIMEOUT = 30
 SCENARIO_TIMEOUT = 45
 HEALTH_TIMEOUT = 5
@@ -56,6 +67,22 @@ SYSTEM_PROMPT = (
     "боевых операций или причинения вреда. "
     "Отвечай на русском языке."
 )
+
+
+def require_ai_identity(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+) -> CurrentIdentity | None:
+    if not AI_REQUIRE_AUTH:
+        return None
+
+    db = get_session_factory()()
+    try:
+        return get_current_user(credentials, db)
+    finally:
+        db.close()
+
+
+AIIdentity = Annotated[CurrentIdentity | None, Depends(require_ai_identity)]
 
 
 # =====================================================
@@ -542,6 +569,7 @@ def health():
         "ollama_available": ollama_available,
         "model_available": gemini_available or ollama_model_available,
         "ai_ready": ai_ready,
+        "auth_required": AI_REQUIRE_AUTH,
     }
 
 
@@ -552,7 +580,7 @@ def health():
 # =====================================================
 
 @app.post("/chat")
-def chat(request: ChatRequest):
+def chat(request: ChatRequest, _identity: AIIdentity):
     message = request.message.strip()
     if not message:
         raise HTTPException(
@@ -644,7 +672,7 @@ def chat(request: ChatRequest):
 # =====================================================
 
 @app.post("/analyze")
-def analyze(request: AnalysisRequest):
+def analyze(request: AnalysisRequest, _identity: AIIdentity):
     history_text = "\n".join(
         f"- {item}"
         for item in request.history[-8:]
@@ -719,7 +747,7 @@ def analyze(request: AnalysisRequest):
 # =====================================================
 
 @app.post("/explain-score")
-def explain_score(request: ExplainScoreRequest):
+def explain_score(request: ExplainScoreRequest, _identity: AIIdentity):
     criteria_text = "\n".join(
         f"- {item}"
         for item in request.criteria[:8]
@@ -819,7 +847,7 @@ TACTIX SCORE: {request.objective_score}/100
 # =====================================================
 
 @app.post("/summary")
-def summary(request: SummaryRequest):
+def summary(request: SummaryRequest, _identity: AIIdentity):
     events_text = "\n".join(
         f"- {event}"
         for event in request.events[-8:]
@@ -897,6 +925,7 @@ def summary(request: SummaryRequest):
 )
 def generate_scenario(
     request: ScenarioRequest,
+    _identity: AIIdentity,
 ):
     description = request.description.strip()
 
@@ -1047,6 +1076,7 @@ criteria = 3-5 элементов.
 )
 def next_situation(
     request: NextSituationRequest,
+    _identity: AIIdentity,
 ):
     history_text = "\n".join(
         f"- {item}"
