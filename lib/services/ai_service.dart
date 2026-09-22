@@ -1273,13 +1273,12 @@ ${weaknesses.map((item) => '- $item').join('\n')}
   // HISTORY SERIALIZATION
   // ============================================================
 
-  static List<Map<String, dynamic>>
-      _serializeHistory(
+  static List<String> _serializeHistory(
     List<dynamic> history,
   ) {
     return history
         .map(
-          _serializeHistoryItem,
+          (item) => jsonEncode(_serializeHistoryItem(item)),
         )
         .toList();
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
@@ -54,26 +56,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final loaded = await ResultStorageService.load();
-      final online = await AIService.isServerAvailable();
 
       if (!mounted) return;
 
       setState(() {
         results = loaded;
-        aiOnline = online;
         loading = false;
       });
     } catch (_) {
-      final online = await AIService.isServerAvailable();
-
       if (!mounted) return;
 
       setState(() {
         results = const [];
-        aiOnline = online;
         loading = false;
       });
     }
+
+    unawaited(_refreshAiStatus());
+  }
+
+  Future<void> _refreshAiStatus() async {
+    final online = await AIService.isServerAvailable();
+    if (!mounted) return;
+    setState(() => aiOnline = online);
   }
 
   Future<void> _open(BuildContext context, Widget page) async {

@@ -907,29 +907,61 @@ class _ReplayControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton.filledTonal(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 520;
+
+        final backButton = IconButton.filledTonal(
           onPressed: canBack ? onBack : null,
           icon: const Icon(Icons.skip_previous_rounded),
-        ),
-        const SizedBox(width: 10),
-        FilledButton.icon(
+        );
+
+        final playButton = FilledButton.icon(
           onPressed: onPlayPause,
           icon: Icon(
             playing
                 ? Icons.pause_rounded
                 : Icons.play_arrow_rounded,
           ),
-          label: Text(playing ? 'ПАУЗА' : 'ВОСПРОИЗВЕСТИ РАЗБОР'),
-        ),
-        const SizedBox(width: 10),
-        IconButton.filledTonal(
+          label: Text(
+            playing
+                ? 'ПАУЗА'
+                : compact
+                ? 'ВОСПРОИЗВЕСТИ'
+                : 'ВОСПРОИЗВЕСТИ РАЗБОР',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+
+        final nextButton = IconButton.filledTonal(
           onPressed: canNext ? onNext : null,
           icon: const Icon(Icons.skip_next_rounded),
-        ),
-      ],
+        );
+
+        if (compact) {
+          return Row(
+            children: [
+              backButton,
+              const SizedBox(width: 8),
+              Expanded(child: playButton),
+              const SizedBox(width: 8),
+              nextButton,
+            ],
+          );
+        }
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            backButton,
+            const SizedBox(width: 10),
+            playButton,
+            const SizedBox(width: 10),
+            nextButton,
+          ],
+        );
+      },
     );
   }
 }

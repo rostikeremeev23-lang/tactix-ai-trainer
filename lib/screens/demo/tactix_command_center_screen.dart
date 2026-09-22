@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
@@ -43,21 +45,26 @@ class _TactixCommandCenterScreenState
 
     try {
       final results = await ResultStorageService.load();
-      final aiAvailable = await AIService.isServerAvailable();
       if (!mounted) return;
       setState(() {
         _results = results;
-        _aiAvailable = aiAvailable;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _results = const [];
-        _aiAvailable = false;
         _loading = false;
       });
     }
+
+    unawaited(_refreshAiStatus());
+  }
+
+  Future<void> _refreshAiStatus() async {
+    final aiAvailable = await AIService.isServerAvailable();
+    if (!mounted) return;
+    setState(() => _aiAvailable = aiAvailable);
   }
 
   TrainingResult? get _latest => _results.isEmpty ? null : _results.first;

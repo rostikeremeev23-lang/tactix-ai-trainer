@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
@@ -50,16 +52,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
       await AIService.loadConfig();
       final loadedMessages = await AIChatStorage.load();
       final results = await ResultStorageService.load();
-      final online = await AIService.refreshStatus();
 
       if (!mounted) return;
       setState(() {
         _messages = loadedMessages;
         _lastResult = results.isEmpty ? null : results.first;
-        _aiOnline = online;
         _loading = false;
       });
       _scrollToBottom();
+      unawaited(_refreshAiStatusInBackground());
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -67,6 +68,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
         _error = 'Не удалось загрузить TACTIX AI: $e';
       });
     }
+  }
+
+  Future<void> _refreshAiStatusInBackground() async {
+    final online = await AIService.refreshStatus();
+    if (!mounted) return;
+    setState(() => _aiOnline = online);
   }
 
   List<AIChatMessage> get _visibleMessages => _messages
@@ -295,27 +302,34 @@ class _AIChatScreenState extends State<AIChatScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'TACTIX AI',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: .8,
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'TACTIX AI',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: .8,
+                    ),
                   ),
-                ),
-                Text(
-                  'ИНТЕЛЛЕКТУАЛЬНЫЙ ПОМОЩНИК',
-                  style: TextStyle(
-                    color: TactixTheme.textMuted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: .8,
+                  Text(
+                    compact ? 'AI-ПОМОЩНИК' : 'ИНТЕЛЛЕКТУАЛЬНЫЙ ПОМОЩНИК',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: TactixTheme.textMuted,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: .8,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
