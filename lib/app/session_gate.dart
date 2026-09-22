@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../screens/auth/auth_screen.dart';
+import '../services/ai_service.dart';
 import 'theme.dart';
 import 'user_session_scope.dart';
 
@@ -12,6 +13,7 @@ class SessionGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = UserSessionScope.of(context);
+    AIService.setAccessToken(session.accessToken);
 
     if (session.loading) return const _SessionLoadingScreen();
     if (!session.isAuthenticated) return const AuthScreen();

@@ -18,7 +18,7 @@ call flutter pub get
 if errorlevel 1 exit /b 1
 call flutter analyze
 if errorlevel 1 exit /b 1
-call flutter build windows --release
+call flutter build windows --release --dart-define=TACTIX_API_URL=https://tactix-api.onrender.com --dart-define=AI_BACKEND_URL=https://tactix-api.onrender.com
 if errorlevel 1 (
   echo.
   echo [ERROR] Windows build failed.

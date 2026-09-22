@@ -118,8 +118,6 @@ class UserSessionController extends ChangeNotifier {
   }
 
   Future<void> login(String email, String password) async {
-    _loading = true;
-    notifyListeners();
     try {
       final tokens = await _auth.login(email.trim(), password);
       await _auth.writeRefreshToken(tokens.refreshToken);
@@ -134,9 +132,6 @@ class UserSessionController extends ChangeNotifier {
     } catch (_) {
       await _discardAuthTokens();
       rethrow;
-    } finally {
-      _loading = false;
-      notifyListeners();
     }
   }
 
@@ -147,8 +142,6 @@ class UserSessionController extends ChangeNotifier {
     required String callsign,
     required String inviteCode,
   }) async {
-    _loading = true;
-    notifyListeners();
     try {
       final tokens = await _auth.register(
         email: email.trim(),
@@ -169,9 +162,6 @@ class UserSessionController extends ChangeNotifier {
     } catch (_) {
       await _discardAuthTokens();
       rethrow;
-    } finally {
-      _loading = false;
-      notifyListeners();
     }
   }
 

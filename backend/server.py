@@ -3,10 +3,14 @@ import json
 import os
 
 import requests
-from fastapi import FastAPI, HTTPException
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from app.auth import router as auth_router
+from app.auth import CurrentIdentity, bearer, get_current_user, router as auth_router
+from app.db import get_session_factory
 
 
 # =====================================================
@@ -44,6 +48,13 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.environ.get("AI_MODEL", "gemini-3.8-flash").strip() or "gemini-3.8-flash"
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
+_ai_auth_override = os.environ.get("AI_REQUIRE_AUTH")
+AI_REQUIRE_AUTH = (
+    bool(GEMINI_API_KEY)
+    if _ai_auth_override is None
+    else _ai_auth_override.strip().lower() in {"1", "true", "yes", "on"}
+)
+
 REQUEST_TIMEOUT = 30
 SCENARIO_TIMEOUT = 45
 HEALTH_TIMEOUT = 5
@@ -56,6 +67,22 @@ SYSTEM_PROMPT = (
     "боевых операций или причинения вреда. "
     "Отвечай на русском языке."
 )
+
+
+def require_ai_identity(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+) -> CurrentIdentity | None:
+    if not AI_REQUIRE_AUTH:
+        return None
+
+    db = get_session_factory()()
+    try:
+        return get_current_user(credentials, db)
+    finally:
+        db.close()
+
+
+AIIdentity = Annotated[CurrentIdentity | None, Depends(require_ai_identity)]
 
 
 # =====================================================
@@ -116,6 +143,20 @@ class ExplainScoreRequest(BaseModel):
     progress: int
     uncertainty: int
     history: list[str] = Field(default_factory=list)
+
+
+
+
+class ChatMessageItem(BaseModel):
+    role: str
+    text: str
+
+
+class ChatRequest(BaseModel):
+    message: str
+    context_type: str = "general"
+    history: list[ChatMessageItem] = Field(default_factory=list)
+    context: dict = Field(default_factory=dict)
 
 
 class ScenarioResponse(BaseModel):
@@ -489,6 +530,7 @@ def root():
             "/generate-scenario",
             "/next-situation",
             "/explain-score",
+            "/chat",
             "/v1/auth/login",
         ],
     }
@@ -527,6 +569,101 @@ def health():
         "ollama_available": ollama_available,
         "model_available": gemini_available or ollama_model_available,
         "ai_ready": ai_ready,
+        "auth_required": AI_REQUIRE_AUTH,
+    }
+
+
+
+
+# =====================================================
+# TACTIX AI CHAT
+# =====================================================
+
+@app.post("/chat")
+def chat(request: ChatRequest, _identity: AIIdentity):
+    message = request.message.strip()
+    if not message:
+        raise HTTPException(
+            status_code=400,
+            detail="Сообщение пустое.",
+        )
+
+    context_type = request.context_type.strip().lower() or "general"
+
+    context_instruction = {
+        "general": (
+            "Режим ОБЩИЙ: отвечай как встроенный помощник TACTIX. "
+            "Можно объяснять приложение, обучение и общие безопасные темы."
+        ),
+        "coach": (
+            "Режим ТРЕНЕР: помогай пользователю анализировать учебный процесс, "
+            "формулировать цели тренировки и развивать качество принятия решений. "
+            "Не давай реальные инструкции по насилию, оружию или боевым операциям."
+        ),
+        "debrief": (
+            "Режим РАЗБОР: отвечай только на основе переданного результата "
+            "учебной симуляции. TACTIX Score уже рассчитан локальным движком. "
+            "Никогда не придумывай и не изменяй числовой Score."
+        ),
+    }.get(
+        context_type,
+        "Отвечай как безопасный учебный помощник TACTIX.",
+    )
+
+    history_lines = []
+    for item in request.history[-12:]:
+        role = "Пользователь" if item.role.lower() == "user" else "TACTIX AI"
+        text = item.text.strip()
+        if text:
+            history_lines.append(f"{role}: {text[:1800]}")
+
+    history_text = "\n".join(history_lines) or "История отсутствует."
+
+    try:
+        context_text = json.dumps(
+            request.context,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    except (TypeError, ValueError):
+        context_text = "{}"
+
+    context_text = context_text[:7000]
+
+    prompt = f"""
+Ты работаешь внутри учебного приложения TACTIX.
+
+{context_instruction}
+
+КРИТИЧЕСКИЕ ПРАВИЛА:
+- Все сценарии учебные и вымышленные.
+- Не давай инструкции для реального насилия, применения оружия,
+  проведения боевых операций или причинения вреда.
+- Не меняй и не придумывай TACTIX Score.
+- Если в контексте нет нужного факта, прямо скажи об этом.
+- Не запрашивай пароли, токены, ключи API или секретные данные.
+- Отвечай на русском языке, ясно и компактно.
+
+БЕЗОПАСНЫЙ КОНТЕКСТ TACTIX:
+{context_text}
+
+ПОСЛЕДНИЕ СООБЩЕНИЯ:
+{history_text}
+
+НОВОЕ СООБЩЕНИЕ ПОЛЬЗОВАТЕЛЯ:
+{message}
+
+Ответь как TACTIX AI.
+""".strip()
+
+    answer = ask_ai(
+        prompt,
+        json_mode=False,
+        timeout=SCENARIO_TIMEOUT,
+    )
+
+    return {
+        "response": answer,
     }
 
 
@@ -535,7 +672,7 @@ def health():
 # =====================================================
 
 @app.post("/analyze")
-def analyze(request: AnalysisRequest):
+def analyze(request: AnalysisRequest, _identity: AIIdentity):
     history_text = "\n".join(
         f"- {item}"
         for item in request.history[-8:]
@@ -610,7 +747,7 @@ def analyze(request: AnalysisRequest):
 # =====================================================
 
 @app.post("/explain-score")
-def explain_score(request: ExplainScoreRequest):
+def explain_score(request: ExplainScoreRequest, _identity: AIIdentity):
     criteria_text = "\n".join(
         f"- {item}"
         for item in request.criteria[:8]
@@ -710,7 +847,7 @@ TACTIX SCORE: {request.objective_score}/100
 # =====================================================
 
 @app.post("/summary")
-def summary(request: SummaryRequest):
+def summary(request: SummaryRequest, _identity: AIIdentity):
     events_text = "\n".join(
         f"- {event}"
         for event in request.events[-8:]
@@ -788,6 +925,7 @@ def summary(request: SummaryRequest):
 )
 def generate_scenario(
     request: ScenarioRequest,
+    _identity: AIIdentity,
 ):
     description = request.description.strip()
 
@@ -938,6 +1076,7 @@ criteria = 3-5 элементов.
 )
 def next_situation(
     request: NextSituationRequest,
+    _identity: AIIdentity,
 ):
     history_text = "\n".join(
         f"- {item}"
