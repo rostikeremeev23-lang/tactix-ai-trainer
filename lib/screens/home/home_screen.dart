@@ -505,7 +505,7 @@ onPressed: () {
                       accent: TactixTheme.cyan,
                       onTap: () => _open(
                         context,
-                        const TactixStrategyScreen(),
+                        TactixStrategyScreen(userId: UserSessionScope.of(context).currentUser!.id),
                       ),
                     ),
                   ),
@@ -1148,7 +1148,7 @@ class _DesktopSidebar extends StatelessWidget {
             Icons.public_rounded,
             'Strategy',
             false,
-            const TactixStrategyScreen(),
+            TactixStrategyScreen(userId: UserSessionScope.of(context).currentUser!.id),
           ),
           _nav(
             context,
