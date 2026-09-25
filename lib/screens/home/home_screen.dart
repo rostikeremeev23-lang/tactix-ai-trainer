@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
@@ -16,7 +14,7 @@ import '../../widgets/common_widgets.dart';
 import '../analytics/statistics_screen.dart';
 import '../ai/ai_chat_screen.dart';
 import '../assignments/assignments_screen.dart';
-import '../demo/tactix_command_center_screen.dart';
+import '../demo/competition_demo_screen.dart';
 import '../instructor/instructor_mode_screen.dart';
 import '../profile/profile_screen.dart';
 import '../settings/ai_mode_screen.dart';
@@ -24,6 +22,8 @@ import '../scenarios/ai_scenario_screen.dart';
 import '../scenarios/create_scenario_screen.dart';
 import '../scenarios/my_scenarios_screen.dart';
 import '../training/scenario_run_screen.dart';
+import '../strategy/strategy_screen.dart';
+import '../../features/decision_simulation/presentation/episode_library_screen.dart';
 
 // =====================================================
 // HOME
@@ -56,29 +56,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final loaded = await ResultStorageService.load();
+      final online = await AIService.isServerAvailable();
 
       if (!mounted) return;
 
       setState(() {
         results = loaded;
+        aiOnline = online;
         loading = false;
       });
     } catch (_) {
+      final online = await AIService.isServerAvailable();
+
       if (!mounted) return;
 
       setState(() {
         results = const [];
+        aiOnline = online;
         loading = false;
       });
     }
-
-    unawaited(_refreshAiStatus());
-  }
-
-  Future<void> _refreshAiStatus() async {
-    final online = await AIService.isServerAvailable();
-    if (!mounted) return;
-    setState(() => aiOnline = online);
   }
 
   Future<void> _open(BuildContext context, Widget page) async {
@@ -181,11 +178,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _openCommandCenter(BuildContext context) async {
+  Future<void> _openOfflineDemo(BuildContext context) async {
     await _open(
       context,
-      TactixCommandCenterScreen(
-        demoScenario: _offlineDemoScenario(),
+      CompetitionDemoScreen(
+        scenario: _offlineDemoScenario(),
+        runScreenBuilder: (scenario) => ScenarioRunScreen(
+          scenario: scenario,
+          forceOffline: true,
+        ),
       ),
     );
   }
@@ -428,11 +429,11 @@ onPressed: () {
           ),
           const SizedBox(height: 18),
           _CommandTile(
-            icon: Icons.hub_rounded,
-            title: 'NU STEP • COMMAND CENTER',
-            subtitle: 'Live Demo • Replay • What If • AI Debrief',
+            icon: Icons.rocket_launch_outlined,
+            title: 'DEMO ДЛЯ ЖЮРИ',
+            subtitle: 'OFFLINE READY • 3 хода • AAR',
             accent: TactixTheme.gold,
-            onTap: () => _openCommandCenter(context),
+            onTap: () => _openOfflineDemo(context),
           ),
           const SizedBox(height: 18),
           const SectionLabel('ЖИВЫЕ ДАННЫЕ'),
@@ -481,6 +482,31 @@ onPressed: () {
                         scenario: scenario,
                       ),
                     )),
+                    ),
+                  ),
+                  SizedBox(
+                    width: tileWidth,
+                    child: _CommandTile(
+                      icon: Icons.auto_stories_outlined,
+                      title: 'ИНТЕРАКТИВНЫЕ ИСТОРИИ',
+                      subtitle: 'Сигнал после шторма • 12 сцен',
+                      accent: TactixTheme.cyan,
+                      onTap: () => _open(context, EpisodeLibraryScreen(
+                        userId: UserSessionScope.of(context).currentUser!.id,
+                      )),
+                    ),
+                  ),
+                  SizedBox(
+                    width: tileWidth,
+                    child: _CommandTile(
+                      icon: Icons.public_rounded,
+                      title: 'TACTIX STRATEGY',
+                      subtitle: 'Казахстан • Астана • Strategy Demo',
+                      accent: TactixTheme.cyan,
+                      onTap: () => _open(
+                        context,
+                        const TactixStrategyScreen(),
+                      ),
                     ),
                   ),
                   SizedBox(
@@ -1116,6 +1142,13 @@ class _DesktopSidebar extends StatelessWidget {
                         scenario: scenario,
                       ),
                     ),
+          ),
+          _nav(
+            context,
+            Icons.public_rounded,
+            'Strategy',
+            false,
+            const TactixStrategyScreen(),
           ),
           _nav(
             context,
