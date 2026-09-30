@@ -246,6 +246,32 @@ void main() {
     store.dispose();
   });
 
+
+  test('training link is durable offline and marks Case as training required', () async {
+    final api = ThreadTransport();
+    var store = ThreadStore('owner', api: api, staff: true);
+    await store.restore(autoSync: false);
+    final id = await store.create('Training gap', 'Needs Simulation Lab practice');
+    await idle(store);
+    final assignmentId = '11111111-1111-4111-8111-111111111111';
+    await store.linkTraining(id, assignmentId);
+    await idle(store);
+    expect(store.relations.single['to_type'], 'TRAINING');
+    expect(store.relations.single['to_id'], assignmentId);
+    expect(store.caseById(id)!['status'], 'TRAINING_REQUIRED');
+    store.dispose();
+
+    store = ThreadStore('owner', api: api, staff: true);
+    await store.restore(autoSync: false);
+    expect(store.relations.single['to_type'], 'TRAINING');
+    expect(store.caseById(id)!['status'], 'TRAINING_REQUIRED');
+    api.online = true;
+    await store.sync();
+    expect(store.pending, isEmpty);
+    expect(api.rows[id]!['status'], 'TRAINING_REQUIRED');
+    store.dispose();
+  });
+
   test('different profiles cannot load each others local cases', () async {
     final a = ThreadStore('a');
     await a.restore(autoSync: false);

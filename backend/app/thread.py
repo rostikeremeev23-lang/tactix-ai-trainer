@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from app.auth import Current, Db
 from app.models import (
     ThreadCase, CaseEvent, ThreadEvidence, ThreadRelation, ThreadRelationEvent,
-    OrganizationMembership, User,
+    StrategyAssignment, OrganizationMembership, User,
 )
 
 router = APIRouter(prefix="/v1/thread", tags=["thread"])
@@ -60,6 +60,10 @@ class AddEvidence(Mutation):
 class VerifyEvidence(Mutation):
     state: Literal["VERIFIED", "REJECTED"]
     note: str = Field(min_length=1, max_length=4000)
+
+
+class ImportTrainingEvidence(Mutation):
+    id: uuid.UUID
 
 
 def now():
@@ -263,7 +267,7 @@ def verify_evidence(case_id: uuid.UUID, evidence_id: uuid.UUID, request: VerifyE
 # Relations are immutable. Creation is idempotent and every edge is authorized
 # against both endpoints before it is returned or created.
 # ---------------------------------------------------------------------------
-EndpointType = Literal["CASE", "EVIDENCE"]
+EndpointType = Literal["CASE", "EVIDENCE", "TRAINING"]
 RelationshipType = Literal[
     "CREATED_FROM", "REQUIRES", "VERIFIES", "PRODUCED", "SUPPORTED_BY",
     "TRAINED_BY", "RESULTED_IN", "SUPERSEDES", "RELATED_TO"
@@ -293,8 +297,22 @@ def relation_json(row):
     )
 
 
-def _endpoint_case(db, identity, endpoint_type: str, endpoint_id: uuid.UUID):
-    """Return the visible Case backing an endpoint or 404 without leaking it."""
+def _training_visible(db, identity, assignment_id: uuid.UUID):
+    row = db.get(StrategyAssignment, assignment_id)
+    if row is None or row.organization_id != identity.organization.id:
+        raise HTTPException(404, "Training assignment not found")
+    if identity.role == "trainee" and row.learner_id != identity.user.id:
+        raise HTTPException(404, "Training assignment not found")
+    if identity.role == "instructor" and row.instructor_id != identity.user.id:
+        raise HTTPException(404, "Training assignment not found")
+    return row
+
+
+def _endpoint_case(
+    db, identity, endpoint_type: str, endpoint_id: uuid.UUID, *,
+    allow_missing_training: bool = False,
+):
+    """Authorize an endpoint or return 404 without leaking another unit's data."""
     if endpoint_type == "CASE":
         return case_for(db, identity, endpoint_id)
     if endpoint_type == "EVIDENCE":
@@ -302,6 +320,14 @@ def _endpoint_case(db, identity, endpoint_type: str, endpoint_id: uuid.UUID):
         if evidence is None:
             raise HTTPException(404, "Thread endpoint not found")
         return case_for(db, identity, evidence.case_id)
+    if endpoint_type == "TRAINING":
+        assignment = db.get(StrategyAssignment, endpoint_id)
+        if assignment is None and allow_missing_training and identity.role in ("instructor", "admin"):
+            # Assignment creation and Thread linking are separate offline queues.
+            # A short-lived dangling edge is allowed so both queues can survive
+            # network interruption without losing the user's intent.
+            return None
+        return _training_visible(db, identity, endpoint_id)
     raise HTTPException(422, "Unsupported Thread endpoint type")
 
 
@@ -323,9 +349,18 @@ def create_relation(request: CreateRelation, identity: Current, db: Db):
     if request.from_type == request.to_type and request.from_id == request.to_id:
         raise HTTPException(422, "A Thread relation cannot point to itself")
 
-    # Authorization is deliberately performed for BOTH endpoints.
-    _endpoint_case(db, identity, request.from_type, request.from_id)
-    _endpoint_case(db, identity, request.to_type, request.to_id)
+    # Training links are staff-authored and may be queued before the Strategy
+    # assignment reaches the server. All other endpoints must already exist.
+    if "TRAINING" in (request.from_type, request.to_type):
+        staff(identity)
+        if {request.from_type, request.to_type} != {"CASE", "TRAINING"} or request.relationship_type != "TRAINED_BY":
+            raise HTTPException(422, "Training relations must connect CASE and TRAINING with TRAINED_BY")
+        _endpoint_case(db, identity, request.from_type, request.from_id, allow_missing_training=True)
+        _endpoint_case(db, identity, request.to_type, request.to_id, allow_missing_training=True)
+    else:
+        # Authorization is deliberately performed for BOTH endpoints.
+        _endpoint_case(db, identity, request.from_type, request.from_id)
+        _endpoint_case(db, identity, request.to_type, request.to_id)
 
     existing = db.get(ThreadRelation, request.id)
     if existing is not None:
@@ -412,6 +447,124 @@ def case_relations(case_id: uuid.UUID, identity: Current, db: Db, limit: int = Q
             continue
         visible.append(relation_json(row))
     return {"items": visible}
+
+
+def _training_json(row, *, relation_id: uuid.UUID | None = None, evidence_attached: bool = False):
+    scenario = row.scenario or {}
+    return dict(
+        id=str(row.id),
+        relation_id=str(relation_id) if relation_id else None,
+        learner_id=str(row.learner_id),
+        instructor_id=str(row.instructor_id),
+        title=str(scenario.get("title") or "Simulation Lab training"),
+        status=row.status,
+        revision=row.revision,
+        due_at=timestamp(row.due_at),
+        submitted_at=timestamp(row.submitted_at),
+        metrics=row.metrics,
+        feedback=row.feedback,
+        has_submission=row.submission is not None,
+        evidence_attached=evidence_attached,
+    )
+
+
+def _case_training_relations(db, identity, case_id: uuid.UUID):
+    case_for(db, identity, case_id)
+    return db.scalars(
+        select(ThreadRelation).where(
+            ThreadRelation.organization_id == identity.organization.id,
+            ThreadRelation.relationship_type == "TRAINED_BY",
+            or_(
+                (ThreadRelation.from_type == "CASE") & (ThreadRelation.from_id == case_id) & (ThreadRelation.to_type == "TRAINING"),
+                (ThreadRelation.to_type == "CASE") & (ThreadRelation.to_id == case_id) & (ThreadRelation.from_type == "TRAINING"),
+            ),
+        ).order_by(ThreadRelation.created_at, ThreadRelation.id)
+    ).all()
+
+
+@router.get("/cases/{case_id}/training")
+def case_training(case_id: uuid.UUID, identity: Current, db: Db):
+    rows = []
+    for relation in _case_training_relations(db, identity, case_id):
+        assignment_id = relation.to_id if relation.to_type == "TRAINING" else relation.from_id
+        try:
+            assignment = _training_visible(db, identity, assignment_id)
+        except HTTPException:
+            # Preserve the edge while a separately queued assignment is still
+            # offline, but never expose data the current identity cannot read.
+            continue
+        source = f"strategy_assignment:{assignment.id}"
+        attached = db.scalar(select(func.count()).select_from(ThreadEvidence).where(
+            ThreadEvidence.case_id == case_id, ThreadEvidence.source == source
+        )) > 0
+        rows.append(_training_json(assignment, relation_id=relation.id, evidence_attached=attached))
+    return {"items": rows}
+
+
+@router.post("/cases/{case_id}/training/{assignment_id}/evidence")
+def import_training_evidence(
+    case_id: uuid.UUID, assignment_id: uuid.UUID, request: ImportTrainingEvidence,
+    identity: Current, db: Db,
+):
+    row = case_for(db, identity, case_id)
+    assignment = _training_visible(db, identity, assignment_id)
+    linked = any(
+        (r.from_type == "CASE" and r.from_id == case_id and r.to_type == "TRAINING" and r.to_id == assignment_id) or
+        (r.to_type == "CASE" and r.to_id == case_id and r.from_type == "TRAINING" and r.from_id == assignment_id)
+        for r in _case_training_relations(db, identity, case_id)
+    )
+    if not linked:
+        raise HTTPException(409, "Training assignment is not linked to this Case")
+    if assignment.status != "submitted" or assignment.submission is None or assignment.metrics is None:
+        raise HTTPException(409, "Training result is not complete yet")
+
+    kind = f"TRAINING_RESULT_{assignment_id}"
+    result = retry(db, identity, row, kind, request)
+    if result:
+        return result
+    source = f"strategy_assignment:{assignment.id}"
+    existing = db.scalar(select(ThreadEvidence).where(
+        ThreadEvidence.case_id == case_id, ThreadEvidence.source == source
+    ))
+    if existing is not None:
+        raise HTTPException(409, "Training result is already attached as evidence")
+
+    lock_revision(db, row, request)
+    if row.status == "CLOSED":
+        raise HTTPException(409, "Reopen Case before attaching a training result")
+
+    scenario = assignment.scenario or {}
+    title = str(scenario.get("title") or "Simulation Lab training")
+    metrics = assignment.metrics or {}
+    summary_parts = [f"Training: {title}", f"Status: {assignment.status}"]
+    for key in ("score", "completed", "turns", "control", "stability", "intel"):
+        if key in metrics:
+            summary_parts.append(f"{key}: {metrics[key]}")
+    evidence = ThreadEvidence(
+        id=request.id, case_id=row.id, title=f"Training result · {title}",
+        description=" · ".join(summary_parts), type="TRAINING_RECORD", source=source,
+        created_by=identity.user.id, created_at=now(), verification_state="UNVERIFIED",
+        verification_note="",
+    )
+    db.add(evidence)
+    relation = ThreadRelation(
+        id=uuid.uuid4(), organization_id=identity.organization.id,
+        from_type="TRAINING", from_id=assignment.id, to_type="EVIDENCE", to_id=evidence.id,
+        relationship_type="PRODUCED", created_by=identity.user.id, created_at=now(),
+    )
+    db.add(relation)
+    db.add(ThreadRelationEvent(
+        relation_id=relation.id, request_id=request.request_id,
+        request_hash=fingerprint(kind + "_RELATION", request), type="CREATED", actor_id=identity.user.id,
+        details=dict(from_type="TRAINING", from_id=str(assignment.id), to_type="EVIDENCE",
+                     to_id=str(evidence.id), relationship_type="PRODUCED"),
+    ))
+    row.status = "WAITING_FOR_VERIFICATION"
+    return append_event(
+        db, identity, row, kind, request,
+        dict(action="TRAINING_COMPLETED", assignment_id=str(assignment.id), evidence_id=str(evidence.id),
+             title=title, status=row.status),
+    )
 
 
 @router.get("/relations/{relation_id}/events")

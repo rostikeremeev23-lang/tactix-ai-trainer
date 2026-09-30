@@ -24,12 +24,14 @@ class StrategyStudioScreen extends StatefulWidget {
   final bool startInLibrary;
   final bool startInPlatform;
   final PlatformSync? platform;
+  final Future<void> Function(String assignmentId)? onAssignmentCreated;
   const StrategyStudioScreen({
     super.key,
     required this.userId,
     this.startInLibrary = false,
     this.startInPlatform = false,
     this.platform,
+    this.onAssignmentCreated,
   });
   @override
   State<StrategyStudioScreen> createState() => _StrategyStudioScreenState();
@@ -125,7 +127,11 @@ class _StrategyStudioScreenState extends State<StrategyStudioScreen>
     final document = await Navigator.push<StudioDocument>(
       context,
       MaterialPageRoute(
-        builder: (_) => StrategyPlatformScreen(sync: sync, current: c.document),
+        builder: (_) => StrategyPlatformScreen(
+          sync: sync,
+          current: c.document,
+          onAssignmentCreated: widget.onAssignmentCreated,
+        ),
       ),
     );
     if (!mounted || document == null || _switching) return;

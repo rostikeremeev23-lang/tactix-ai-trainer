@@ -234,3 +234,32 @@ Next safe continuation point:
 3. Build Phase D: Case → training action → existing assignment/simulation → validated
    result → Evidence → verification loop.
 4. Then continue Source References / Document Compiler / Ask Thread.
+
+## Phase D — Training / Simulation Lab integration
+
+Implemented manually after Phase C.
+
+### End-to-end loop now supported
+- Open a THREAD Case.
+- Use **Create training action** to open `Training -> Simulation Lab` directly in the instructor platform view.
+- Create an existing Simulation Lab assignment.
+- The created assignment is linked back to the originating Case through a typed `CASE --TRAINED_BY--> TRAINING` relation.
+- Linked assignments are shown in the Case detail and in the Digital Thread graph.
+- A submitted Simulation Lab result can be imported into the Case as `TRAINING_RECORD` evidence.
+- Import creates `TRAINING --PRODUCED--> EVIDENCE`, records a `TRAINING_COMPLETED` Case event, and moves the Case to `WAITING_FOR_VERIFICATION`.
+- Existing Evidence verification and Case closure rules remain the final human verification step.
+
+### Backend additions
+- `TRAINING` Thread endpoint type.
+- `GET /v1/thread/cases/{case_id}/training`.
+- `POST /v1/thread/cases/{case_id}/training/{assignment_id}/evidence`.
+- Authorization for linked Strategy assignments.
+- Training-result provenance stored as `strategy_assignment:<id>`.
+- No new DB migration is required; Phase D reuses Strategy assignments plus Phase C Thread relations/evidence.
+
+### Offline behavior
+The Case-to-Training relation is created through the existing THREAD queue. The relation may be queued before the separately queued Strategy assignment reaches the backend; staff-authored `TRAINED_BY` edges tolerate that short-lived state without dropping the local intent. Existing conflict/retry behavior remains in place.
+
+### Verification performed in the packaging environment
+- Backend: `34 passed`.
+- Flutter SDK was not available in the packaging environment, so `flutter analyze` / `flutter test` must be run on the development machine before committing Phase D.

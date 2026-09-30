@@ -563,3 +563,18 @@ local AI mode with the server URL in settings. A physical Android device needs a
 - `lib/app/theme.dart`: shared colors and control styling.
 - `test/strategy/studio/city_test.dart`, `city_ui_test.dart`: new domain/store/controller/journey checks.
 - Existing `test/strategy/studio/ui_test.dart`: retains old full-flow coverage through explicit direct-editor entry.
+
+## 2026-09-30 — TACTIX THREAD Phase D
+
+THREAD is now connected to the existing Training / Simulation Lab workflow instead of operating as an isolated case-management module.
+
+Implemented:
+- Case -> Simulation Lab assignment linking.
+- Linked training panel inside Case detail.
+- Training nodes in Digital Thread Graph.
+- Import of completed Simulation Lab result as traceable Evidence.
+- `TRAINING_COMPLETED` Case timeline event and `WAITING_FOR_VERIFICATION` transition.
+- Backend authorization and provenance checks.
+- Offline durable `TRAINED_BY` relation queue.
+
+Backend verification: 34 tests passed in the packaging environment. Run the full Flutter test suite locally before release/commit.

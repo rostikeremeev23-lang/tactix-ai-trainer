@@ -65,7 +65,7 @@ class _ThreadGraphViewState extends State<ThreadGraphView> {
                 selected: _showAll,
                 onSelected: (_) => setState(() => _showAll = true),
               ),
-              for (final value in ['ALL', 'RELATED_TO', 'REQUIRES', 'SUPPORTED_BY'])
+              for (final value in ['ALL', 'RELATED_TO', 'REQUIRES', 'SUPPORTED_BY', 'TRAINED_BY', 'PRODUCED'])
                 ChoiceChip(
                   label: Text(value.replaceAll('_', ' ')),
                   selected: _filter == value,
@@ -148,9 +148,11 @@ class _GraphNodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = node.type == 'CASE'
-        ? (node.closed ? TactixTheme.positive : TactixTheme.cyan)
-        : (node.verified ? TactixTheme.positive : TactixTheme.warning);
+    final color = switch (node.type) {
+      'CASE' => node.closed ? TactixTheme.positive : TactixTheme.cyan,
+      'TRAINING' => node.completed ? TactixTheme.positive : TactixTheme.gold,
+      _ => node.verified ? TactixTheme.positive : TactixTheme.warning,
+    };
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -182,9 +184,11 @@ class _GraphNodeCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    node.type == 'CASE'
-                        ? Icons.account_tree_outlined
-                        : Icons.fact_check_outlined,
+                    switch (node.type) {
+                      'CASE' => Icons.account_tree_outlined,
+                      'TRAINING' => Icons.school_outlined,
+                      _ => Icons.fact_check_outlined,
+                    },
                     color: color,
                     size: 18,
                   ),
@@ -371,6 +375,17 @@ class _GraphModel {
       ));
     }
 
+    final training = store.trainingForCase(rootId).take(8).toList();
+    for (var i = 0; i < training.length; i++) {
+      final angle = training.length == 1
+          ? 0.0
+          : (-math.pi / 3) + (2 * math.pi / 3) * i / math.max(1, training.length - 1);
+      nodes.add(_GraphNode.trainingNode(
+        training[i],
+        rootCenter + Offset(math.cos(angle) * 315, math.sin(angle) * 315),
+      ));
+    }
+
     final nodeKeys = nodes.map((n) => n.key).toSet();
     final edges = <_GraphEdge>[];
     for (final relation in explicit) {
@@ -417,6 +432,7 @@ class _GraphNode {
     required this.size,
     this.closed = false,
     this.verified = false,
+    this.completed = false,
   });
 
   factory _GraphNode.caseNode(Map<String, dynamic> row, Offset position) =>
@@ -441,6 +457,17 @@ class _GraphNode {
         verified: row['verification_state'] == 'VERIFIED',
       );
 
+  factory _GraphNode.trainingNode(Map<String, dynamic> row, Offset position) =>
+      _GraphNode(
+        type: 'TRAINING',
+        id: row['id'] as String,
+        label: (row['title'] ?? 'Simulation Lab training').toString(),
+        caption: (row['status'] ?? 'assigned').toString().replaceAll('_', ' '),
+        position: position,
+        size: const Size(178, 88),
+        completed: row['status'] == 'submitted',
+      );
+
   final String type;
   final String id;
   final String label;
@@ -449,6 +476,7 @@ class _GraphNode {
   final Size size;
   final bool closed;
   final bool verified;
+  final bool completed;
   String get key => '$type:$id';
 }
 

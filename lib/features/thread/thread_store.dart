@@ -18,6 +18,7 @@ class ThreadStore extends ChangeNotifier {
     'events': <String, dynamic>{},
     'queue': <dynamic>[],
     'relations': <dynamic>[],
+    'training': <String, dynamic>{},
   };
   int _generation = 0;
   bool ready = false, syncing = false, _disposed = false;
@@ -74,6 +75,11 @@ class ThreadStore extends ChangeNotifier {
         )) {
           continue;
         }
+        if (state['training'] != null &&
+            (state['training'] is! Map ||
+                (state['training'] as Map).values.any((v) => v is! List))) {
+          continue;
+        }
         if (state['relations'] != null &&
             (state['relations'] is! List ||
                 (state['relations'] as List).any(
@@ -107,6 +113,7 @@ class ThreadStore extends ChangeNotifier {
       _state = Map<String, dynamic>.from(candidates.first['state']);
     }
     _state['relations'] ??= <dynamic>[];
+    _state['training'] ??= <String, dynamic>{};
     if (candidates.length < rawCopies.length) {
       final recoveryId = platformId();
       for (final entry in rawCopies.entries) {
@@ -187,7 +194,7 @@ class ThreadStore extends ChangeNotifier {
         result['status'] = body['status'];
       }
       if (op['entity'] != 'relation' &&
-          (op['path'] as String).endsWith('/evidence')) {
+          RegExp(r'^/cases/[^/]+/evidence$').hasMatch(op['path'] as String)) {
         (result['evidence'] as List).add({
           ...body,
           'verification_state': 'UNVERIFIED',
@@ -223,6 +230,11 @@ class ThreadStore extends ChangeNotifier {
                   (r['from_type'] == 'EVIDENCE' && r['from_id'] == e['id']) ||
                   (r['to_type'] == 'EVIDENCE' && r['to_id'] == e['id'])))
       .toList();
+
+  List<Map<String, dynamic>> trainingForCase(String id) =>
+      (((_state['training'] as Map)[id] ?? const <dynamic>[]) as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
 
   Future<String> create(
     String title,
@@ -363,6 +375,52 @@ class ThreadStore extends ChangeNotifier {
     });
     unawaited(sync());
     return id;
+  }
+
+  Future<String> linkTraining(String caseId, String assignmentId) async {
+    if (!staff || api == null) {
+      throw StateError('Server instructor access required');
+    }
+    final relationId = await createRelation(
+      caseId,
+      fromType: 'CASE',
+      fromId: caseId,
+      toType: 'TRAINING',
+      toId: assignmentId,
+      relationshipType: 'TRAINED_BY',
+    );
+    final row = caseById(caseId);
+    if (row != null && row['status'] != 'CLOSED' && row['status'] != 'TRAINING_REQUIRED') {
+      await changeStatus(
+        caseId,
+        'TRAINING_REQUIRED',
+        'Simulation Lab training assigned from this Case',
+      );
+    }
+    return relationId;
+  }
+
+  Future<void> loadTraining(String caseId) async {
+    if (api == null || !ready) return;
+    final response = await api!.request('GET', '/cases/$caseId/training');
+    final items = (response['items'] as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    await _change(() {
+      (_state['training'] as Map)[caseId] = items;
+    });
+  }
+
+  Future<void> importTrainingResult(String caseId, String assignmentId) async {
+    if (!staff || api == null) {
+      throw StateError('Server instructor access required');
+    }
+    await _enqueue(
+      caseId,
+      'POST',
+      '/cases/$caseId/training/$assignmentId/evidence',
+      {'id': platformId()},
+    );
   }
 
   Future<void> loadRelations(String caseId) async {

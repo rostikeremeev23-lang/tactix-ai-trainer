@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme.dart';
 import '../../app/user_session_scope.dart';
 import '../../models/app_user.dart';
+import '../../screens/strategy/strategy_screen.dart';
 import '../strategy/studio/data/platform_sync.dart';
 import 'thread_graph.dart';
 import 'thread_store.dart';
@@ -179,6 +180,7 @@ class _ThreadScreenState extends State<ThreadScreen>
     await _perform(() async {
       await store.loadEvents(id);
       await store.loadRelations(id);
+      await store.loadTraining(id);
     });
   }
 
@@ -208,6 +210,48 @@ class _ThreadScreenState extends State<ThreadScreen>
       await store.addEvidence(row['id'], values[0], values[1], values[2]);
       await store.sync();
       await store.loadEvents(row['id']);
+    });
+  }
+
+  Future<void> _trainingAction(Map<String, dynamic> row) async {
+    if (!store.staff || store.api == null) return;
+    final caseId = row['id'] as String;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => SimulationLabScreen(
+          userId: store.userId,
+          startInLibrary: false,
+          startInPlatform: true,
+          onAssignmentCreated: (assignmentId) async {
+            await store.linkTraining(caseId, assignmentId);
+            await store.sync();
+            await store.loadRelations(caseId);
+            await store.loadTraining(caseId);
+            await store.loadEvents(caseId);
+          },
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _perform(() async {
+      await store.sync();
+      await store.loadRelations(caseId);
+      await store.loadTraining(caseId);
+      await store.loadEvents(caseId);
+    });
+  }
+
+  Future<void> _importTrainingResult(
+    Map<String, dynamic> row,
+    Map<String, dynamic> training,
+  ) async {
+    await _perform(() async {
+      final caseId = row['id'] as String;
+      await store.importTrainingResult(caseId, training['id'] as String);
+      await store.sync();
+      await store.loadTraining(caseId);
+      await store.loadRelations(caseId);
+      await store.loadEvents(caseId);
     });
   }
 
@@ -607,6 +651,7 @@ class _ThreadScreenState extends State<ThreadScreen>
   Widget _detail(Map<String, dynamic> row) {
     final evidence = row['evidence'] as List;
     final events = store.events(row['id']);
+    final training = store.trainingForCase(row['id'] as String);
     final pending = store.pending
         .where((p) => p['case_id'] == row['id'])
         .toList();
@@ -660,6 +705,12 @@ class _ThreadScreenState extends State<ThreadScreen>
                 onPressed: _busy ? null : () => _evidence(row),
                 icon: const Icon(Icons.attach_file),
                 label: const Text('Add evidence'),
+              ),
+            if (!closed && store.staff && store.api != null)
+              FilledButton.tonalIcon(
+                onPressed: _busy ? null : () => _trainingAction(row),
+                icon: const Icon(Icons.school_outlined),
+                label: const Text('Create training action'),
               ),
             OutlinedButton.icon(
               onPressed: _busy ? null : () => _linkCase(row),
@@ -726,6 +777,104 @@ class _ThreadScreenState extends State<ThreadScreen>
               ),
             ),
         ],
+        const SizedBox(height: 28),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Linked training',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            if (store.api != null)
+              IconButton(
+                tooltip: 'Refresh linked training',
+                onPressed: _busy
+                    ? null
+                    : () => _perform(() => store.loadTraining(row['id'] as String)),
+                icon: const Icon(Icons.refresh),
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Simulation Lab assignments linked to this Case. A submitted result can be imported as evidence and then verified.',
+          style: TextStyle(color: TactixTheme.textMuted, height: 1.5),
+        ),
+        if (training.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Text(
+              store.api == null
+                  ? 'Server connection is required to link Simulation Lab training.'
+                  : 'No training action is linked to this Case yet.',
+            ),
+          ),
+        for (final item in training)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.school_outlined, color: TactixTheme.gold),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          item['title']?.toString() ?? 'Simulation Lab training',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      Chip(
+                        label: Text(
+                          (item['status'] ?? 'assigned').toString().replaceAll('_', ' ').toUpperCase(),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Assignment ${item['id']}${item['due_at'] == null ? '' : '\nDue: ${item['due_at']}'}',
+                    style: const TextStyle(color: TactixTheme.textMuted),
+                  ),
+                  if (item['metrics'] is Map && (item['metrics'] as Map).isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      (item['metrics'] as Map).entries
+                          .map((e) => '${e.key}: ${e.value}')
+                          .join(' · '),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (store.staff &&
+                          !closed &&
+                          item['status'] == 'submitted' &&
+                          item['has_submission'] == true &&
+                          item['evidence_attached'] != true)
+                        FilledButton.icon(
+                          onPressed: _busy
+                              ? null
+                              : () => _importTrainingResult(row, item),
+                          icon: const Icon(Icons.fact_check_outlined),
+                          label: const Text('Attach result as evidence'),
+                        ),
+                      if (item['evidence_attached'] == true)
+                        const Chip(
+                          avatar: Icon(Icons.verified_outlined, size: 17),
+                          label: Text('Result attached'),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         const SizedBox(height: 28),
         Text(
           'Evidence · ${row['verification_state']}',

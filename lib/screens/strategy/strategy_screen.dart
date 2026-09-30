@@ -7,6 +7,7 @@ class SimulationLabScreen extends StrategyStudioScreen {
     required super.userId,
     super.startInLibrary = true,
     super.startInPlatform = false,
+    super.onAssignmentCreated,
   });
 }
 
@@ -17,5 +18,6 @@ class TactixStrategyScreen extends SimulationLabScreen {
     required super.userId,
     super.startInLibrary = true,
     super.startInPlatform = false,
+    super.onAssignmentCreated,
   });
 }

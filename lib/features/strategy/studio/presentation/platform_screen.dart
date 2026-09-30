@@ -11,10 +11,12 @@ import 'exercise_report.dart';
 class StrategyPlatformScreen extends StatefulWidget {
   final PlatformSync sync;
   final StudioDocument current;
+  final Future<void> Function(String assignmentId)? onAssignmentCreated;
   const StrategyPlatformScreen({
     super.key,
     required this.sync,
     required this.current,
+    this.onAssignmentCreated,
   });
   @override
   State<StrategyPlatformScreen> createState() => _PlatformState();
@@ -266,14 +268,32 @@ class _PlatformState extends State<StrategyPlatformScreen> {
       ),
     );
     if (result == true && mounted) {
-      await act(
-        () => s.enqueue('POST', '/assignments', {
-          'id': platformId(),
+      final assignmentId = platformId();
+      var queued = false;
+      await act(() async {
+        await s.enqueue('POST', '/assignments', {
+          'id': assignmentId,
           'learner_id': person,
           'scenario': scenarios[scenarioIndex].toJson(),
           'due_at': due?.toUtc().toIso8601String(),
-        }),
-      );
+        });
+        queued = true;
+      });
+      if (queued && mounted && widget.onAssignmentCreated != null) {
+        try {
+          await widget.onAssignmentCreated!(assignmentId);
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Задание сохранено, но связь с THREAD не создана. Её можно добавить позже.',
+                ),
+              ),
+            );
+          }
+        }
+      }
       if (mounted) navigate(1);
     }
   }
