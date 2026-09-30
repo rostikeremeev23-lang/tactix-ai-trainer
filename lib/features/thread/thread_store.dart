@@ -19,6 +19,7 @@ class ThreadStore extends ChangeNotifier {
     'queue': <dynamic>[],
     'relations': <dynamic>[],
     'training': <String, dynamic>{},
+    'ask': <String, dynamic>{},
   };
   int _generation = 0;
   bool ready = false, syncing = false, _disposed = false;
@@ -94,6 +95,20 @@ class ThreadStore extends ChangeNotifier {
                 ))) {
           continue;
         }
+        if (state['ask'] != null &&
+            (state['ask'] is! Map ||
+                (state['ask'] as Map).values.any(
+                  (v) =>
+                      v is! List ||
+                      v.any(
+                        (entry) =>
+                            entry is! Map ||
+                            entry['question'] is! String ||
+                            entry['response'] is! Map,
+                      ),
+                ))) {
+          continue;
+        }
         candidates.add(data);
       } catch (_) {
         /* Preserve unreadable generations for recovery. */
@@ -114,6 +129,7 @@ class ThreadStore extends ChangeNotifier {
     }
     _state['relations'] ??= <dynamic>[];
     _state['training'] ??= <String, dynamic>{};
+    _state['ask'] ??= <String, dynamic>{};
     if (candidates.length < rawCopies.length) {
       final recoveryId = platformId();
       for (final entry in rawCopies.entries) {
@@ -235,6 +251,47 @@ class ThreadStore extends ChangeNotifier {
       (((_state['training'] as Map)[id] ?? const <dynamic>[]) as List)
           .map((e) => Map<String, dynamic>.from(e as Map))
           .toList();
+
+  List<Map<String, dynamic>> askHistoryForCase(String id) =>
+      (((_state['ask'] as Map)[id] ?? const <dynamic>[]) as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+
+  Map<String, dynamic>? latestAskForCase(String id) {
+    final history = askHistoryForCase(id);
+    return history.isEmpty ? null : history.last;
+  }
+
+  Future<Map<String, dynamic>> askThread(String caseId, String question) async {
+    if (!ready) throw StateError('Thread is not ready');
+    if (api == null) throw StateError('ASK THREAD requires server connection');
+    if (caseById(caseId) == null) throw ArgumentError('Case is not available');
+    final prompt = question.trim();
+    if (prompt.length < 2 || prompt.length > 1600) {
+      throw ArgumentError('Question must contain 2-1600 characters');
+    }
+    if (pending.any((op) => op['case_id'] == caseId)) {
+      throw StateError('Synchronize pending Case changes before ASK THREAD');
+    }
+    final response = await api!.request(
+      'POST',
+      '/cases/$caseId/ask',
+      {'question': prompt},
+    );
+    await _change(() {
+      final map = _state['ask'] as Map;
+      final history = (map[caseId] ??= <dynamic>[]) as List;
+      history.add({
+        'question': prompt,
+        'response': response,
+        'asked_at': DateTime.now().toUtc().toIso8601String(),
+      });
+      if (history.length > 12) {
+        history.removeRange(0, history.length - 12);
+      }
+    });
+    return Map<String, dynamic>.from(response);
+  }
 
   Future<String> create(
     String title,

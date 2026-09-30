@@ -12,6 +12,7 @@ class ThreadTransport implements PlatformTransport {
   final requests = <String, Map<String, dynamic>>{};
   final relations = <String, Map<String, dynamic>>{};
   int accepted = 0;
+  int askCalls = 0;
   Map<String, dynamic> copy(Map<String, dynamic> v) =>
       Map<String, dynamic>.from(jsonDecode(jsonEncode(v)));
   @override
@@ -36,6 +37,29 @@ class ThreadTransport implements PlatformTransport {
       }
       if (path.startsWith('/cases/')) return copy(rows[path.split('/')[2]]!);
       return {'items': rows.values.map(copy).toList(), 'next': null};
+    }
+    if (method == 'POST' && path.endsWith('/ask')) {
+      askCalls++;
+      return {
+        'answer': 'Verified Thread summary',
+        'confidence': 'HIGH',
+        'sources': [
+          {
+            'ref': 'CASE',
+            'kind': 'CASE',
+            'label': 'Case',
+            'excerpt': 'Confirmed case state',
+            'verification_state': 'AUTHORITATIVE_CASE_STATE',
+            'source': 'thread_case',
+          },
+        ],
+        'unsupported_claims': <dynamic>[],
+        'open_questions': <dynamic>[],
+        'case_revision': 1,
+        'generated_at': '2026-09-30T10:00:00Z',
+        'passes': 2,
+        'evidence_policy': 'verified-first',
+      };
     }
     final requestId = body!['request_id'] as String;
     if (requests.containsKey(requestId)) return copy(requests[requestId]!);
@@ -269,6 +293,43 @@ void main() {
     await store.sync();
     expect(store.pending, isEmpty);
     expect(api.rows[id]!['status'], 'TRAINING_REQUIRED');
+    store.dispose();
+  });
+
+  test('ASK THREAD is online-only and caches evidence-bound answers per Case', () async {
+    final api = ThreadTransport()..online = true;
+    var store = ThreadStore('owner', api: api);
+    await store.restore(autoSync: false);
+    final id = await store.create('Ask Case', 'Context');
+    await idle(store);
+    expect(store.pending, isEmpty);
+
+    final answer = await store.askThread(id, 'What is confirmed?');
+    expect(answer['confidence'], 'HIGH');
+    expect(api.askCalls, 1);
+    expect(store.askHistoryForCase(id), hasLength(1));
+    expect(store.latestAskForCase(id)!['response']['sources'], hasLength(1));
+    store.dispose();
+
+    store = ThreadStore('owner', api: api);
+    await store.restore(autoSync: false);
+    expect(store.askHistoryForCase(id), hasLength(1));
+    expect(store.latestAskForCase(id)!['question'], 'What is confirmed?');
+    store.dispose();
+  });
+
+  test('ASK THREAD refuses stale local drafts before server evidence analysis', () async {
+    final api = ThreadTransport();
+    final store = ThreadStore('owner', api: api);
+    await store.restore(autoSync: false);
+    final id = await store.create('Pending Case', 'Unsynced');
+    await idle(store);
+    api.online = true;
+    await expectLater(
+      store.askThread(id, 'Summarize'),
+      throwsStateError,
+    );
+    expect(api.askCalls, 0);
     store.dispose();
   });
 

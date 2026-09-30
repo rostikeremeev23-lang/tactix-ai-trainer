@@ -578,3 +578,18 @@ Implemented:
 - Offline durable `TRAINED_BY` relation queue.
 
 Backend verification: 34 tests passed in the packaging environment. Run the full Flutter test suite locally before release/commit.
+
+## 2026-09-30 — TACTIX THREAD Phase E
+
+Implemented evidence-aware ASK THREAD as a read-only analysis layer over the existing Digital Thread.
+
+Implemented:
+- Authorized Case-scoped ASK THREAD endpoint.
+- Server-built source packs from Case state, Evidence, timeline events and linked training records.
+- Two AI passes: draft + verifier.
+- Server-side source allow-list filtering to reject fabricated references.
+- Confidence, approved source cards, unsupported-claim list and open-question list.
+- Offline cache of recent answers; online generation only.
+- ASK THREAD is blocked while a Case has unsynchronized local mutations.
+
+No new database migration is required for this Phase E slice. Backend verification: 37 tests passed in the packaging environment. Run the full Flutter suite locally before release/commit.

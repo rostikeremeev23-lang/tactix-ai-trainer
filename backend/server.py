@@ -452,6 +452,13 @@ def ask_ai(
         raise ollama_error
 
 
+# Phase E: evidence-constrained ASK THREAD uses the same cloud-first/local-fallback
+# provider without creating a second AI configuration surface.
+from app.thread_ai import configure_ai_provider as configure_thread_ai_provider, router as thread_ai_router
+configure_thread_ai_provider(ask_ai)
+app.include_router(thread_ai_router)
+
+
 def _check_gemini() -> bool:
     if not GEMINI_API_KEY:
         return False

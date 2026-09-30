@@ -213,6 +213,90 @@ class _ThreadScreenState extends State<ThreadScreen>
     });
   }
 
+  Future<void> _askThread(Map<String, dynamic> row) async {
+    if (store.api == null) return;
+    final controller = TextEditingController();
+    final key = GlobalKey<FormState>();
+    final question = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.auto_awesome, color: TactixTheme.gold),
+            SizedBox(width: 10),
+            Text('ASK THREAD'),
+          ],
+        ),
+        content: SizedBox(
+          width: 560,
+          child: Form(
+            key: key,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'The answer is generated only from the current Case, confirmed timeline, evidence, and linked training records. Unverified evidence is not treated as fact.',
+                  style: TextStyle(color: TactixTheme.textMuted, height: 1.45),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: controller,
+                  autofocus: true,
+                  minLines: 2,
+                  maxLines: 5,
+                  maxLength: 1600,
+                  decoration: const InputDecoration(
+                    labelText: 'Question about this Case',
+                    hintText: 'What is confirmed, what is missing, and what blocks closure?',
+                  ),
+                  validator: (value) => (value ?? '').trim().length < 2
+                      ? 'Enter a question'
+                      : null,
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final prompt in const [
+                      'What is confirmed?',
+                      'What evidence is missing?',
+                      'What blocks closure?',
+                    ])
+                      ActionChip(
+                        label: Text(prompt),
+                        onPressed: () => controller.text = prompt,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              if (key.currentState!.validate()) {
+                Navigator.pop(context, controller.text.trim());
+              }
+            },
+            icon: const Icon(Icons.auto_awesome),
+            label: const Text('Ask'),
+          ),
+        ],
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    controller.dispose();
+    if (question == null || !mounted) return;
+    await _perform(() => store.askThread(row['id'] as String, question));
+  }
+
   Future<void> _trainingAction(Map<String, dynamic> row) async {
     if (!store.staff || store.api == null) return;
     final caseId = row['id'] as String;
@@ -648,10 +732,141 @@ class _ThreadScreenState extends State<ThreadScreen>
     ],
   );
 
+  Widget _askResultCard(Map<String, dynamic> entry) {
+    final response = Map<String, dynamic>.from(entry['response'] as Map);
+    final sources = ((response['sources'] ?? const <dynamic>[]) as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    final gaps = ((response['open_questions'] ?? const <dynamic>[]) as List)
+        .map((e) => e.toString())
+        .toList();
+    final unsupported =
+        ((response['unsupported_claims'] ?? const <dynamic>[]) as List)
+            .map((e) => e.toString())
+            .toList();
+    final confidence = (response['confidence'] ?? 'LOW').toString();
+    final confidenceColor = confidence == 'HIGH'
+        ? TactixTheme.positive
+        : confidence == 'MEDIUM'
+        ? TactixTheme.gold
+        : TactixTheme.warning;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: SelectableText(
+                    'Q: ${entry['question']}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Chip(
+                  avatar: Icon(Icons.shield_outlined, size: 17, color: confidenceColor),
+                  label: Text(confidence),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              response['answer']?.toString() ?? 'No answer returned.',
+              style: const TextStyle(height: 1.55),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Sources · ${sources.length}',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            if (sources.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text(
+                  'No source was approved by the verification pass.',
+                  style: TextStyle(color: TactixTheme.warning),
+                ),
+              ),
+            for (final source in sources)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: TactixTheme.line),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          Chip(label: Text(source['ref']?.toString() ?? 'SOURCE')),
+                          Chip(label: Text(source['kind']?.toString() ?? 'SOURCE')),
+                          if (source['verification_state'] != null)
+                            Chip(label: Text(source['verification_state'].toString())),
+                        ],
+                      ),
+                      Text(
+                        source['label']?.toString() ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      SelectableText(
+                        source['excerpt']?.toString() ?? '',
+                        style: const TextStyle(color: TactixTheme.textMuted, height: 1.4),
+                      ),
+                      if ((source['source'] ?? '').toString().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: SelectableText(
+                            'Reference: ${source['source']}',
+                            style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            if (unsupported.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Text('Removed / unsupported', style: TextStyle(color: TactixTheme.warning)),
+              for (final item in unsupported)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text('• $item'),
+                ),
+            ],
+            if (gaps.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Text('Open questions', style: Theme.of(context).textTheme.titleSmall),
+              for (final item in gaps)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text('• $item'),
+                ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              'Case revision ${response['case_revision'] ?? '?'} · ${response['passes'] ?? 2} AI passes · ${response['evidence_policy'] ?? 'verified-first'}',
+              style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _detail(Map<String, dynamic> row) {
     final evidence = row['evidence'] as List;
     final events = store.events(row['id']);
     final training = store.trainingForCase(row['id'] as String);
+    final askHistory = store.askHistoryForCase(row['id'] as String);
+    final latestAsk = askHistory.isEmpty ? null : askHistory.last;
     final pending = store.pending
         .where((p) => p['case_id'] == row['id'])
         .toList();
@@ -705,6 +920,14 @@ class _ThreadScreenState extends State<ThreadScreen>
                 onPressed: _busy ? null : () => _evidence(row),
                 icon: const Icon(Icons.attach_file),
                 label: const Text('Add evidence'),
+              ),
+            if (store.api != null)
+              FilledButton.tonalIcon(
+                onPressed: _busy || pending.isNotEmpty
+                    ? null
+                    : () => _askThread(row),
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('ASK THREAD'),
               ),
             if (!closed && store.staff && store.api != null)
               FilledButton.tonalIcon(
@@ -777,6 +1000,53 @@ class _ThreadScreenState extends State<ThreadScreen>
               ),
             ),
         ],
+        const SizedBox(height: 28),
+        Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: TactixTheme.gold),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'ASK THREAD',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            if (store.api != null)
+              FilledButton.tonalIcon(
+                onPressed: _busy || pending.isNotEmpty
+                    ? null
+                    : () => _askThread(row),
+                icon: const Icon(Icons.question_answer_outlined),
+                label: const Text('Ask'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Two-pass, evidence-constrained analysis. The server builds the source pack and removes fabricated source references before the answer reaches this device.',
+          style: TextStyle(color: TactixTheme.textMuted, height: 1.5),
+        ),
+        if (store.api == null)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 14),
+            child: Text('Server connection is required for ASK THREAD. Cached answers remain available offline.'),
+          ),
+        if (pending.isNotEmpty && store.api != null)
+          const Padding(
+            padding: EdgeInsets.only(top: 10),
+            child: Text(
+              'Synchronize pending Case changes before asking so the AI sees the same evidence you see.',
+              style: TextStyle(color: TactixTheme.warning),
+            ),
+          ),
+        if (latestAsk != null) ...[
+          const SizedBox(height: 14),
+          _askResultCard(latestAsk),
+        ] else
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 14),
+            child: Text('No ASK THREAD analysis cached for this Case yet.'),
+          ),
         const SizedBox(height: 28),
         Row(
           children: [

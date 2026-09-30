@@ -263,3 +263,35 @@ The Case-to-Training relation is created through the existing THREAD queue. The 
 ### Verification performed in the packaging environment
 - Backend: `34 passed`.
 - Flutter SDK was not available in the packaging environment, so `flutter analyze` / `flutter test` must be run on the development machine before committing Phase D.
+
+## Phase E — ASK THREAD + evidence-aware source references
+
+Implemented manually on top of the Phase D green checkpoint.
+
+### ASK THREAD
+- Added `POST /v1/thread/cases/{case_id}/ask`.
+- The endpoint authorizes the Case before any AI call is made.
+- The server builds a bounded source pack from the Case, Evidence, immutable Case timeline, and linked Simulation Lab training records.
+- Every returned source reference is intersected with a server-generated allow-list; fabricated source IDs are discarded.
+- AI remains read-only: ASK THREAD cannot mutate a Case, Evidence, relations, training, or verification state.
+- Local unsynchronized Case mutations block ASK THREAD so the server and UI cannot analyze different evidence states.
+
+### Two-pass evidence pipeline
+1. Draft pass answers only from the server-generated source pack.
+2. Verification pass removes/rewrites unsupported claims and returns approved source references.
+3. The response exposes confidence, approved sources, unsupported/removed claims, open questions, Case revision, and generation metadata.
+
+Unverified/rejected Evidence can be shown as context, but the prompt explicitly prevents it from being treated as an authoritative fact. The existing human verification workflow remains authoritative.
+
+### Client behavior
+- Added ASK THREAD action inside Case detail.
+- Shows answer confidence, approved source cards, verification state, provenance string, unsupported claims, and open questions.
+- Last ASK THREAD results are cached per Case for offline review; generation itself requires a server connection.
+- Up to 12 recent ASK THREAD entries are retained per Case in the existing durable local Thread state.
+
+### Verification performed in the packaging environment
+- Backend: `37 passed`.
+- Flutter SDK is not installed in the packaging environment. Run `flutter analyze` and `flutter test --concurrency=1` on the Windows development machine before committing/tagging Phase E.
+
+### Next safe continuation
+Phase F can add Branch/version comparison for administrative/training plans. Do not let Branch bypass Evidence verification or mutate historical Case/Relation events.
