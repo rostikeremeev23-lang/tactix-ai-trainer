@@ -60,6 +60,32 @@ class UserSessionController extends ChangeNotifier {
   bool get isAdmin => _currentUser?.role == UserRole.admin;
   bool get canManageTraining => isInstructor || isAdmin;
 
+  Future<String?>? _refreshRequest;
+  Future<String?> tokenForRequest({bool refresh = false}) async {
+    if (!isServerUser) return null;
+    if (!refresh && _accessToken != null) return _accessToken;
+    if (_refreshRequest != null) return _refreshRequest!;
+    final userId = _currentUser!.id;
+    Future<String?> renew() async {
+      try {
+        final stored = await _auth.readRefreshToken();
+        if (stored == null) return null;
+        final tokens = await _auth.refresh(stored);
+        if (_currentUser?.id != userId) return null;
+        if (tokens.user.id != userId) throw StateError('Unexpected identity');
+        await _auth.writeRefreshToken(tokens.refreshToken);
+        _accessToken = tokens.accessToken;
+        await _persistServerUser(tokens.user, AuthSessionState.authenticatedOnline);
+        return _accessToken;
+      } on AuthFailure catch (error) {
+        if (_currentUser?.id == userId && error.invalidSession) await _invalidateServerSession();
+        rethrow;
+      }
+    }
+    _refreshRequest = renew();
+    try { return await _refreshRequest; } finally { _refreshRequest = null; }
+  }
+
   Future<void> load() async {
     _loading = true;
     notifyListeners();

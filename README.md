@@ -1,17 +1,20 @@
-# ai_trainer_mobile
+# TACTIX
 
-A new Flutter project.
+Existing Flutter decision-training application with a Python/FastAPI backend.
 
-## Getting Started
+TACTIX THREAD now has a working Case/evidence foundation with authorized history,
+verification, closure and durable offline commands. The full Thread roadmap remains
+in progress. See [current scope, migration, tests and launch commands](THREAD_IMPLEMENTATION.md).
 
-This project is a starting point for a Flutter application.
+Training -> Simulation Lab includes three fictional city scenarios, an offline vector map,
+deterministic playback, editable plans, a local run archive and comparison.
 
-A few resources to get you started if this is your first Flutter project:
+See [implementation, scope and exact PowerShell commands](NEXT_GENERATION.md) and
+[backend authentication setup](backend/AUTH.md).
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```powershell
+flutter pub get
+flutter analyze
+flutter test
+flutter run -d windows
+```

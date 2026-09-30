@@ -1,0 +1,28 @@
+TACTIX THREAD — PHASE C CORRECTED PATCH
+
+This archive is intentionally ROOTLESS: its top-level folders are lib/, backend/, test/.
+Extract/copy these directly over the project root:
+C:\Users\admin\Desktop\ai_trainer_mobile
+
+IMPORTANT:
+The previous Phase C ZIP contained an extra TACTIX_THREAD_PHASE_C_PATCH/ wrapper folder.
+If it was extracted as-is, files were placed in a nested folder and the real project remained on migration 0005.
+This corrected ZIP fixes that packaging problem.
+
+After copying, from the project root run:
+  flutter pub get
+  flutter test test/thread_ui_test.dart --reporter expanded
+  flutter test --concurrency=1
+
+Then verify the migration file exists:
+  Get-ChildItem ".\backend\migrations\versions" | Sort-Object Name | Select-Object Name
+
+From backend:
+  cd .\backend
+  python -m alembic heads
+
+Expected head:
+  0006_thread_relations (head)
+
+Do not run upgrade against production until DATABASE_URL is set to the REAL database URL.
+Never paste database credentials into chat.

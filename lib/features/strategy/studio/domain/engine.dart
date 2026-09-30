@@ -72,6 +72,13 @@ class ExerciseEngine {
   ExerciseFrame get current => _frames.last;
   List<ExerciseFrame> get frames => List.unmodifiable(_frames);
   bool get completed => _tick >= scenario.duration;
+  bool get objectivesAchieved => scenario.kind == ExerciseKind.defense
+      ? current.holdTicks * 2 >= scenario.duration
+      : current.reached.length ==
+            scenario.objects
+                .where((o) => o.kind == ObjectKind.objective)
+                .length;
+  bool get succeeded => completed && objectivesAchieved && score >= 75;
   int get score {
     final goals = scenario.objects
         .where((o) => o.kind == ObjectKind.objective)
@@ -283,6 +290,9 @@ class ExerciseEngine {
     completed
         ? 'Итог занятия: $score / 100'
         : 'Промежуточная оценка: $score / 100',
+    'Seed: ${scenario.seed}. Успех: все цели (оборона: удержание ≥50% тактов), оценка ≥75.',
+    if (completed)
+      succeeded ? 'Условия успеха выполнены.' : 'Условия успеха не выполнены.',
     'Время: $_tick / ${scenario.duration}. Цели: ${_reached.length}.',
     objectiveRule,
     'Остальные 50 баллов: безопасность ×0,2 + согласованность ×0,2 + ресурсы ×0,1.',

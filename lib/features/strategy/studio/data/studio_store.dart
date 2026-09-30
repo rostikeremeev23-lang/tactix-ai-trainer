@@ -8,9 +8,11 @@ import '../domain/scenario.dart';
 class StudioDocument {
   final StudioScenario scenario;
   final ExerciseEngine? engine;
-  StudioDocument(this.scenario, [this.engine]);
+  final String? assignmentId;
+  StudioDocument(this.scenario, [this.engine, this.assignmentId]);
   Map<String, dynamic> toJson() => {
     'version': 1,
+    if (assignmentId != null) 'assignmentId': assignmentId,
     'scenario': scenario.toJson(),
     'run': engine?.toJson(),
   };
@@ -28,7 +30,7 @@ class StudioDocument {
         jsonEncode(run.scenario.toJson()) != jsonEncode(scenario.toJson())) {
       throw const FormatException('Запись не соответствует сценарию');
     }
-    return StudioDocument(scenario, run);
+    return StudioDocument(scenario, run, json['assignmentId'] as String?);
   }
 }
 
@@ -85,6 +87,9 @@ class StudioStore {
     final operation = _queue.then((_) async {
       final prefs = await SharedPreferences.getInstance();
       final entries = _read(prefs);
+      if (entries.isEmpty && recoveryMessage != null) {
+        throw const FormatException('Обе копии повреждены; запись заблокирована');
+      }
       final revision = entries.isEmpty
           ? 1
           : (entries.first['revision'] as int) + 1;

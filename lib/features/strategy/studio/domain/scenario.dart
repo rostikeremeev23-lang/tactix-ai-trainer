@@ -1,7 +1,18 @@
 // Fictional training scenario. No real geographic or weapons data.
 enum ExerciseKind { attack, defense, escort, response }
 
-enum ObjectKind { group, transport, armor, objective, facility }
+enum ObjectKind {
+  group,
+  transport,
+  armor,
+  objective,
+  facility,
+  recon,
+  aerial,
+  emergency,
+  reserve,
+  logistics,
+}
 
 enum InjectKind { road, communications, weather }
 
@@ -17,6 +28,11 @@ const objectLabels = [
   'Бронетехника',
   'Цель занятия',
   'Пункт обеспечения',
+  'Жетон наблюдения',
+  'Воздушный жетон',
+  'Экстренная поддержка',
+  'Резерв',
+  'Логистика',
 ];
 const injectLabels = ['Перекрытие дороги', 'Потеря связи', 'Ухудшение погоды'];
 
@@ -46,28 +62,42 @@ class MapObject {
   final ObjectKind kind;
   final MapPoint position;
   final int readiness;
-  bool get mobile => kind.index < 3;
+  final int rotation;
+  final String group;
+  bool get mobile =>
+      kind != ObjectKind.objective && kind != ObjectKind.facility;
   const MapObject({
     required this.id,
     required this.name,
     required this.kind,
     required this.position,
     this.readiness = 100,
+    this.rotation = 0,
+    this.group = '',
   });
-  MapObject copyWith({String? name, MapPoint? position, int? readiness}) =>
-      MapObject(
-        id: id,
-        name: name ?? this.name,
-        kind: kind,
-        position: position ?? this.position,
-        readiness: readiness ?? this.readiness,
-      );
+  MapObject copyWith({
+    String? name,
+    MapPoint? position,
+    int? readiness,
+    int? rotation,
+    String? group,
+  }) => MapObject(
+    id: id,
+    name: name ?? this.name,
+    kind: kind,
+    position: position ?? this.position,
+    readiness: readiness ?? this.readiness,
+    rotation: rotation ?? this.rotation,
+    group: group ?? this.group,
+  );
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'kind': kind.index,
     'position': position.toJson(),
     'readiness': readiness,
+    'rotation': rotation,
+    'group': group,
   };
   factory MapObject.read(Map<String, dynamic> j) => MapObject(
     id: j['id'] as String,
@@ -75,6 +105,8 @@ class MapObject {
     kind: ObjectKind.values[j['kind'] as int],
     position: MapPoint.read(j['position']),
     readiness: j['readiness'] as int,
+    rotation: j['rotation'] as int? ?? 0,
+    group: j['group'] as String? ?? '',
   );
 }
 
@@ -95,6 +127,8 @@ class StudioScenario {
   final String name, briefing;
   final ExerciseKind kind;
   final int duration, resources;
+  final bool cityMap;
+  final int seed;
   final List<MapObject> objects;
   final List<ScenarioInject> injects;
   StudioScenario({
@@ -103,6 +137,8 @@ class StudioScenario {
     required this.kind,
     this.duration = 60,
     this.resources = 100,
+    this.cityMap = false,
+    this.seed = 0,
     required List<MapObject> objects,
     required List<ScenarioInject> injects,
   }) : objects = List.unmodifiable(objects),
@@ -167,6 +203,8 @@ class StudioScenario {
     ExerciseKind? kind,
     int? duration,
     int? resources,
+    bool? cityMap,
+    int? seed,
     List<MapObject>? objects,
     List<ScenarioInject>? injects,
   }) => StudioScenario(
@@ -175,6 +213,8 @@ class StudioScenario {
     kind: kind ?? this.kind,
     duration: duration ?? this.duration,
     resources: resources ?? this.resources,
+    cityMap: cityMap ?? this.cityMap,
+    seed: seed ?? this.seed,
     objects: objects ?? this.objects,
     injects: injects ?? this.injects,
   );
@@ -198,6 +238,8 @@ class StudioScenario {
     if (name.trim().isEmpty ||
         name.length > 100 ||
         briefing.length > 2000 ||
+        seed < 0 ||
+        seed > 999999 ||
         duration < 40 ||
         duration > 120 ||
         resources < 10 ||
@@ -213,6 +255,9 @@ class StudioScenario {
       if (o.id.isEmpty ||
           o.name.trim().isEmpty ||
           o.name.length > 60 ||
+          o.rotation < 0 ||
+          o.rotation >= 360 ||
+          o.group.length > 30 ||
           o.readiness < 0 ||
           o.readiness > 100) {
         throw const FormatException('Некорректный объект');
@@ -231,6 +276,8 @@ class StudioScenario {
     'kind': kind.index,
     'duration': duration,
     'resources': resources,
+    'cityMap': cityMap,
+    'seed': seed,
     'objects': objects.map((o) => o.toJson()).toList(),
     'injects': injects.map((e) => e.toJson()).toList(),
   };
@@ -241,6 +288,8 @@ class StudioScenario {
       kind: ExerciseKind.values[j['kind'] as int],
       duration: j['duration'] as int,
       resources: j['resources'] as int,
+      cityMap: j['cityMap'] as bool? ?? false,
+      seed: j['seed'] as int? ?? 0,
       objects: (j['objects'] as List)
           .map((o) => MapObject.read(Map<String, dynamic>.from(o)))
           .toList(),

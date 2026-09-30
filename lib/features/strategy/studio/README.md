@@ -1,3 +1,10 @@
+# Current increment
+
+The city library, synthetic vector map and local multi-run archive are documented in
+[Next Generation implementation notes](../../../../NEXT_GENERATION.md).
+The notes below describe the previous Studio baseline; its old limitations about the
+single scenario and single saved run have been superseded by the new local archive.
+
 # Strategy Studio — передача этапа
 
 Контрольная точка до изменений: strategy-before-studio-20260925 → 6d82233.

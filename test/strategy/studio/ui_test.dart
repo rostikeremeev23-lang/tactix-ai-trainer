@@ -22,7 +22,10 @@ Widget app({double scale = 1}) => MaterialApp(
       child: child!,
     ),
   ),
-  home: const TactixStrategyScreen(userId: 'studio-test'),
+  home: const TactixStrategyScreen(
+    userId: 'studio-test',
+    startInLibrary: false,
+  ),
 );
 
 Future<void> capture(WidgetTester tester, String name) async {
@@ -235,7 +238,7 @@ void main() {
     expect(find.byKey(const ValueKey('map-obj-1')), findsOneWidget);
     await tester.tap(find.text('Свойства объекта'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Группа Янтарь');
+    await tester.enterText(find.byType(TextField).first, 'Группа Янтарь');
     await tester.tap(find.text('Применить'));
     await tester.pumpAndSettle();
     expect(find.text('Группа Янтарь'), findsWidgets);

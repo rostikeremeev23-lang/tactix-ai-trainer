@@ -53,3 +53,11 @@ app.*.map.json
 .env.local
 
 installer/
+
+/android/build/
+
+# Local TACTIX development artifacts
+AI_TRAINER_REVIEW.zip
+THREAD_TEST_ERROR.txt
+artifacts/
+tactix-response.json

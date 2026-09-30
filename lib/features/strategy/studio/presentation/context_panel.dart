@@ -251,6 +251,8 @@ class ExerciseContextPanel extends StatelessWidget {
 Future<MapObject?> editMapObject(BuildContext context, MapObject object) async {
   final name = TextEditingController(text: object.name);
   var readiness = object.readiness;
+  var rotation = object.rotation;
+  var group = object.group;
   final result = await showDialog<MapObject>(
     context: context,
     builder: (context) => StatefulBuilder(
@@ -258,27 +260,44 @@ Future<MapObject?> editMapObject(BuildContext context, MapObject object) async {
         title: const Text('Свойства объекта'),
         content: SizedBox(
           width: 350,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: name,
-                maxLength: 60,
-                decoration: const InputDecoration(labelText: 'Название'),
-              ),
-              Text('Условная готовность: $readiness'),
-              Slider(
-                value: readiness.toDouble(),
-                divisions: 20,
-                min: 0,
-                max: 100,
-                onChanged: (v) => update(() => readiness = v.round()),
-              ),
-              const Text(
-                'Готовность определяет игровой темп движения, не боевую эффективность.',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: name,
+                  maxLength: 60,
+                  decoration: const InputDecoration(labelText: 'Название'),
+                ),
+                TextFormField(
+                  initialValue: group,
+                  maxLength: 30,
+                  decoration: const InputDecoration(
+                    labelText: 'Группа / сектор (метка)',
+                  ),
+                  onChanged: (v) => group = v.trim(),
+                ),
+                Text('Поворот жетона: $rotation°'),
+                Slider(
+                  value: rotation.toDouble(),
+                  min: 0,
+                  max: 359,
+                  onChanged: (v) => update(() => rotation = v.round()),
+                ),
+                Text('Условная готовность: $readiness'),
+                Slider(
+                  value: readiness.toDouble(),
+                  divisions: 20,
+                  min: 0,
+                  max: 100,
+                  onChanged: (v) => update(() => readiness = v.round()),
+                ),
+                const Text(
+                  'Готовность определяет игровой темп движения, не боевую эффективность.',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -291,7 +310,12 @@ Future<MapObject?> editMapObject(BuildContext context, MapObject object) async {
               if (name.text.trim().isNotEmpty) {
                 Navigator.pop(
                   context,
-                  object.copyWith(name: name.text.trim(), readiness: readiness),
+                  object.copyWith(
+                    name: name.text.trim(),
+                    readiness: readiness,
+                    rotation: rotation,
+                    group: group,
+                  ),
                 );
               }
             },

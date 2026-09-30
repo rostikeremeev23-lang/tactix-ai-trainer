@@ -37,6 +37,8 @@ dependencies:
   http: ^1.6.0
   shared_preferences: ^2.5.5
   flutter_secure_storage: ^11.1.1
+  pdf: ^3.13.1
+  printing: ^5.15.1
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +63,12 @@ flutter:
   uses-material-design: true
   assets:
     - assets/strategy/valley.png
+    - assets/fonts/NotoSans-Variable.ttf
+    - assets/fonts/NotoSans-OFL.txt
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Variable.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

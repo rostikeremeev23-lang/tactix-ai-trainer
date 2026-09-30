@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
+import '../training/training_hub_screen.dart';
+import '../../features/thread/thread_screen.dart';
 import '../../app/user_session_scope.dart';
 import '../../app/assignment_scope.dart';
 import '../../models/scenario.dart';
@@ -20,7 +22,6 @@ import '../profile/profile_screen.dart';
 import '../settings/ai_mode_screen.dart';
 import '../scenarios/ai_scenario_screen.dart';
 import '../scenarios/create_scenario_screen.dart';
-import '../scenarios/my_scenarios_screen.dart';
 import '../training/scenario_run_screen.dart';
 import '../strategy/strategy_screen.dart';
 import '../../features/decision_simulation/presentation/episode_library_screen.dart';
@@ -40,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<TrainingResult> results = const [];
   bool loading = true;
   bool aiOnline = false;
+  bool _expandedWorkspace = false;
 
   @override
   void initState() {
@@ -255,8 +257,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ? null
           : NavigationBar(
               height: isPhone ? 66 : 70,
-              backgroundColor: const Color(0xFF081118),
-              indicatorColor: TactixTheme.gold.withValues(alpha: 0.16),
+              backgroundColor: TactixTheme.panel,
+              indicatorColor: TactixTheme.cyan.withValues(alpha: 0.16),
               selectedIndex: 0,
               destinations: const [
                 NavigationDestination(
@@ -267,7 +269,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 NavigationDestination(
                   icon: Icon(Icons.description_outlined),
                   selectedIcon: Icon(Icons.description),
-                  label: 'Сценарии',
+                  label: 'Training',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.account_tree_outlined),
+                  label: 'Thread',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.analytics_outlined),
@@ -282,15 +288,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
               onDestinationSelected: (index) {
                 if (index == 1) {
-                  _open(context, MyScenariosScreen(
-                      aiScreenBuilder: () => const AIScenarioScreen(),
-                      runScreenBuilder: (scenario) => ScenarioRunScreen(
-                        scenario: scenario,
-                      ),
-                    ));
+                  _open(context, const TrainingHubScreen());
                 } else if (index == 2) {
-                  _open(context, const StatisticsScreen());
+                  _open(context, const ThreadScreen());
                 } else if (index == 3) {
+                  _open(context, const StatisticsScreen());
+                } else if (index == 4) {
                   _open(context, const AIChatScreen());
                 }
               },
@@ -382,13 +385,9 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.sync_rounded, color: Colors.white70),
           ),
         IconButton(
-          tooltip: 'Уведомления',
-onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Новых уведомлений нет.')),
-            );
-          },
-          icon: const Icon(Icons.notifications_none_rounded, color: Colors.white70),
+          tooltip: 'Учебные назначения',
+          onPressed: () => _open(context, const AssignmentsScreen()),
+          icon: const Icon(Icons.assignment_outlined, color: Colors.white70),
         ),
         Padding(
           padding: EdgeInsets.only(right: compact ? 10 : 20),
@@ -424,19 +423,42 @@ onPressed: () {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _HeroCard(
-            onTap: () => _open(context, const AIScenarioScreen()),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12),
+            child: Text('ЦЕНТР ПОДГОТОВКИ',
+                style: TextStyle(color: TactixTheme.textMuted,
+                    fontSize: 11, fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5)),
           ),
-          const SizedBox(height: 18),
           _CommandTile(
-            icon: Icons.rocket_launch_outlined,
-            title: 'DEMO ДЛЯ ЖЮРИ',
-            subtitle: 'OFFLINE READY • 3 хода • AAR',
-            accent: TactixTheme.gold,
-            onTap: () => _openOfflineDemo(context),
+            icon: Icons.account_tree_outlined,
+            title: 'TACTIX THREAD',
+            subtitle: 'Execution Intelligence ? origin, history, evidence',
+            accent: TactixTheme.cyan,
+            onTap: () => _open(context, const ThreadScreen()),
           ),
-          const SizedBox(height: 18),
-          const SectionLabel('ЖИВЫЕ ДАННЫЕ'),
+          const SizedBox(height: 12),
+          _CommandTile(
+            icon: Icons.school_outlined,
+            title: 'TRAINING',
+            subtitle: 'Simulation Lab ? scenarios ? assignments ? results',
+            accent: TactixTheme.cyan,
+            onTap: () => _open(context, const TrainingHubScreen()),
+          ),
+          if (_expandedWorkspace) ...[
+            const SizedBox(height: 16),
+            _HeroCard(onTap: () => _open(context, const AIScenarioScreen())),
+            const SizedBox(height: 12),
+            _CommandTile(
+              icon: Icons.rocket_launch_outlined,
+              title: 'DEMO ДЛЯ ЖЮРИ',
+              subtitle: 'OFFLINE READY • 3 хода • AAR',
+              accent: TactixTheme.gold,
+              onTap: () => _openOfflineDemo(context),
+            ),
+          ],
+          const SizedBox(height: 20),
+          const SectionLabel('ВАША АКТИВНОСТЬ'),
           const SizedBox(height: 10),
           _DashboardMetrics(
             loading: loading,
@@ -450,15 +472,16 @@ onPressed: () {
             time: _averageTime(),
             level: _level(),
             xp: _levelXp(),
+            showAll: _expandedWorkspace,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           const SectionLabel('БЫСТРЫЙ ДОСТУП'),
           const SizedBox(height: 10),
           LayoutBuilder(
             builder: (context, constraints) {
               final columns = constraints.maxWidth >= 1120
                   ? 4
-                  : constraints.maxWidth >= 650
+                  : constraints.maxWidth >= 520
                       ? 2
                       : 1;
               final tileWidth =
@@ -476,15 +499,10 @@ onPressed: () {
                           ? 'Запустить первый сценарий'
                           : '${results.length} завершённых тренировок',
                       accent: TactixTheme.gold,
-                      onTap: () => _open(context, MyScenariosScreen(
-                      aiScreenBuilder: () => const AIScenarioScreen(),
-                      runScreenBuilder: (scenario) => ScenarioRunScreen(
-                        scenario: scenario,
-                      ),
-                    )),
+                      onTap: () => _open(context, const TrainingHubScreen()),
                     ),
                   ),
-                  SizedBox(
+                  if (_expandedWorkspace) SizedBox(
                     width: tileWidth,
                     child: _CommandTile(
                       icon: Icons.auto_stories_outlined,
@@ -496,16 +514,27 @@ onPressed: () {
                       )),
                     ),
                   ),
-                  SizedBox(
+                  if (UserSessionScope.of(context).isServerUser)
+                    SizedBox(width: tileWidth, child: _CommandTile(
+                      icon: Icons.school_outlined,
+                      title: UserSessionScope.of(context).canManageTraining ? 'ЦЕНТР ИНСТРУКТОРА' : 'УЧЕБНЫЙ МАРШРУТ',
+                      subtitle: 'Simulation Lab · задания, результаты и отзывы',
+                      accent: TactixTheme.gold,
+                      onTap: () => _open(context, SimulationLabScreen(
+                        userId: UserSessionScope.of(context).currentUser!.id,
+                        startInPlatform: true,
+                      )),
+                    )),
+                  if (_expandedWorkspace) SizedBox(
                     width: tileWidth,
                     child: _CommandTile(
                       icon: Icons.public_rounded,
-                      title: 'TACTIX STRATEGY',
-                      subtitle: 'Казахстан • Астана • Strategy Demo',
+                      title: 'SIMULATION LAB',
+                      subtitle: 'Казахстан • Астана • Simulation Lab',
                       accent: TactixTheme.cyan,
                       onTap: () => _open(
                         context,
-                        TactixStrategyScreen(userId: UserSessionScope.of(context).currentUser!.id),
+                        SimulationLabScreen(userId: UserSessionScope.of(context).currentUser!.id),
                       ),
                     ),
                   ),
@@ -524,7 +553,7 @@ onPressed: () {
                       ),
                     ),
                   ),
-                  SizedBox(
+                  if (_expandedWorkspace) SizedBox(
                     width: tileWidth,
                     child: _CommandTile(
                       icon: Icons.auto_awesome,
@@ -544,7 +573,7 @@ onPressed: () {
                       onTap: () => _open(context, const AIChatScreen()),
                     ),
                   ),
-                  if (canManageTraining)
+                  if (canManageTraining && _expandedWorkspace)
                     SizedBox(
                       width: tileWidth,
                       child: _CommandTile(
@@ -564,7 +593,7 @@ onPressed: () {
                         ),
                       ),
                     ),
-                  SizedBox(
+                  if (_expandedWorkspace) SizedBox(
                     width: tileWidth,
                     child: _CommandTile(
                       icon: Icons.query_stats_rounded,
@@ -580,6 +609,21 @@ onPressed: () {
               );
             },
           ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => setState(() =>
+                  _expandedWorkspace = !_expandedWorkspace),
+              icon: Icon(_expandedWorkspace
+                  ? Icons.expand_less_rounded
+                  : Icons.dashboard_customize_outlined),
+              label: Text(_expandedWorkspace
+                  ? 'Свернуть дополнительные инструменты'
+                  : 'Показать все инструменты и аналитику'),
+            ),
+          ),
+          if (_expandedWorkspace) ...[
           const SizedBox(height: 18),
           const SectionLabel('ВНЕШНЯЯ СРЕДА'),
           const SizedBox(height: 10),
@@ -632,6 +676,7 @@ onPressed: () {
             results: results,
             loading: loading,
           ),
+          ],
         ],
       ),
     );
@@ -1002,6 +1047,7 @@ class _DashboardMetrics extends StatelessWidget {
   final int time;
   final int level;
   final int xp;
+  final bool showAll;
 
   const _DashboardMetrics({
     required this.loading,
@@ -1015,6 +1061,7 @@ class _DashboardMetrics extends StatelessWidget {
     required this.time,
     required this.level,
     required this.xp,
+    required this.showAll,
   });
 
   @override
@@ -1033,12 +1080,14 @@ class _DashboardMetrics extends StatelessWidget {
         _liveCard('ТРЕНИРОВКИ', '$trainings', Icons.track_changes_rounded, TactixTheme.gold),
         _liveCard('СРЕДНИЙ БАЛЛ', '$average', Icons.insights_rounded, TactixTheme.cyan),
         _liveCard('ЛУЧШИЙ РЕЗУЛЬТАТ', '$best', Icons.emoji_events_outlined, const Color(0xFF4EE39A)),
+        if (showAll) ...[
         _liveCard('ЦЕЛЬ', '$goal%', Icons.flag_outlined, const Color(0xFFAD79FF)),
         _liveCard('РЕСУРСЫ', '$resource%', Icons.battery_4_bar_outlined, const Color(0xFF7AB8FF)),
         _liveCard('УСТОЙЧИВОСТЬ', '$stability%', Icons.shield_outlined, const Color(0xFF69D5C5)),
         _liveCard('НЕОПРЕДЕЛЁННОСТЬ', '$uncertainty%', Icons.psychology_outlined, const Color(0xFFFF9E67)),
         _liveCard('ВРЕМЯ', '$time%', Icons.schedule_outlined, const Color(0xFFFFC857)),
         _liveCard('УРОВЕНЬ', '$level', Icons.military_tech_outlined, TactixTheme.gold),
+        ],
       ],
     );
   }
@@ -1131,24 +1180,13 @@ class _DesktopSidebar extends StatelessWidget {
             ),
           ),
           _nav(context, Icons.dashboard_rounded, 'Главная', true, null),
+          _nav(context, Icons.account_tree_outlined, 'Thread', false, const ThreadScreen()),
           _nav(
             context,
             Icons.track_changes_rounded,
             'Тренировка',
             false,
-            MyScenariosScreen(
-                      aiScreenBuilder: () => const AIScenarioScreen(),
-                      runScreenBuilder: (scenario) => ScenarioRunScreen(
-                        scenario: scenario,
-                      ),
-                    ),
-          ),
-          _nav(
-            context,
-            Icons.public_rounded,
-            'Strategy',
-            false,
-            TactixStrategyScreen(userId: UserSessionScope.of(context).currentUser!.id),
+            const TrainingHubScreen(),
           ),
           _nav(
             context,
@@ -1170,12 +1208,7 @@ class _DesktopSidebar extends StatelessWidget {
             Icons.description_outlined,
             'Сценарии',
             false,
-            MyScenariosScreen(
-                      aiScreenBuilder: () => const AIScenarioScreen(),
-                      runScreenBuilder: (scenario) => ScenarioRunScreen(
-                        scenario: scenario,
-                      ),
-                    ),
+            const TrainingHubScreen(),
           ),
           _nav(
             context,

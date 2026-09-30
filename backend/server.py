@@ -32,6 +32,10 @@ app.add_middleware(
 
 
 app.include_router(auth_router)
+from app.strategy import router as strategy_router
+app.include_router(strategy_router)
+from app.thread import router as thread_router
+app.include_router(thread_router)
 
 
 # =====================================================

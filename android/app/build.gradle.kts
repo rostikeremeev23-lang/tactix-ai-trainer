@@ -1,8 +1,21 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val signingProperties = Properties()
+val signingFile = rootProject.file("key.properties")
+if (signingFile.exists()) signingFile.inputStream().use { signingProperties.load(it) }
+val releaseStore = signingProperties.getProperty("storeFile")
+val releaseAlias = signingProperties.getProperty("keyAlias")
+val releaseStorePassword = signingProperties.getProperty("storePassword")
+val releaseKeyPassword = signingProperties.getProperty("keyPassword")
+val hasReleaseKey = listOf(releaseStore, releaseAlias, releaseStorePassword, releaseKeyPassword).all { !it.isNullOrBlank() }
+require(!signingFile.exists() || hasReleaseKey) { "android/key.properties is incomplete; release signing values are required." }
+if (!hasReleaseKey) logger.warn("TACTIX: No private release key configured. This APK will use the debug key and is not for distribution.")
 
 android {
     namespace = "com.example.ai_trainer_mobile"
@@ -29,11 +42,21 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            if (hasReleaseKey) {
+                storeFile = file(releaseStore!!)
+                keyAlias = releaseAlias
+                storePassword = releaseStorePassword
+                this.keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Prefer the local private key; debug signing is a development-only fallback.
+            signingConfig = if (hasReleaseKey) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
 }

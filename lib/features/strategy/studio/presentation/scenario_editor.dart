@@ -47,9 +47,11 @@ class ScenarioEditor extends StatelessWidget {
         style: const TextStyle(color: TactixTheme.cyan),
       ),
       const SizedBox(height: 8),
-      const Text(
-        'Долина Северная • вымышленная территория',
-        style: TextStyle(color: Colors.white54, fontSize: 12),
+      Text(
+        scenario.cityMap
+            ? 'ASTRA • синтетический город • seed ${scenario.seed}'
+            : 'Долина Северная • вымышленная территория',
+        style: const TextStyle(color: Colors.white54, fontSize: 12),
       ),
       const SizedBox(height: 12),
       OutlinedButton.icon(

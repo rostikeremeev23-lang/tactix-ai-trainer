@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme.dart';
 import '../domain/scenario.dart';
 import '../domain/engine.dart';
+import 'city_map.dart';
 
 IconData objectIcon(ObjectKind kind) => switch (kind) {
   ObjectKind.group => Icons.groups_rounded,
@@ -12,6 +13,11 @@ IconData objectIcon(ObjectKind kind) => switch (kind) {
   ObjectKind.armor => Icons.shield_rounded,
   ObjectKind.objective => Icons.flag_rounded,
   ObjectKind.facility => Icons.warehouse_rounded,
+  ObjectKind.recon => Icons.visibility_outlined,
+  ObjectKind.aerial => Icons.air_rounded,
+  ObjectKind.emergency => Icons.health_and_safety_outlined,
+  ObjectKind.reserve => Icons.all_inclusive,
+  ObjectKind.logistics => Icons.inventory_2_outlined,
 };
 Color objectColor(ObjectKind kind) => switch (kind) {
   ObjectKind.objective => TactixTheme.gold,
@@ -27,6 +33,9 @@ class TerrainView extends StatefulWidget {
   final ExerciseFrame? frame;
   final String? selectedId, instruction;
   final bool labels, routes, zones;
+  final bool cityMap;
+  final Set<String> selectedIds;
+  final void Function(String, MapPoint)? onDragObject;
   final ValueChanged<String> onSelect;
   final ValueChanged<MapPoint> onMapTap;
   const TerrainView({
@@ -37,6 +46,9 @@ class TerrainView extends StatefulWidget {
     this.frame,
     this.selectedId,
     this.instruction,
+    this.cityMap = false,
+    this.selectedIds = const {},
+    this.onDragObject,
     this.labels = true,
     this.routes = true,
     this.zones = true,
@@ -55,10 +67,19 @@ class TerrainViewState extends State<TerrainView>
   Animation<Matrix4>? _animation;
   Size _viewport = Size.zero;
   bool _initialized = false;
+  final GlobalKey _canvasKey = GlobalKey();
+  MapPoint? _dragPoint;
   Matrix4 _overview() {
-    final scale = math.max(_viewport.width, _viewport.height) / 1000;
+    final scale =
+        (widget.cityMap
+            ? math.min(_viewport.width, _viewport.height)
+            : math.max(_viewport.width, _viewport.height)) /
+        1000;
     return _position(
-      MapPoint(.5, _viewport.width > _viewport.height ? .64 : .5),
+      MapPoint(
+        .5,
+        !widget.cityMap && _viewport.width > _viewport.height ? .64 : .5,
+      ),
       scale,
     );
   }
@@ -113,6 +134,15 @@ class TerrainViewState extends State<TerrainView>
     super.dispose();
   }
 
+  MapPoint _worldPoint(Offset global) {
+    final box = _canvasKey.currentContext!.findRenderObject() as RenderBox;
+    final local = box.globalToLocal(global);
+    return MapPoint(
+      (local.dx / 1000).clamp(.025, .975),
+      (local.dy / 1000).clamp(.025, .975),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
@@ -152,15 +182,25 @@ class TerrainViewState extends State<TerrainView>
                       ),
                     ),
                     child: SizedBox(
+                      key: _canvasKey,
                       width: 1000,
                       height: 1000,
                       child: Stack(
                         children: [
                           Positioned.fill(
-                            child: Image.asset(
-                              'assets/strategy/valley.png',
-                              fit: BoxFit.fill,
-                              filterQuality: FilterQuality.medium,
+                            child: RepaintBoundary(
+                              child: widget.cityMap
+                                  ? CustomPaint(
+                                      painter: CityMapPainter(
+                                        labels: widget.labels,
+                                        sectors: widget.zones,
+                                      ),
+                                    )
+                                  : Image.asset(
+                                      'assets/strategy/valley.png',
+                                      fit: BoxFit.fill,
+                                      filterQuality: FilterQuality.medium,
+                                    ),
                             ),
                           ),
                           Positioned.fill(
@@ -175,6 +215,27 @@ class TerrainViewState extends State<TerrainView>
                               ),
                             ),
                           ),
+                          if (_dragPoint != null)
+                            Positioned(
+                              left: _dragPoint!.x * 1000 - 25,
+                              top: _dragPoint!.y * 1000 - 25,
+                              child: IgnorePointer(
+                                child: Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: TactixTheme.gold.withValues(
+                                      alpha: .25,
+                                    ),
+                                    border: Border.all(
+                                      color: TactixTheme.gold,
+                                      width: 3,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ...widget.objects.map(
                             (o) => AnimatedPositioned(
                               duration: const Duration(milliseconds: 200),
@@ -198,8 +259,39 @@ class TerrainViewState extends State<TerrainView>
                                 child: Semantics(
                                   label: o.name,
                                   button: true,
-                                  selected: widget.selectedId == o.id,
+                                  selected: (widget.selectedId == o.id || widget.selectedIds.contains(o.id)),
                                   child: GestureDetector(
+                                    onLongPressStart:
+                                        widget.onDragObject == null
+                                        ? null
+                                        : (details) {
+                                            setState(
+                                              () => _dragPoint = _worldPoint(
+                                                details.globalPosition,
+                                              ),
+                                            );
+                                          },
+                                    onLongPressMoveUpdate:
+                                        widget.onDragObject == null
+                                        ? null
+                                        : (details) {
+                                            setState(
+                                              () => _dragPoint = _worldPoint(
+                                                details.globalPosition,
+                                              ),
+                                            );
+                                          },
+                                    onLongPressEnd: widget.onDragObject == null
+                                        ? null
+                                        : (details) {
+                                            final point = _worldPoint(
+                                              details.globalPosition,
+                                            );
+                                            setState(() => _dragPoint = null);
+                                            widget.onDragObject!(o.id, point);
+                                          },
+                                    onLongPressCancel: () =>
+                                        setState(() => _dragPoint = null),
                                     onTap: () => widget.instruction != null
                                         ? widget.onMapTap(o.position)
                                         : widget.onSelect(o.id),
@@ -218,10 +310,10 @@ class TerrainViewState extends State<TerrainView>
                                                   : 14,
                                             ),
                                             border: Border.all(
-                                              color: widget.selectedId == o.id
+                                              color: (widget.selectedId == o.id || widget.selectedIds.contains(o.id))
                                                   ? Colors.white
                                                   : objectColor(o.kind),
-                                              width: widget.selectedId == o.id
+                                              width: (widget.selectedId == o.id || widget.selectedIds.contains(o.id))
                                                   ? 4
                                                   : 2,
                                             ),
@@ -232,10 +324,13 @@ class TerrainViewState extends State<TerrainView>
                                               ),
                                             ],
                                           ),
-                                          child: Icon(
-                                            objectIcon(o.kind),
-                                            color: objectColor(o.kind),
-                                            size: 36,
+                                          child: Transform.rotate(
+                                            angle: o.rotation * math.pi / 180,
+                                            child: Icon(
+                                              objectIcon(o.kind),
+                                              color: objectColor(o.kind),
+                                              size: 36,
+                                            ),
                                           ),
                                         ),
                                         if (widget.labels)
@@ -253,7 +348,9 @@ class TerrainViewState extends State<TerrainView>
                                                   BorderRadius.circular(4),
                                             ),
                                             child: Text(
-                                              o.name,
+                                              o.group.isEmpty
+                                                  ? o.name
+                                                  : '${o.name} · ${o.group}',
                                               maxLines: 2,
                                               textAlign: TextAlign.center,
                                               style: const TextStyle(
@@ -285,7 +382,11 @@ class TerrainViewState extends State<TerrainView>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _chip('ДОЛИНА СЕВЕРНАЯ / УЧЕБНАЯ ТЕРРИТОРИЯ'),
+                    _chip(
+                      widget.cityMap
+                          ? 'ASTRA / ВЫМЫШЛЕННЫЙ ГОРОД'
+                          : 'ДОЛИНА СЕВЕРНАЯ / УЧЕБНАЯ ТЕРРИТОРИЯ',
+                    ),
                     const SizedBox(height: 6),
                     if (widget.instruction != null)
                       _chip(widget.instruction!, gold: true),
@@ -334,8 +435,9 @@ class TerrainViewState extends State<TerrainView>
               bottom: 10,
               child: IgnorePointer(
                 child: _chip(
-                  'Вымышленная растровая учебная подложка • не спутниковые данные\n'
-                  'Панорама: перетаскивание • масштаб: колесо / два пальца',
+                  widget.cityMap
+                      ? 'Синтетическая карта · архитектурное вдохновение: Астана\nПанорама: перетаскивание · жетон: удержать и переместить'
+                      : 'Вымышленная растровая учебная подложка • не спутниковые данные\nПанорама: перетаскивание • масштаб: колесо / два пальца',
                 ),
               ),
             ),
@@ -413,5 +515,9 @@ class _OverlayPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _OverlayPainter old) => true;
+  bool shouldRepaint(covariant _OverlayPainter old) =>
+      old.objects != objects ||
+      old.frame != frame ||
+      old.routes != routes ||
+      old.zones != zones;
 }
