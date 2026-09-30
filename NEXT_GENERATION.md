@@ -644,3 +644,7 @@ Implemented:
 - UI tests updated to the Russian labels plus a dedicated product-definition widget test.
 
 Phase H is UI/documentation only and adds no database migration. Alembic remains `0007_thread_branches`.
+
+## Phase I — Final Integration & Release Readiness
+
+Phase I добавляет release-readiness слой: безопасный `/ready`, production CORS policy, security headers, экран «Готовность системы», build/release идентификаторы и русскоязычный release checklist. Новая бизнес-функция или миграция БД не вводится: задача этапа — сделать текущий TACTIX контролируемым и воспроизводимым перед пилотной эксплуатацией.

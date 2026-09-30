@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from app.auth import CurrentIdentity, bearer, get_current_user, router as auth_router
 from app.db import get_session_factory
+from app.config import get_cors_origins
 
 
 # =====================================================
@@ -24,7 +25,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=get_cors_origins(),
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,6 +41,17 @@ from app.thread_branch import router as thread_branch_router
 app.include_router(thread_branch_router)
 from app.thread_pulse import router as thread_pulse_router
 app.include_router(thread_pulse_router)
+from app.readiness import router as readiness_router
+app.include_router(readiness_router)
+
+
+@app.middleware("http")
+async def release_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    return response
 
 
 # =====================================================

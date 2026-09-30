@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
+import 'system_readiness_screen.dart';
 
 class ProductDefinitionScreen extends StatelessWidget {
   const ProductDefinitionScreen({super.key});
@@ -125,6 +126,17 @@ class ProductDefinitionScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                const SizedBox(height: 18),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SystemReadinessScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.health_and_safety_outlined),
+                  label: const Text('Открыть диагностику готовности'),
+                ),
                 const SizedBox(height: 18),
                 const Text(
                   'Короткое определение для доклада: «TACTIX — цифровая платформа управления подготовкой и задачами подразделения со встроенным военным тренажёром, ИИ-сценариями и контролем подтверждённых результатов».',

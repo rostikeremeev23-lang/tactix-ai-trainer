@@ -14,6 +14,7 @@ import '../../widgets/achievements_panel.dart';
 import '../../widgets/common_widgets.dart';
 
 import '../about/product_definition_screen.dart';
+import '../about/system_readiness_screen.dart';
 import '../analytics/statistics_screen.dart';
 import '../ai/ai_chat_screen.dart';
 import '../assignments/assignments_screen.dart';
@@ -370,6 +371,11 @@ class _HomeScreenState extends State<HomeScreen> {
           tooltip: 'О системе TACTIX',
           onPressed: () => _open(context, const ProductDefinitionScreen()),
           icon: const Icon(Icons.info_outline_rounded, color: Colors.white70),
+        ),
+        IconButton(
+          tooltip: 'Готовность системы',
+          onPressed: () => _open(context, const SystemReadinessScreen()),
+          icon: const Icon(Icons.health_and_safety_outlined, color: Colors.white70),
         ),
         IconButton(
           tooltip: 'Режим ИИ',

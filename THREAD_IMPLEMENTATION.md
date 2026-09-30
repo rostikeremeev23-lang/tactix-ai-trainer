@@ -407,3 +407,7 @@ TACTIX is presented as a digital platform for unit task/preparation/result manag
 
 ### Integrity
 Internal status codes such as `WAITING_FOR_VERIFICATION`, relation types such as `TRAINED_BY`, and training states remain unchanged in storage/API traffic. Only the presentation layer is translated.
+
+## Phase I — operational readiness
+
+Функциональный контур C–H считается собранным. Phase I добавляет эксплуатационные проверки вокруг него: readiness backend, безопасную диагностику клиента, идентификацию сборки и production-настройки. Endpoint `/ready` не выдаёт секреты и считает core готовым только при доступной БД и настроенной серверной аутентификации. AI остаётся дополнительным компонентом, чтобы локальные и offline-first сценарии не блокировали основную платформу.
