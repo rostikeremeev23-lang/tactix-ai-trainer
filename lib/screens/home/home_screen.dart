@@ -13,6 +13,7 @@ import '../../services/result_storage_service.dart';
 import '../../widgets/achievements_panel.dart';
 import '../../widgets/common_widgets.dart';
 
+import '../about/product_definition_screen.dart';
 import '../analytics/statistics_screen.dart';
 import '../ai/ai_chat_screen.dart';
 import '../assignments/assignments_screen.dart';
@@ -155,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   TrainingScenario _offlineDemoScenario() {
     return const TrainingScenario(
-      title: 'OFFLINE DEMO • АВТОНОМНЫЙ ЦЕНТР',
+      title: 'АВТОНОМНЫЙ ДЕМО-РЕЖИМ',
       description:
           'После масштабного сбоя инфраструктуры учебный координационный центр работает без внешней сети. Необходимо распределить ограниченные ресурсы, стабилизировать ситуацию и выполнить основную задачу за ограниченное время.',
       time: '50',
@@ -269,11 +270,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 NavigationDestination(
                   icon: Icon(Icons.description_outlined),
                   selectedIcon: Icon(Icons.description),
-                  label: 'Training',
+                  label: 'Подготовка',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.account_tree_outlined),
-                  label: 'Thread',
+                  label: 'Контур',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.analytics_outlined),
@@ -283,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 NavigationDestination(
                   icon: Icon(Icons.forum_outlined),
                   selectedIcon: Icon(Icons.forum),
-                  label: 'AI',
+                  label: 'ИИ',
                 ),
               ],
               onDestinationSelected: (index) {
@@ -366,7 +367,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       actions: [
         IconButton(
-          tooltip: 'AI режим',
+          tooltip: 'О системе TACTIX',
+          onPressed: () => _open(context, const ProductDefinitionScreen()),
+          icon: const Icon(Icons.info_outline_rounded, color: Colors.white70),
+        ),
+        IconButton(
+          tooltip: 'Режим ИИ',
           onPressed: () async {
             await Navigator.push(
               context,
@@ -432,16 +438,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           _CommandTile(
             icon: Icons.account_tree_outlined,
-            title: 'TACTIX THREAD',
-            subtitle: 'Execution Intelligence ? origin, history, evidence',
+            title: 'ЦИФРОВОЙ КОНТУР',
+            subtitle: 'Задачи · история · подтверждения · контроль исполнения',
             accent: TactixTheme.cyan,
             onTap: () => _open(context, const ThreadScreen()),
           ),
           const SizedBox(height: 12),
           _CommandTile(
             icon: Icons.school_outlined,
-            title: 'TRAINING',
-            subtitle: 'Simulation Lab ? scenarios ? assignments ? results',
+            title: 'ПОДГОТОВКА',
+            subtitle: 'Моделирование · сценарии · назначения · результаты',
             accent: TactixTheme.cyan,
             onTap: () => _open(context, const TrainingHubScreen()),
           ),
@@ -451,8 +457,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             _CommandTile(
               icon: Icons.rocket_launch_outlined,
-              title: 'DEMO ДЛЯ ЖЮРИ',
-              subtitle: 'OFFLINE READY • 3 хода • AAR',
+              title: 'ДЕМО-РЕЖИМ',
+              subtitle: 'АВТОНОМНО • 3 хода • разбор результатов',
               accent: TactixTheme.gold,
               onTap: () => _openOfflineDemo(context),
             ),
@@ -518,7 +524,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(width: tileWidth, child: _CommandTile(
                       icon: Icons.school_outlined,
                       title: UserSessionScope.of(context).canManageTraining ? 'ЦЕНТР ИНСТРУКТОРА' : 'УЧЕБНЫЙ МАРШРУТ',
-                      subtitle: 'Simulation Lab · задания, результаты и отзывы',
+                      subtitle: 'Центр моделирования · задания · результаты · отзывы',
                       accent: TactixTheme.gold,
                       onTap: () => _open(context, SimulationLabScreen(
                         userId: UserSessionScope.of(context).currentUser!.id,
@@ -529,8 +535,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: tileWidth,
                     child: _CommandTile(
                       icon: Icons.public_rounded,
-                      title: 'SIMULATION LAB',
-                      subtitle: 'Казахстан • Астана • Simulation Lab',
+                      title: 'ЦЕНТР МОДЕЛИРОВАНИЯ',
+                      subtitle: 'Сценарии · карты · сессии · разбор результатов',
                       accent: TactixTheme.cyan,
                       onTap: () => _open(
                         context,
@@ -557,7 +563,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: tileWidth,
                     child: _CommandTile(
                       icon: Icons.auto_awesome,
-                      title: 'AI СЦЕНАРИЙ',
+                      title: 'ИИ-СЦЕНАРИЙ',
                       subtitle: 'Создать учебную ситуацию',
                       accent: TactixTheme.cyan,
                       onTap: () => _open(context, const AIScenarioScreen()),
@@ -567,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: tileWidth,
                     child: _CommandTile(
                       icon: Icons.forum_outlined,
-                      title: 'TACTIX AI',
+                      title: 'ИИ TACTIX',
                       subtitle: 'Чат • Тренер • Разбор результата',
                       accent: const Color(0xFF74E6FF),
                       onTap: () => _open(context, const AIChatScreen()),
@@ -763,7 +769,7 @@ class _ProfilePanel extends StatelessWidget {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'TACTIX OPERATOR',
+                      'ОПЕРАТОР TACTIX',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
@@ -1170,7 +1176,7 @@ class _DesktopSidebar extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 18, 16, 12),
             child: Text(
-              'NAVIGATION',
+              'НАВИГАЦИЯ',
               style: TextStyle(
                 color: TactixTheme.textMuted,
                 fontSize: 11,
@@ -1180,7 +1186,7 @@ class _DesktopSidebar extends StatelessWidget {
             ),
           ),
           _nav(context, Icons.dashboard_rounded, 'Главная', true, null),
-          _nav(context, Icons.account_tree_outlined, 'Thread', false, const ThreadScreen()),
+          _nav(context, Icons.account_tree_outlined, 'Контур', false, const ThreadScreen()),
           _nav(
             context,
             Icons.track_changes_rounded,
@@ -1236,7 +1242,7 @@ class _DesktopSidebar extends StatelessWidget {
                     Icon(Icons.hub_outlined, size: 16, color: TactixTheme.cyan),
                     SizedBox(width: 8),
                     Text(
-                      'SYSTEM STATUS',
+                      'СОСТОЯНИЕ СИСТЕМЫ',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
@@ -1398,13 +1404,13 @@ class _EnvironmentDashboardState extends State<_EnvironmentDashboard> {
   @override
   Widget build(BuildContext context) {
     return PanelCard(
-      title: 'ENVIRONMENT MONITOR',
+      title: 'МОНИТОР СРЕДЫ',
       icon: Icons.public_rounded,
       accent: TactixTheme.textMuted,
       trailing: TextButton.icon(
         onPressed: loading ? null : _sync,
         icon: const Icon(Icons.refresh_rounded, size: 15),
-        label: const Text('SYNC'),
+        label: const Text('ОБНОВИТЬ'),
         style: TextButton.styleFrom(
           foregroundColor: TactixTheme.cyan,
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
@@ -1458,8 +1464,8 @@ class _EnvironmentDashboardState extends State<_EnvironmentDashboard> {
                             ),
                             StatusChip(
                               text: syncedOnline
-                                  ? 'LIVE • ${_timeLabel(weather.updatedAt)}'
-                                  : 'LOCAL • ${_timeLabel(weather.updatedAt)}',
+                                  ? 'ОНЛАЙН • ${_timeLabel(weather.updatedAt)}'
+                                  : 'ЛОКАЛЬНО • ${_timeLabel(weather.updatedAt)}',
                               online: syncedOnline,
                             ),
                           ],
@@ -1637,7 +1643,7 @@ class _IntelligencePanel extends StatelessWidget {
       child: Column(
         children: [
           PanelCard(
-            title: 'AI СТАТУС',
+            title: 'СТАТУС ИИ',
             icon: Icons.auto_awesome,
             accent: TactixTheme.cyan,
             child: Column(
@@ -1736,17 +1742,17 @@ class _IntelligencePanel extends StatelessWidget {
             child: Column(
               children: [
                 _DiagnosticRow(
-                  label: 'Backend',
-                  value: aiOnline ? 'ONLINE' : 'OFFLINE',
+                  label: 'Сервер',
+                  value: aiOnline ? 'ОНЛАЙН' : 'ОФЛАЙН',
                   ok: aiOnline,
                 ),
-                _DiagnosticRow(label: 'Ollama', value: aiOnline ? 'ONLINE' : 'CHECK', ok: aiOnline),
+                _DiagnosticRow(label: 'Ollama', value: aiOnline ? 'ОНЛАЙН' : 'ПРОВЕРИТЬ', ok: aiOnline),
                 _DiagnosticRow(
                   label: 'Данные',
-                  value: loading ? 'SYNC...' : '$scenarioCount результатов',
+                  value: loading ? 'СИНХРОНИЗАЦИЯ...' : '$scenarioCount результатов',
                   ok: !loading,
                 ),
-                _DiagnosticRow(label: 'Отчёты', value: 'READY', ok: true),
+                _DiagnosticRow(label: 'Отчёты', value: 'ГОТОВО', ok: true),
               ],
             ),
           ),
@@ -1773,7 +1779,7 @@ class _IntelligencePanel extends StatelessWidget {
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Запусти AI-сценарий\nдля новой тренировки',
+                      'Запусти ИИ-сценарий\nдля новой тренировки',
                       style: TextStyle(
                         fontSize: 11,
                         height: 1.35,
@@ -2191,7 +2197,7 @@ class _HeroContent extends StatelessWidget {
         ),
         SizedBox(height: 8),
         Text(
-          'Сценарии • AI-анализ • симуляция • статистика',
+          'Сценарии • ИИ-анализ • моделирование • статистика',
           style: TextStyle(
             color: TactixTheme.textMuted,
             fontSize: 12,

@@ -26,34 +26,34 @@ void main() {
           home: ThreadScreen(store: store),
         ),
       );
-      expect(find.text('TACTIX THREAD'), findsOneWidget);
-      await tester.tap(find.text('Create Case'));
+      expect(find.text('ЦИФРОВОЙ КОНТУР'), findsOneWidget);
+      await tester.tap(find.text('Создать дело'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField).at(0), 'Fictional gap');
       await tester.enterText(
         find.byType(TextFormField).at(1),
         'Observed during exercise',
       );
-      await tester.tap(find.text('Save'));
+      await tester.tap(find.text('Сохранить'));
       await tester.pumpAndSettle();
       expect(store.cases, hasLength(1));
-      expect(find.text('Add evidence'), findsOneWidget);
+      expect(find.text('Добавить подтверждение'), findsOneWidget);
       // On compact phones the Case detail is scrollable and the action can be
       // below the initial viewport. Scroll it into view before tapping.
-      await tester.ensureVisible(find.text('Add evidence'));
+      await tester.ensureVisible(find.text('Добавить подтверждение'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Add evidence'));
+      await tester.tap(find.text('Добавить подтверждение'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField).at(0), 'Result note');
       await tester.enterText(
         find.byType(TextFormField).at(1),
         'Completed practice',
       );
-      await tester.tap(find.text('Save'));
+      await tester.tap(find.text('Сохранить'));
       await tester.pumpAndSettle();
       expect(store.cases.single['evidence'], hasLength(1));
       expect(store.cases.single['verification_state'], 'UNVERIFIED');
-      expect(find.text('Verify & close'), findsNothing);
+      expect(find.text('Проверить и закрыть'), findsNothing);
       expect(store.pending, hasLength(2));
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
@@ -83,9 +83,9 @@ void main() {
       MaterialApp(theme: TactixTheme.dark, home: ThreadScreen(store: store)),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Graph'));
+    await tester.tap(find.text('Связи'));
     await tester.pumpAndSettle();
-    expect(find.text('DIGITAL THREAD'), findsOneWidget);
+    expect(find.text('ЦИФРОВОЙ КОНТУР'), findsWidgets);
     expect(find.text('Origin Case'), findsOneWidget);
     expect(find.text('Related Case'), findsOneWidget);
     expect(tester.takeException(), isNull);

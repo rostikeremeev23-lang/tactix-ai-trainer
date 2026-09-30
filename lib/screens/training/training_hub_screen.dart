@@ -23,7 +23,7 @@ class TrainingHubScreen extends StatelessWidget {
     final entries =
         <({String title, String detail, IconData icon, VoidCallback open})>[
           (
-            title: 'SIMULATION LAB',
+            title: 'ЦЕНТР МОДЕЛИРОВАНИЯ',
             detail: 'Сценарии, карты, сохранённые сессии, повторы и разбор результатов.',
             icon: Icons.public_rounded,
             open: () => open(SimulationLabScreen(userId: user.id)),
@@ -57,7 +57,7 @@ class TrainingHubScreen extends StatelessWidget {
               title: session.canManageTraining
                   ? 'Центр инструктора'
                   : 'Учебный маршрут',
-              detail: 'Simulation Lab · задания, результаты и отзывы.',
+              detail: 'Центр моделирования · задания, результаты и отзывы.',
               icon: Icons.school_outlined,
               open: () => open(
                 SimulationLabScreen(userId: user.id, startInPlatform: true),
@@ -65,7 +65,7 @@ class TrainingHubScreen extends StatelessWidget {
             ),
         ];
     return Scaffold(
-      appBar: AppBar(title: const Text('TRAINING')),
+      appBar: AppBar(title: const Text('ПОДГОТОВКА')),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

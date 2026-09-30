@@ -119,16 +119,16 @@ class _ThreadScreenState extends State<ThreadScreen>
                         autofocus: i == 0,
                         minLines: 1,
                         maxLines: i == 1 ? 4 : 2,
-                        maxLength: labels[i] == 'Title'
+                        maxLength: labels[i] == 'Название'
                             ? 200
-                            : labels[i] == 'Source / reference'
+                            : labels[i] == 'Источник / ссылка'
                             ? 2000
                             : 4000,
                         decoration: InputDecoration(labelText: labels[i]),
                         validator: (v) =>
                             (v ?? '').trim().isEmpty &&
                                 !(optionalLast && i == labels.length - 1)
-                            ? 'Required'
+                            ? 'Обязательное поле'
                             : null,
                       ),
                     ),
@@ -140,7 +140,7 @@ class _ThreadScreenState extends State<ThreadScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Отмена'),
           ),
           FilledButton(
             onPressed: () {
@@ -151,7 +151,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                 );
               }
             },
-            child: const Text('Save'),
+            child: const Text('Сохранить'),
           ),
         ],
       ),
@@ -165,9 +165,9 @@ class _ThreadScreenState extends State<ThreadScreen>
   }
 
   Future<void> _create() async {
-    final values = await _form('Create Case', [
-      'Title',
-      'Why does this work exist?',
+    final values = await _form('Создать дело', [
+      'Название',
+      'Причина и цель работы',
     ]);
     if (values == null || !mounted) return;
     await _perform(() async {
@@ -188,9 +188,9 @@ class _ThreadScreenState extends State<ThreadScreen>
   Future<void> _status(Map<String, dynamic> row, String status) async {
     final values = await _form(
       status == 'CLOSED'
-          ? 'Close with verified evidence'
-          : 'Record status change',
-      ['Reason'],
+          ? 'Закрыть после проверки подтверждений'
+          : 'Изменить статус',
+      ['Основание'],
     );
     if (values == null || !mounted) return;
     await _perform(() async {
@@ -201,10 +201,10 @@ class _ThreadScreenState extends State<ThreadScreen>
   }
 
   Future<void> _evidence(Map<String, dynamic> row) async {
-    final values = await _form('Add evidence', [
-      'Title',
-      'Observed result / supporting context',
-      'Source / reference',
+    final values = await _form('Добавить подтверждение', [
+      'Название',
+      'Наблюдаемый результат / подтверждающий контекст',
+      'Источник / ссылка',
     ], optionalLast: true);
     if (values == null || !mounted) return;
     await _perform(() async {
@@ -225,7 +225,7 @@ class _ThreadScreenState extends State<ThreadScreen>
           children: [
             Icon(Icons.auto_awesome, color: TactixTheme.gold),
             SizedBox(width: 10),
-            Text('ASK THREAD'),
+            Text('АНАЛИЗ TACTIX'),
           ],
         ),
         content: SizedBox(
@@ -237,7 +237,7 @@ class _ThreadScreenState extends State<ThreadScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'The answer is generated only from the current Case, confirmed timeline, evidence, and linked training records. Unverified evidence is not treated as fact.',
+                  'Ответ формируется только по данным текущего дела: подтверждённой хронологии, материалам и связанным результатам подготовки. Непроверенные материалы не считаются установленным фактом.',
                   style: TextStyle(color: TactixTheme.textMuted, height: 1.45),
                 ),
                 const SizedBox(height: 16),
@@ -248,11 +248,11 @@ class _ThreadScreenState extends State<ThreadScreen>
                   maxLines: 5,
                   maxLength: 1600,
                   decoration: const InputDecoration(
-                    labelText: 'Question about this Case',
-                    hintText: 'What is confirmed, what is missing, and what blocks closure?',
+                    labelText: 'Вопрос по текущему делу',
+                    hintText: 'Что подтверждено, чего не хватает и что мешает закрыть дело?',
                   ),
                   validator: (value) => (value ?? '').trim().length < 2
-                      ? 'Enter a question'
+                      ? 'Введите вопрос'
                       : null,
                 ),
                 const SizedBox(height: 8),
@@ -261,9 +261,9 @@ class _ThreadScreenState extends State<ThreadScreen>
                   runSpacing: 8,
                   children: [
                     for (final prompt in const [
-                      'What is confirmed?',
-                      'What evidence is missing?',
-                      'What blocks closure?',
+                      'Что уже подтверждено?',
+                      'Каких подтверждений не хватает?',
+                      'Что мешает закрыть дело?',
                     ])
                       ActionChip(
                         label: Text(prompt),
@@ -278,7 +278,7 @@ class _ThreadScreenState extends State<ThreadScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Отмена'),
           ),
           FilledButton.icon(
             onPressed: () {
@@ -287,7 +287,7 @@ class _ThreadScreenState extends State<ThreadScreen>
               }
             },
             icon: const Icon(Icons.auto_awesome),
-            label: const Text('Ask'),
+            label: const Text('Анализировать'),
           ),
         ],
       ),
@@ -305,17 +305,163 @@ class _ThreadScreenState extends State<ThreadScreen>
       return '${value}T23:59:00Z';
     }
     final parsed = DateTime.tryParse(value);
-    if (parsed == null) throw FormatException('Use YYYY-MM-DD or an ISO date/time');
+    if (parsed == null) throw FormatException('Используйте формат ГГГГ-ММ-ДД или ISO дату/время');
     return parsed.toUtc().toIso8601String();
   }
 
   String _ownerLabel(List<Map<String, dynamic>> owners, String? id) {
-    if (id == null) return 'Unassigned';
+    if (id == null) return 'Не назначен';
     for (final owner in owners) {
       if (owner['id'] == id) return owner['label']?.toString() ?? id;
     }
     return id;
   }
+
+
+  String _statusLabel(Object? raw) => switch (raw?.toString()) {
+    'OPEN' => 'Открыто',
+    'IN_REVIEW' => 'На рассмотрении',
+    'ACTION_REQUIRED' => 'Требуются действия',
+    'IN_PROGRESS' => 'В работе',
+    'WAITING_FOR_EVIDENCE' => 'Ожидает подтверждений',
+    'TRAINING_REQUIRED' => 'Требуется подготовка',
+    'WAITING_FOR_VERIFICATION' => 'Ожидает проверки',
+    'RESOLVED' => 'Решено',
+    'CLOSED' => 'Закрыто',
+    'DRAFT' => 'Черновик',
+    'MERGED' => 'Применён',
+    'ARCHIVED' => 'Архив',
+    'assigned' => 'Назначено',
+    'in_progress' => 'Выполняется',
+    'submitted' => 'Результат отправлен',
+    'completed' => 'Завершено',
+    'cancelled' => 'Отменено',
+    null => '—',
+    '' => '—',
+    final value => value.replaceAll('_', ' '),
+  };
+
+  String _priorityLabel(Object? raw) => switch (raw?.toString()) {
+    'LOW' => 'Низкий',
+    'NORMAL' => 'Обычный',
+    'HIGH' => 'Высокий',
+    'URGENT' => 'Срочный',
+    null => '—',
+    '' => '—',
+    final value => value,
+  };
+
+  String _verificationLabel(Object? raw) => switch (raw?.toString()) {
+    'VERIFIED' => 'Проверено',
+    'REJECTED' => 'Отклонено',
+    'PENDING' => 'Ожидает проверки',
+    'UNVERIFIED' => 'Не проверено',
+    null => 'Не проверено',
+    '' => 'Не проверено',
+    final value => value.replaceAll('_', ' '),
+  };
+
+  String _kindLabel(Object? raw) => switch (raw?.toString()) {
+    'TASK' => 'Задача',
+    'TRAINING' => 'Подготовка',
+    'REVIEW' => 'Проверка',
+    'CASE' => 'Дело',
+    'BRANCH' => 'Вариант плана',
+    'RELATION' => 'Связь',
+    'EVENT' => 'Событие',
+    null => '—',
+    '' => '—',
+    final value => value.replaceAll('_', ' '),
+  };
+
+  String _relationshipLabel(Object? raw) => switch (raw?.toString()) {
+    'RELATED_TO' => 'Связано с',
+    'REQUIRES' => 'Требует',
+    'CREATED_FROM' => 'Создано из',
+    'RESULTED_IN' => 'Привело к',
+    'SUPERSEDES' => 'Заменяет',
+    'SUPPORTED_BY' => 'Подтверждается',
+    'TRAINED_BY' => 'Подготовка по',
+    'PRODUCED' => 'Сформировало',
+    null => '—',
+    '' => '—',
+    final value => value.replaceAll('_', ' '),
+  };
+
+  String _confidenceLabel(Object? raw) => switch (raw?.toString()) {
+    'HIGH' => 'Высокая уверенность',
+    'MEDIUM' => 'Средняя уверенность',
+    'LOW' => 'Низкая уверенность',
+    null => 'Не определена',
+    '' => 'Не определена',
+    final value => value,
+  };
+
+  String _fieldLabel(Object? raw) => switch (raw?.toString()) {
+    'description' => 'Описание',
+    'priority' => 'Приоритет',
+    'status' => 'Статус',
+    'owner_id' => 'Ответственный',
+    'due_date' => 'Срок',
+    'plan_items' => 'Пункты плана',
+    null => 'Поле',
+    '' => 'Поле',
+    final value => value.replaceAll('_', ' '),
+  };
+
+  String _severityLabel(Object? raw) => switch (raw?.toString()) {
+    'BLOCKING' => 'Блокирующий конфликт',
+    'WARNING' => 'Предупреждение',
+    'INFO' => 'Информация',
+    null => 'Проверка',
+    '' => 'Проверка',
+    final value => value.replaceAll('_', ' '),
+  };
+
+  String _conflictCodeLabel(Object? raw) => switch (raw?.toString()) {
+    'FIELD_DIVERGED' => 'поле изменено в двух версиях',
+    'CASE_CLOSED' => 'дело уже закрыто',
+    'OWNER_INACTIVE' => 'ответственный недоступен',
+    'ASSIGNEE_INACTIVE' => 'исполнитель недоступен',
+    'INVALID_DATE' => 'некорректная дата',
+    'PAST_DUE' => 'срок уже прошёл',
+    'DUPLICATE_PLAN_ITEM' => 'дублирующий пункт плана',
+    'PLAN_AFTER_CASE_DUE' => 'пункт выходит за срок дела',
+    'TRAINING_AFTER_CASE_DUE' => 'подготовка выходит за срок дела',
+    null => 'требуется проверка',
+    '' => 'требуется проверка',
+    final value => value.replaceAll('_', ' ').toLowerCase(),
+  };
+
+  String _alertCodeLabel(Object? raw) => switch (raw?.toString()) {
+    'OVERDUE' => 'Просрочено',
+    'STALE' => 'Давно без изменений',
+    'WAITING_FOR_VERIFICATION' => 'Ожидает проверки',
+    'DUE_SOON' => 'Срок приближается',
+    'UNVERIFIED_EVIDENCE' => 'Есть непроверенные подтверждения',
+    null => 'Требует внимания',
+    '' => 'Требует внимания',
+    final value => value.replaceAll('_', ' '),
+  };
+
+  String _eventTypeLabel(Object? raw) => switch (raw?.toString()) {
+    'CASE_CREATED' => 'Дело создано',
+    'CASE_UPDATED' => 'Дело обновлено',
+    'STATUS_CHANGED' => 'Статус изменён',
+    'EVIDENCE_ADDED' => 'Добавлено подтверждение',
+    'EVIDENCE_VERIFIED' => 'Подтверждение проверено',
+    'EVIDENCE_REJECTED' => 'Подтверждение отклонено',
+    'RELATION_CREATED' => 'Создана связь',
+    'BRANCH_CREATED' => 'Создан вариант плана',
+    'BRANCH_UPDATED' => 'Вариант плана обновлён',
+    'BRANCH_MERGED' => 'Вариант плана применён',
+    'TRAINING_LINKED' => 'Подготовка связана с делом',
+    'TRAINING_COMPLETED' => 'Подготовка завершена',
+    'RESULT_IMPORTED' => 'Результат добавлен в дело',
+    null => 'Событие',
+    '' => 'Событие',
+    final value => value.replaceAll('_', ' '),
+  };
 
   Future<Map<String, dynamic>?> _planItemDialog(
     List<Map<String, dynamic>> owners,
@@ -330,7 +476,7 @@ class _ThreadScreenState extends State<ThreadScreen>
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setLocal) => AlertDialog(
-          title: const Text('Add Branch plan item'),
+          title: const Text('Добавить пункт варианта плана'),
           content: SizedBox(
             width: 520,
             child: Form(
@@ -343,26 +489,26 @@ class _ThreadScreenState extends State<ThreadScreen>
                       controller: title,
                       autofocus: true,
                       maxLength: 240,
-                      decoration: const InputDecoration(labelText: 'Task / action'),
-                      validator: (v) => (v ?? '').trim().isEmpty ? 'Required' : null,
+                      decoration: const InputDecoration(labelText: 'Задача / действие'),
+                      validator: (v) => (v ?? '').trim().isEmpty ? 'Обязательное поле' : null,
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       initialValue: kind,
-                      decoration: const InputDecoration(labelText: 'Type'),
+                      decoration: const InputDecoration(labelText: 'Тип'),
                       items: const [
-                        DropdownMenuItem(value: 'TASK', child: Text('Task')),
-                        DropdownMenuItem(value: 'TRAINING', child: Text('Training')),
-                        DropdownMenuItem(value: 'REVIEW', child: Text('Review')),
+                        DropdownMenuItem(value: 'TASK', child: Text('Задача')),
+                        DropdownMenuItem(value: 'TRAINING', child: Text('Подготовка')),
+                        DropdownMenuItem(value: 'REVIEW', child: Text('Проверка')),
                       ],
                       onChanged: (v) => setLocal(() => kind = v ?? 'TASK'),
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String?>(
                       initialValue: assignee,
-                      decoration: const InputDecoration(labelText: 'Assignee'),
+                      decoration: const InputDecoration(labelText: 'Исполнитель'),
                       items: [
-                        const DropdownMenuItem<String?>(value: null, child: Text('No assignee')),
+                        const DropdownMenuItem<String?>(value: null, child: Text('Без исполнителя')),
                         for (final owner in owners)
                           DropdownMenuItem<String?>(
                             value: owner['id'] as String,
@@ -375,8 +521,8 @@ class _ThreadScreenState extends State<ThreadScreen>
                     TextFormField(
                       controller: due,
                       decoration: const InputDecoration(
-                        labelText: 'Due date (optional)',
-                        hintText: 'YYYY-MM-DD',
+                        labelText: 'Срок (необязательно)',
+                        hintText: 'ГГГГ-ММ-ДД',
                       ),
                       validator: (value) {
                         if ((value ?? '').trim().isEmpty) return null;
@@ -384,7 +530,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                           _branchDate(value!);
                           return null;
                         } catch (_) {
-                          return 'Use YYYY-MM-DD or ISO date/time';
+                          return 'Используйте ГГГГ-ММ-ДД или ISO дату/время';
                         }
                       },
                     ),
@@ -394,7 +540,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                       minLines: 2,
                       maxLines: 4,
                       maxLength: 2000,
-                      decoration: const InputDecoration(labelText: 'Planning note'),
+                      decoration: const InputDecoration(labelText: 'Примечание к плану'),
                     ),
                   ],
                 ),
@@ -402,7 +548,7 @@ class _ThreadScreenState extends State<ThreadScreen>
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
             FilledButton(
               onPressed: () {
                 if (!key.currentState!.validate()) return;
@@ -415,7 +561,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                   'note': note.text.trim(),
                 });
               },
-              child: const Text('Add'),
+              child: const Text('Добавить'),
             ),
           ],
         ),
@@ -431,8 +577,8 @@ class _ThreadScreenState extends State<ThreadScreen>
   Future<void> _createBranch(Map<String, dynamic> row) async {
     if (!store.staff || store.api == null) return;
     final values = await _form(
-      'Create TACTIX BRANCH',
-      ['Variant name', 'Planning assumption / purpose'],
+      'Создать вариант плана',
+      ['Название варианта', 'Замысел / цель варианта'],
       optionalLast: true,
     );
     if (values == null || !mounted) return;
@@ -479,7 +625,7 @@ class _ThreadScreenState extends State<ThreadScreen>
             children: [
               Icon(Icons.fork_right_outlined, color: TactixTheme.cyan),
               SizedBox(width: 10),
-              Text('Edit TACTIX BRANCH'),
+              Text('Редактировать вариант плана'),
             ],
           ),
           content: SizedBox(
@@ -495,25 +641,25 @@ class _ThreadScreenState extends State<ThreadScreen>
                       TextFormField(
                         controller: name,
                         maxLength: 160,
-                        decoration: const InputDecoration(labelText: 'Variant name'),
-                        validator: (v) => (v ?? '').trim().isEmpty ? 'Required' : null,
+                        decoration: const InputDecoration(labelText: 'Название варианта'),
+                        validator: (v) => (v ?? '').trim().isEmpty ? 'Обязательное поле' : null,
                       ),
                       TextFormField(
                         controller: branchNote,
                         maxLength: 2000,
                         minLines: 2,
                         maxLines: 3,
-                        decoration: const InputDecoration(labelText: 'Variant assumption / note'),
+                        decoration: const InputDecoration(labelText: 'Замысел / примечание'),
                       ),
                       const SizedBox(height: 8),
-                      Text('Proposed Case state', style: Theme.of(context).textTheme.titleMedium),
+                      Text('Предлагаемое состояние дела', style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 10),
                       TextFormField(
                         controller: caseDescription,
                         minLines: 2,
                         maxLines: 5,
                         maxLength: 8000,
-                        decoration: const InputDecoration(labelText: 'Proposed Case description'),
+                        decoration: const InputDecoration(labelText: 'Предлагаемое описание дела'),
                       ),
                       const SizedBox(height: 10),
                       Wrap(
@@ -524,12 +670,12 @@ class _ThreadScreenState extends State<ThreadScreen>
                             width: 210,
                             child: DropdownButtonFormField<String>(
                               initialValue: priority,
-                              decoration: const InputDecoration(labelText: 'Priority'),
+                              decoration: const InputDecoration(labelText: 'Приоритет'),
                               items: const [
-                                DropdownMenuItem(value: 'LOW', child: Text('LOW')),
-                                DropdownMenuItem(value: 'NORMAL', child: Text('NORMAL')),
-                                DropdownMenuItem(value: 'HIGH', child: Text('HIGH')),
-                                DropdownMenuItem(value: 'URGENT', child: Text('URGENT')),
+                                DropdownMenuItem(value: 'LOW', child: Text('Низкий')),
+                                DropdownMenuItem(value: 'NORMAL', child: Text('Обычный')),
+                                DropdownMenuItem(value: 'HIGH', child: Text('Высокий')),
+                                DropdownMenuItem(value: 'URGENT', child: Text('Срочный')),
                               ],
                               onChanged: (v) => setLocal(() => priority = v ?? priority),
                             ),
@@ -538,14 +684,14 @@ class _ThreadScreenState extends State<ThreadScreen>
                             width: 250,
                             child: DropdownButtonFormField<String>(
                               initialValue: status,
-                              decoration: const InputDecoration(labelText: 'Proposed status'),
+                              decoration: const InputDecoration(labelText: 'Предлагаемый статус'),
                               items: [
                                 for (final value in const [
                                   'OPEN', 'IN_REVIEW', 'ACTION_REQUIRED', 'IN_PROGRESS',
                                   'WAITING_FOR_EVIDENCE', 'TRAINING_REQUIRED',
                                   'WAITING_FOR_VERIFICATION', 'RESOLVED',
                                 ])
-                                  DropdownMenuItem(value: value, child: Text(value.replaceAll('_', ' '))),
+                                  DropdownMenuItem(value: value, child: Text(_statusLabel(value))),
                               ],
                               onChanged: (v) => setLocal(() => status = v ?? status),
                             ),
@@ -554,7 +700,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                             width: 260,
                             child: DropdownButtonFormField<String>(
                               initialValue: ownerId,
-                              decoration: const InputDecoration(labelText: 'Proposed owner'),
+                              decoration: const InputDecoration(labelText: 'Предлагаемый ответственный'),
                               items: [
                                 for (final owner in owners)
                                   DropdownMenuItem<String>(
@@ -563,7 +709,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                                   ),
                               ],
                               onChanged: (v) => setLocal(() => ownerId = v),
-                              validator: (v) => v == null ? 'Select owner' : null,
+                              validator: (v) => v == null ? 'Выберите ответственного' : null,
                             ),
                           ),
                           SizedBox(
@@ -571,8 +717,8 @@ class _ThreadScreenState extends State<ThreadScreen>
                             child: TextFormField(
                               controller: due,
                               decoration: const InputDecoration(
-                                labelText: 'Case due date',
-                                hintText: 'YYYY-MM-DD',
+                                labelText: 'Срок по делу',
+                                hintText: 'ГГГГ-ММ-ДД',
                               ),
                               validator: (value) {
                                 if ((value ?? '').trim().isEmpty) return null;
@@ -580,7 +726,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                                   _branchDate(value!);
                                   return null;
                                 } catch (_) {
-                                  return 'Use YYYY-MM-DD';
+                                  return 'Используйте формат ГГГГ-ММ-ДД';
                                 }
                               },
                             ),
@@ -590,34 +736,34 @@ class _ThreadScreenState extends State<ThreadScreen>
                       const SizedBox(height: 20),
                       Row(
                         children: [
-                          Expanded(child: Text('Plan items', style: Theme.of(context).textTheme.titleMedium)),
+                          Expanded(child: Text('Пункты плана', style: Theme.of(context).textTheme.titleMedium)),
                           OutlinedButton.icon(
                             onPressed: () async {
                               final item = await _planItemDialog(owners);
                               if (item != null) setLocal(() => planItems.add(item));
                             },
                             icon: const Icon(Icons.add_task_outlined),
-                            label: const Text('Add item'),
+                            label: const Text('Добавить пункт'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
                       if (planItems.isEmpty)
                         const Text(
-                          'No additional plan items. You can compare only the Case-level proposal.',
+                          'Дополнительных пунктов нет. Можно сравнить только изменения самого дела.',
                           style: TextStyle(color: TactixTheme.textMuted),
                         ),
                       for (final item in planItems)
                         Card(
                           child: ListTile(
                             leading: const Icon(Icons.checklist_outlined, color: TactixTheme.cyan),
-                            title: Text(item['title']?.toString() ?? 'Plan item'),
+                            title: Text(item['title']?.toString() ?? 'Пункт плана'),
                             subtitle: Text(
-                              '${item['kind'] ?? 'TASK'} · ${_ownerLabel(owners, item['assignee_id']?.toString())}'
+                              '${_kindLabel(item['kind'])} · ${_ownerLabel(owners, item['assignee_id']?.toString())}'
                               '${item['due_at'] == null ? '' : ' · ${item['due_at'].toString().split('T').first}'}',
                             ),
                             trailing: IconButton(
-                              tooltip: 'Remove',
+                              tooltip: 'Удалить',
                               onPressed: () => setLocal(() => planItems.remove(item)),
                               icon: const Icon(Icons.close),
                             ),
@@ -630,7 +776,7 @@ class _ThreadScreenState extends State<ThreadScreen>
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
             FilledButton.icon(
               onPressed: () {
                 if (!key.currentState!.validate()) return;
@@ -648,7 +794,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                 });
               },
               icon: const Icon(Icons.save_outlined),
-              label: const Text('Save variant'),
+              label: const Text('Сохранить вариант'),
             ),
           ],
         ),
@@ -684,9 +830,9 @@ class _ThreadScreenState extends State<ThreadScreen>
           children: [
             const Icon(Icons.compare_arrows_outlined, color: TactixTheme.cyan),
             const SizedBox(width: 10),
-            const Expanded(child: Text('TACTIX BRANCH · Compare')),
+            const Expanded(child: Text('ВАРИАНТ ПЛАНА · Сравнение')),
             Chip(
-              label: Text(comparison['can_merge'] == true ? 'MERGE READY' : 'REVIEW'),
+              label: Text(comparison['can_merge'] == true ? 'ГОТОВО К ПРИМЕНЕНИЮ' : 'ТРЕБУЕТ ПРОВЕРКИ'),
             ),
           ],
         ),
@@ -699,29 +845,29 @@ class _ThreadScreenState extends State<ThreadScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Base Case revision ${comparison['base_case_revision']} → live ${comparison['live_case_revision']}'
-                    '${comparison['stale_base'] == true ? ' · live Case changed after fork' : ''}',
+                    'Базовая версия дела r${comparison['base_case_revision']} → текущая r${comparison['live_case_revision']}'
+                    '${comparison['stale_base'] == true ? ' · после создания варианта основное дело изменилось' : ''}',
                     style: const TextStyle(color: TactixTheme.textMuted),
                   ),
                   const SizedBox(height: 16),
-                  Text('Changes', style: Theme.of(context).textTheme.titleMedium),
-                  if (changes.isEmpty) const Text('No Case-level changes.'),
+                  Text('Изменения', style: Theme.of(context).textTheme.titleMedium),
+                  if (changes.isEmpty) const Text('Изменений в самом деле нет.'),
                   for (final raw in changes)
                     Builder(builder: (_) {
                       final change = raw as Map;
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.swap_horiz, color: TactixTheme.cyan),
-                        title: Text(change['field'].toString()),
+                        title: Text(_fieldLabel(change['field'])),
                         subtitle: SelectableText('${change['before']}  →  ${change['after']}'),
                       );
                     }),
                   const SizedBox(height: 12),
-                  Text('Conflicts & warnings', style: Theme.of(context).textTheme.titleMedium),
+                  Text('Конфликты и предупреждения', style: Theme.of(context).textTheme.titleMedium),
                   if (conflicts.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text('No conflicts detected.', style: TextStyle(color: TactixTheme.positive)),
+                      child: Text('Конфликты не обнаружены.', style: TextStyle(color: TactixTheme.positive)),
                     ),
                   for (final raw in conflicts)
                     Builder(builder: (_) {
@@ -733,21 +879,21 @@ class _ThreadScreenState extends State<ThreadScreen>
                           blocking ? Icons.block_outlined : Icons.warning_amber_outlined,
                           color: blocking ? TactixTheme.warning : TactixTheme.gold,
                         ),
-                        title: Text('${conflict['severity']} · ${conflict['code']}'),
+                        title: Text('${_severityLabel(conflict['severity'])} · ${_conflictCodeLabel(conflict['code'])}'),
                         subtitle: Text(conflict['message']?.toString() ?? ''),
                       );
                     }),
                   const SizedBox(height: 12),
-                  Text('Plan items', style: Theme.of(context).textTheme.titleMedium),
-                  if (items.isEmpty) const Text('No additional plan items.'),
+                  Text('Пункты плана', style: Theme.of(context).textTheme.titleMedium),
+                  if (items.isEmpty) const Text('Дополнительных пунктов плана нет.'),
                   for (final raw in items)
                     Builder(builder: (_) {
                       final item = raw as Map;
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.task_alt_outlined),
-                        title: Text(item['title']?.toString() ?? 'Plan item'),
-                        subtitle: Text('${item['kind'] ?? 'TASK'}${item['due_at'] == null ? '' : ' · ${item['due_at']}'}'),
+                        title: Text(item['title']?.toString() ?? 'Пункт плана'),
+                        subtitle: Text('${_kindLabel(item['kind'])}${item['due_at'] == null ? '' : ' · ${item['due_at']}'}'),
                       );
                     }),
                 ],
@@ -756,7 +902,7 @@ class _ThreadScreenState extends State<ThreadScreen>
           ),
         ),
         actions: [
-          FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Закрыть')),
         ],
       ),
     );
@@ -785,8 +931,8 @@ class _ThreadScreenState extends State<ThreadScreen>
     }
     final warnings = comparison!['warnings'] as int? ?? 0;
     final values = await _form(
-      warnings > 0 ? 'Merge Branch with $warnings warning(s)' : 'Merge Branch',
-      ['Merge note'],
+      warnings > 0 ? 'Применить вариант с предупреждениями: $warnings' : 'Применить вариант',
+      ['Комментарий к применению'],
     );
     if (values == null || !mounted) return;
     await _perform(() async {
@@ -849,8 +995,8 @@ class _ThreadScreenState extends State<ThreadScreen>
     String state,
   ) async {
     final values = await _form(
-      state == 'VERIFIED' ? 'Verify evidence' : 'Reject evidence',
-      ['Review note'],
+      state == 'VERIFIED' ? 'Подтвердить материал' : 'Отклонить',
+      ['Комментарий проверяющего'],
     );
     if (values == null || !mounted) return;
     await _perform(() async {
@@ -864,7 +1010,7 @@ class _ThreadScreenState extends State<ThreadScreen>
     final options = store.cases.where((c) => c['id'] != row['id']).toList();
     if (options.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Create another Case before linking them.')),
+        const SnackBar(content: Text('Создайте ещё одно дело, прежде чем связывать их.')),
       );
       return;
     }
@@ -874,7 +1020,7 @@ class _ThreadScreenState extends State<ThreadScreen>
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Create Thread relation'),
+          title: const Text('Создать связь цифрового контура'),
           content: SizedBox(
             width: 500,
             child: Column(
@@ -882,7 +1028,7 @@ class _ThreadScreenState extends State<ThreadScreen>
               children: [
                 DropdownButtonFormField<String>(
                   initialValue: targetId,
-                  decoration: const InputDecoration(labelText: 'Related Case'),
+                  decoration: const InputDecoration(labelText: 'Связанное дело'),
                   items: [
                     for (final item in options)
                       DropdownMenuItem<String>(
@@ -900,7 +1046,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   initialValue: relationType,
-                  decoration: const InputDecoration(labelText: 'Relationship'),
+                  decoration: const InputDecoration(labelText: 'Тип связи'),
                   items: [
                     for (final value in [
                       'RELATED_TO',
@@ -911,7 +1057,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                     ])
                       DropdownMenuItem<String>(
                         value: value,
-                        child: Text(value.replaceAll('_', ' ')),
+                        child: Text(_statusLabel(value)),
                       ),
                   ],
                   onChanged: (value) {
@@ -926,11 +1072,11 @@ class _ThreadScreenState extends State<ThreadScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: const Text('Отмена'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Link'),
+              child: const Text('Связать'),
             ),
           ],
         ),
@@ -961,18 +1107,18 @@ class _ThreadScreenState extends State<ThreadScreen>
     final yes = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Review conflict'),
+        title: const Text('Проверка конфликта синхронизации'),
         content: Text(
-          'Server revision ${row['revision']}\nCurrent state: ${row['status']}\n\nYour queued actions are shown in Pending actions. Review the evidence and timeline before applying them to the latest server revision.',
+          'Версия сервера: ${row['revision']}\nТекущее состояние: ${_statusLabel(row['status'])}\n\nВаши ожидающие действия показаны в разделе «Ожидающие изменения». Перед применением проверьте подтверждения и хронологию.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep draft'),
+            child: const Text('Оставить черновик'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Apply my queued actions'),
+            child: const Text('Применить мои ожидающие изменения'),
           ),
         ],
       ),
@@ -1000,10 +1146,10 @@ class _ThreadScreenState extends State<ThreadScreen>
     final selected = _selected == null ? null : store.caseById(_selected!);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('TACTIX THREAD'),
+        title: const Text('ЦИФРОВОЙ КОНТУР'),
         actions: [
           IconButton(
-            tooltip: 'Synchronize',
+            tooltip: 'Синхронизировать',
             onPressed: store.syncing || _busy
                 ? null
                 : () => _perform(store.sync),
@@ -1021,16 +1167,16 @@ class _ThreadScreenState extends State<ThreadScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Execution Intelligence',
+                    'Контроль исполнения',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 6),
                   Text(
                     store.api == null
-                        ? 'LOCAL DEMO · saved on this device · verification requires server access'
+                        ? 'ЛОКАЛЬНЫЙ РЕЖИМ · данные на устройстве · проверка требует сервера'
                         : store.syncing
-                        ? 'Synchronizing · ${store.pending.length} queued actions'
-                        : '${store.pending.length} queued actions · ${all.length} cached cases',
+                        ? 'Синхронизация · ожидающих изменений: ${store.pending.length}'
+                        : 'Ожидающих действий: ${store.pending.length} · сохранённых дел: ${all.length}',
                     style: const TextStyle(color: TactixTheme.textMuted),
                   ),
                   if (store.recoveryWarning != null)
@@ -1052,11 +1198,11 @@ class _ThreadScreenState extends State<ThreadScreen>
                     runSpacing: 8,
                     children: [
                       _metric(
-                        'Active',
+                        'Активные',
                         all.where((c) => c['status'] != 'CLOSED').length,
                       ),
                       _metric(
-                        'No evidence',
+                        'Без подтверждений',
                         all
                             .where(
                               (c) =>
@@ -1066,7 +1212,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                             .length,
                       ),
                       _metric(
-                        'Verification',
+                        'На проверке',
                         all
                             .where(
                               (c) => c['status'] == 'WAITING_FOR_VERIFICATION',
@@ -1074,7 +1220,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                             .length,
                       ),
                       _metric(
-                        'Closed',
+                        'Закрытые',
                         all.where((c) => c['status'] == 'CLOSED').length,
                       ),
                     ],
@@ -1085,17 +1231,17 @@ class _ThreadScreenState extends State<ThreadScreen>
                       ButtonSegment<int>(
                         value: 0,
                         icon: Icon(Icons.view_list_outlined),
-                        label: Text('Cases'),
+                        label: Text('Дела'),
                       ),
                       ButtonSegment<int>(
                         value: 1,
                         icon: Icon(Icons.hub_outlined),
-                        label: Text('Graph'),
+                        label: Text('Связи'),
                       ),
                       ButtonSegment<int>(
                         value: 2,
                         icon: Icon(Icons.monitor_heart_outlined),
-                        label: Text('PULSE'),
+                        label: Text('Контроль'),
                       ),
                     ],
                     selected: {_viewMode},
@@ -1160,7 +1306,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                         child: TextButton.icon(
                           onPressed: () => setState(() => _selected = null),
                           icon: const Icon(Icons.arrow_back),
-                          label: const Text('Cases'),
+                          label: const Text('Дела'),
                         ),
                       ),
                       Expanded(child: _detail(selected)),
@@ -1184,7 +1330,7 @@ class _ThreadScreenState extends State<ThreadScreen>
         child: Padding(
           padding: EdgeInsets.all(32),
           child: Text(
-            'PULSE is available to staff roles. It summarizes administrative and training process health without changing Case data.',
+            'Контроль процессов доступен руководителям и инструкторам. Он показывает состояние административных и учебных процессов, не изменяя данные дел.',
             textAlign: TextAlign.center,
             style: TextStyle(color: TactixTheme.textMuted, height: 1.5),
           ),
@@ -1196,7 +1342,7 @@ class _ThreadScreenState extends State<ThreadScreen>
         child: Padding(
           padding: EdgeInsets.all(32),
           child: Text(
-            'PULSE requires a server connection. Cached Case work remains available offline.',
+            'Для контроля процессов требуется соединение с сервером. Сохранённые дела остаются доступны офлайн.',
             textAlign: TextAlign.center,
             style: TextStyle(color: TactixTheme.textMuted, height: 1.5),
           ),
@@ -1209,7 +1355,7 @@ class _ThreadScreenState extends State<ThreadScreen>
         child: FilledButton.icon(
           onPressed: _busy ? null : () => _perform(() => store.loadPulse()),
           icon: const Icon(Icons.refresh),
-          label: const Text('Load PULSE'),
+          label: const Text('Загрузить контроль процессов'),
         ),
       );
     }
@@ -1227,16 +1373,16 @@ class _ThreadScreenState extends State<ThreadScreen>
       (pulse['method'] as Map?) ?? const <String, dynamic>{},
     );
     final cards = <(String, String, IconData)>[
-      ('Active cases', '${metrics['active_cases'] ?? 0}', Icons.work_outline),
-      ('Overdue', '${metrics['overdue_cases'] ?? 0}', Icons.schedule_outlined),
-      ('Due soon', '${metrics['due_soon_cases'] ?? 0}', Icons.event_outlined),
-      ('Stale', '${metrics['stale_cases'] ?? 0}', Icons.hourglass_bottom),
-      ('Verification', '${metrics['waiting_for_verification'] ?? 0}', Icons.fact_check_outlined),
-      ('Unverified evidence', '${metrics['unverified_evidence'] ?? 0}', Icons.attach_file),
-      ('Draft branches', '${metrics['draft_branches'] ?? 0}', Icons.fork_right_outlined),
-      ('Training pending', '${metrics['training_pending'] ?? 0}', Icons.school_outlined),
-      ('Created · 7d', '${metrics['created_last_7d'] ?? 0}', Icons.add_chart_outlined),
-      ('Closed · 7d', '${metrics['closed_last_7d'] ?? 0}', Icons.task_alt_outlined),
+      ('Активные дела', '${metrics['active_cases'] ?? 0}', Icons.work_outline),
+      ('Просрочено', '${metrics['overdue_cases'] ?? 0}', Icons.schedule_outlined),
+      ('Срок скоро', '${metrics['due_soon_cases'] ?? 0}', Icons.event_outlined),
+      ('Давно без изменений', '${metrics['stale_cases'] ?? 0}', Icons.hourglass_bottom),
+      ('На проверке', '${metrics['waiting_for_verification'] ?? 0}', Icons.fact_check_outlined),
+      ('Непроверенные подтверждения', '${metrics['unverified_evidence'] ?? 0}', Icons.attach_file),
+      ('Черновики вариантов', '${metrics['draft_branches'] ?? 0}', Icons.fork_right_outlined),
+      ('Ожидает подготовка', '${metrics['training_pending'] ?? 0}', Icons.school_outlined),
+      ('Создано · 7 дн.', '${metrics['created_last_7d'] ?? 0}', Icons.add_chart_outlined),
+      ('Закрыто · 7 дн.', '${metrics['closed_last_7d'] ?? 0}', Icons.task_alt_outlined),
     ];
     return RefreshIndicator(
       onRefresh: () => store.loadPulse(),
@@ -1249,17 +1395,17 @@ class _ThreadScreenState extends State<ThreadScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('TACTIX PULSE', style: Theme.of(context).textTheme.headlineSmall),
+                    Text('КОНТРОЛЬ ПРОЦЕССОВ', style: Theme.of(context).textTheme.headlineSmall),
                     const SizedBox(height: 4),
                     const Text(
-                      'Deterministic process intelligence · no AI recommendations',
+                      'Объективные показатели процесса · без ИИ-рекомендаций',
                       style: TextStyle(color: TactixTheme.textMuted),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                tooltip: 'Refresh PULSE',
+                tooltip: 'Обновить контроль процессов',
                 onPressed: _busy ? null : () => _perform(() => store.loadPulse()),
                 icon: const Icon(Icons.refresh),
               ),
@@ -1298,13 +1444,13 @@ class _ThreadScreenState extends State<ThreadScreen>
             ],
           ),
           const SizedBox(height: 24),
-          Text('Attention', style: Theme.of(context).textTheme.titleLarge),
+          Text('Требует внимания', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
           if (alerts.isEmpty)
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(16),
-                child: Text('No overdue, stale, or verification alerts in the current window.'),
+                child: Text('Просрочек, зависших дел и ожидания проверки в текущем периоде нет.'),
               ),
             )
           else
@@ -1315,9 +1461,9 @@ class _ThreadScreenState extends State<ThreadScreen>
                     alert['severity'] == 'HIGH' ? Icons.error_outline : Icons.info_outline,
                     color: alert['severity'] == 'HIGH' ? TactixTheme.warning : TactixTheme.gold,
                   ),
-                  title: Text(alert['title']?.toString() ?? 'Case'),
+                  title: Text(alert['title']?.toString() ?? 'Дело'),
                   subtitle: Text(
-                    '${(alert['code'] ?? '').toString().replaceAll('_', ' ')} · ${(alert['status'] ?? '').toString().replaceAll('_', ' ')} · ${alert['age_hours'] ?? 0}h since update',
+                    '${_alertCodeLabel(alert['code'])} · ${_statusLabel(alert['status'])} · ${alert['age_hours'] ?? 0} ч. без обновления',
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
@@ -1332,10 +1478,10 @@ class _ThreadScreenState extends State<ThreadScreen>
                 ),
               ),
           const SizedBox(height: 24),
-          Text('Process bottlenecks', style: Theme.of(context).textTheme.titleLarge),
+          Text('Узкие места процесса', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
           if (bottlenecks.isEmpty)
-            const Text('No active process stages to summarize.', style: TextStyle(color: TactixTheme.textMuted))
+            const Text('Нет активных этапов для анализа.', style: TextStyle(color: TactixTheme.textMuted))
           else
             Wrap(
               spacing: 10,
@@ -1351,13 +1497,13 @@ class _ThreadScreenState extends State<ThreadScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              (item['status'] ?? '').toString().replaceAll('_', ' '),
+                              _statusLabel(item['status']),
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 8),
-                            Text('${item['count'] ?? 0} cases'),
+                            Text('Дел: ${item['count'] ?? 0}'),
                             Text(
-                              'Average age: ${item['avg_age_hours'] ?? 0}h · max ${item['max_age_hours'] ?? 0}h',
+                              'Среднее ожидание: ${item['avg_age_hours'] ?? 0} ч. · максимум ${item['max_age_hours'] ?? 0} ч.',
                               style: const TextStyle(color: TactixTheme.textMuted),
                             ),
                           ],
@@ -1370,8 +1516,8 @@ class _ThreadScreenState extends State<ThreadScreen>
           const SizedBox(height: 24),
           Row(
             children: [
-              Expanded(child: Text('Event Stream', style: Theme.of(context).textTheme.titleLarge)),
-              Text('${stream.length} recent', style: const TextStyle(color: TactixTheme.textMuted)),
+              Expanded(child: Text('Лента событий', style: Theme.of(context).textTheme.titleLarge)),
+              Text('Последних событий: ${stream.length}', style: const TextStyle(color: TactixTheme.textMuted)),
             ],
           ),
           const SizedBox(height: 10),
@@ -1379,7 +1525,7 @@ class _ThreadScreenState extends State<ThreadScreen>
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(16),
-                child: Text('No recent THREAD, Branch, relation, or training events.'),
+                child: Text('Нет недавних событий по делам, вариантам планов, связям или подготовке.'),
               ),
             )
           else
@@ -1390,9 +1536,9 @@ class _ThreadScreenState extends State<ThreadScreen>
                     backgroundColor: TactixTheme.panel2,
                     child: Icon(_eventIcon(event['kind']?.toString()), color: TactixTheme.cyan, size: 19),
                   ),
-                  title: Text(event['title']?.toString() ?? event['type']?.toString() ?? 'Event'),
+                  title: Text(event['title']?.toString() ?? event['type']?.toString() ?? 'Событие'),
                   subtitle: Text(
-                    "${event['kind'] ?? 'EVENT'} · ${(event['type'] ?? '').toString().replaceAll('_', ' ')}\n${event['created_at'] ?? ''}",
+                    "${_kindLabel(event['kind'])} · ${_eventTypeLabel(event['type'])}\n${event['created_at'] ?? ''}",
                   ),
                   isThreeLine: true,
                   onTap: event['case_id'] == null
@@ -1409,7 +1555,7 @@ class _ThreadScreenState extends State<ThreadScreen>
               ),
           const SizedBox(height: 12),
           Text(
-            'Generated ${pulse['generated_at'] ?? ''} · ${method['source'] ?? 'authoritative records'}',
+            'Сформировано: ${pulse['generated_at'] ?? ''} · источник: ${method['source'] ?? 'подтверждённые записи'}',
             style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
           ),
         ],
@@ -1431,13 +1577,13 @@ class _ThreadScreenState extends State<ThreadScreen>
       Icon(Icons.account_tree_outlined, size: 48, color: TactixTheme.cyan),
       SizedBox(height: 20),
       Text(
-        'See why work exists, what happened, and what proves completion.',
+        'Понимайте, почему возникла задача, что было сделано и чем подтверждён результат.',
         textAlign: TextAlign.center,
         style: TextStyle(fontSize: 20, height: 1.5),
       ),
       SizedBox(height: 24),
       Text(
-        'TRACE  /  VERIFY  /  IMPROVE',
+        'ПРОСЛЕДИТЬ  /  ПРОВЕРИТЬ  /  УЛУЧШИТЬ',
         textAlign: TextAlign.center,
         style: TextStyle(color: TactixTheme.textMuted),
       ),
@@ -1453,12 +1599,12 @@ class _ThreadScreenState extends State<ThreadScreen>
             FilledButton.icon(
               onPressed: !store.ready || _busy ? null : _create,
               icon: const Icon(Icons.add),
-              label: const Text('Create Case'),
+              label: const Text('Создать дело'),
             ),
             const SizedBox(height: 12),
             TextField(
               decoration: const InputDecoration(
-                labelText: 'Search cached cases',
+                labelText: 'Поиск по сохранённым делам',
                 prefixIcon: Icon(Icons.search),
               ),
               onChanged: (v) => setState(() => _search = v),
@@ -1488,7 +1634,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                     ),
                     title: Text(row['title']),
                     subtitle: Text(
-                      '${row['status']} ${queued ? '· pending sync' : ''}',
+                      '${_statusLabel(row['status'])} ${queued ? '· ожидает синхронизации' : ''}',
                     ),
                     onTap: () => _select(row['id']),
                   );
@@ -1532,25 +1678,25 @@ class _ThreadScreenState extends State<ThreadScreen>
                 ),
                 Chip(
                   avatar: Icon(Icons.shield_outlined, size: 17, color: confidenceColor),
-                  label: Text(confidence),
+                  label: Text(_confidenceLabel(confidence)),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             SelectableText(
-              response['answer']?.toString() ?? 'No answer returned.',
+              response['answer']?.toString() ?? 'Ответ не получен.',
               style: const TextStyle(height: 1.55),
             ),
             const SizedBox(height: 14),
             Text(
-              'Sources · ${sources.length}',
+              'Источники · ${sources.length}',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             if (sources.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(top: 6),
                 child: Text(
-                  'No source was approved by the verification pass.',
+                  'После проверки не подтверждён ни один источник.',
                   style: TextStyle(color: TactixTheme.warning),
                 ),
               ),
@@ -1571,10 +1717,10 @@ class _ThreadScreenState extends State<ThreadScreen>
                         spacing: 8,
                         runSpacing: 6,
                         children: [
-                          Chip(label: Text(source['ref']?.toString() ?? 'SOURCE')),
-                          Chip(label: Text(source['kind']?.toString() ?? 'SOURCE')),
+                          Chip(label: Text(source['ref']?.toString() ?? 'ИСТОЧНИК')),
+                          Chip(label: Text(_kindLabel(source['kind']))),
                           if (source['verification_state'] != null)
-                            Chip(label: Text(source['verification_state'].toString())),
+                            Chip(label: Text(_verificationLabel(source['verification_state']))),
                         ],
                       ),
                       Text(
@@ -1590,7 +1736,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: SelectableText(
-                            'Reference: ${source['source']}',
+                            'Источник: ${source['source']}',
                             style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
                           ),
                         ),
@@ -1600,7 +1746,7 @@ class _ThreadScreenState extends State<ThreadScreen>
               ),
             if (unsupported.isNotEmpty) ...[
               const SizedBox(height: 14),
-              const Text('Removed / unsupported', style: TextStyle(color: TactixTheme.warning)),
+              const Text('Исключено / не подтверждено', style: TextStyle(color: TactixTheme.warning)),
               for (final item in unsupported)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -1609,7 +1755,7 @@ class _ThreadScreenState extends State<ThreadScreen>
             ],
             if (gaps.isNotEmpty) ...[
               const SizedBox(height: 14),
-              Text('Open questions', style: Theme.of(context).textTheme.titleSmall),
+              Text('Открытые вопросы', style: Theme.of(context).textTheme.titleSmall),
               for (final item in gaps)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -1618,7 +1764,7 @@ class _ThreadScreenState extends State<ThreadScreen>
             ],
             const SizedBox(height: 12),
             Text(
-              'Case revision ${response['case_revision'] ?? '?'} · ${response['passes'] ?? 2} AI passes · ${response['evidence_policy'] ?? 'verified-first'}',
+              'Версия дела ${response['case_revision'] ?? '?'} · проходов ИИ: ${response['passes'] ?? 2} · политика: ${response['evidence_policy'] ?? 'сначала проверенные данные'}',
               style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
             ),
           ],
@@ -1647,7 +1793,7 @@ class _ThreadScreenState extends State<ThreadScreen>
         ),
         const SizedBox(height: 8),
         SelectableText(
-          'Case ${row['id']}\nOwner ${row['owner_id']}',
+          'Дело ${row['id']}\nОтветственный ${row['owner_id']}',
           style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
         ),
         const SizedBox(height: 16),
@@ -1657,12 +1803,12 @@ class _ThreadScreenState extends State<ThreadScreen>
           spacing: 8,
           runSpacing: 8,
           children: [
-            Chip(label: Text(row['status'])),
-            Chip(label: Text(row['priority'])),
+            Chip(label: Text(_statusLabel(row['status']))),
+            Chip(label: Text(_priorityLabel(row['priority']))),
             if (!closed || store.staff)
               PopupMenuButton<String>(
                 enabled: !_busy,
-                tooltip: 'Change status',
+                tooltip: 'Изменить статус',
                 onSelected: (status) => _status(row, status),
                 itemBuilder: (_) => [
                   for (final status in [
@@ -1680,13 +1826,13 @@ class _ThreadScreenState extends State<ThreadScreen>
                       child: Text(status.replaceAll('_', ' ')),
                     ),
                 ],
-                child: const Chip(label: Text('Change status')),
+                child: const Chip(label: Text('Изменить статус')),
               ),
             if (!closed)
               OutlinedButton.icon(
                 onPressed: _busy ? null : () => _evidence(row),
                 icon: const Icon(Icons.attach_file),
-                label: const Text('Add evidence'),
+                label: const Text('Добавить подтверждение'),
               ),
             if (store.api != null)
               FilledButton.tonalIcon(
@@ -1694,24 +1840,24 @@ class _ThreadScreenState extends State<ThreadScreen>
                     ? null
                     : () => _askThread(row),
                 icon: const Icon(Icons.auto_awesome),
-                label: const Text('ASK THREAD'),
+                label: const Text('АНАЛИЗ TACTIX'),
               ),
             if (!closed && store.staff && store.api != null)
               FilledButton.tonalIcon(
                 onPressed: _busy || pending.isNotEmpty ? null : () => _createBranch(row),
                 icon: const Icon(Icons.fork_right_outlined),
-                label: const Text('Create Branch'),
+                label: const Text('Создать вариант'),
               ),
             if (!closed && store.staff && store.api != null)
               FilledButton.tonalIcon(
                 onPressed: _busy ? null : () => _trainingAction(row),
                 icon: const Icon(Icons.school_outlined),
-                label: const Text('Create training action'),
+                label: const Text('Назначить подготовку'),
               ),
             OutlinedButton.icon(
               onPressed: _busy ? null : () => _linkCase(row),
               icon: const Icon(Icons.hub_outlined),
-              label: const Text('Link Case'),
+              label: const Text('Связать дело'),
             ),
             OutlinedButton.icon(
               onPressed: _busy
@@ -1721,7 +1867,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                       unawaited(store.loadRelations(row['id'] as String));
                     },
               icon: const Icon(Icons.account_tree_outlined),
-              label: const Text('Open graph'),
+              label: const Text('Открыть связи'),
             ),
             if (!closed && store.staff && store.api != null)
               FilledButton.icon(
@@ -1732,7 +1878,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                     ? null
                     : () => _status(row, 'CLOSED'),
                 icon: const Icon(Icons.verified_outlined),
-                label: const Text('Verify & close'),
+                label: const Text('Проверить и закрыть'),
               ),
           ],
         ),
@@ -1740,17 +1886,17 @@ class _ThreadScreenState extends State<ThreadScreen>
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: SelectableText(
-              'Closure: ${row['closure_reason']}\n${row['closed_at']}',
+              'Закрытие: ${row['closure_reason']}\n${row['closed_at']}',
             ),
           ),
         if (pending.isNotEmpty) ...[
           const SizedBox(height: 24),
           Text(
-            'Pending actions',
+            'Ожидающие изменения',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const Text(
-            'Saved locally. Verification and closure require server acceptance.',
+            'Сохранено локально. Для проверки и закрытия требуется подтверждение сервером.',
             style: TextStyle(color: TactixTheme.warning),
           ),
           for (final op in pending)
@@ -1769,7 +1915,7 @@ class _ThreadScreenState extends State<ThreadScreen>
               alignment: Alignment.centerLeft,
               child: OutlinedButton(
                 onPressed: _busy ? null : () => _retry(row['id']),
-                child: const Text('Review conflict / retry'),
+                child: const Text('Проверить конфликт / повторить'),
               ),
             ),
         ],
@@ -1780,11 +1926,11 @@ class _ThreadScreenState extends State<ThreadScreen>
               const Icon(Icons.fork_right_outlined, color: TactixTheme.cyan),
               const SizedBox(width: 10),
               Expanded(
-                child: Text('TACTIX BRANCH', style: Theme.of(context).textTheme.titleLarge),
+                child: Text('ВАРИАНТЫ ПЛАНА', style: Theme.of(context).textTheme.titleLarge),
               ),
               if (store.api != null)
                 IconButton(
-                  tooltip: 'Refresh variants',
+                  tooltip: 'Обновить варианты',
                   onPressed: _busy ? null : () => _perform(() => store.loadBranches(row['id'] as String)),
                   icon: const Icon(Icons.refresh),
                 ),
@@ -1792,20 +1938,20 @@ class _ThreadScreenState extends State<ThreadScreen>
                 FilledButton.tonalIcon(
                   onPressed: _busy || pending.isNotEmpty ? null : () => _createBranch(row),
                   icon: const Icon(Icons.add),
-                  label: const Text('New variant'),
+                  label: const Text('Новый вариант'),
                 ),
             ],
           ),
           const SizedBox(height: 6),
           const Text(
-            'Create an alternative administrative/training plan without changing the live Case. Compare uses a deterministic three-way merge and highlights overlapping changes before anything is applied.',
+            'Создайте альтернативный административный или учебный план без изменения действующего дела. Сравнение показывает пересекающиеся изменения до их применения.',
             style: TextStyle(color: TactixTheme.textMuted, height: 1.5),
           ),
           if (pending.isNotEmpty && store.api != null)
             const Padding(
               padding: EdgeInsets.only(top: 10),
               child: Text(
-                'Synchronize pending Case changes before branching or merging.',
+                'Синхронизируйте ожидающие изменения дела перед созданием или применением варианта.',
                 style: TextStyle(color: TactixTheme.warning),
               ),
             ),
@@ -1814,8 +1960,8 @@ class _ThreadScreenState extends State<ThreadScreen>
               padding: const EdgeInsets.symmetric(vertical: 14),
               child: Text(
                 store.api == null
-                    ? 'Server connection is required to create or compare Branch variants.'
-                    : 'No planning variants for this Case yet.',
+                    ? 'Для создания и сравнения вариантов плана требуется соединение с сервером.'
+                    : 'Для этого дела пока нет вариантов плана.',
               ),
             ),
           for (final branch in branches)
@@ -1831,11 +1977,11 @@ class _ThreadScreenState extends State<ThreadScreen>
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            branch['name']?.toString() ?? 'Planning variant',
+                            branch['name']?.toString() ?? 'Вариант плана',
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                         ),
-                        Chip(label: Text(branch['status']?.toString() ?? 'DRAFT')),
+                        Chip(label: Text(_statusLabel(branch['status'] ?? 'DRAFT'))),
                       ],
                     ),
                     if ((branch['description']?.toString() ?? '').isNotEmpty) ...[
@@ -1844,7 +1990,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                     ],
                     const SizedBox(height: 8),
                     Text(
-                      'Forked from Case r${branch['base_case_revision']} · Branch r${branch['revision']}',
+                      'Создано от версии дела r${branch['base_case_revision']} · версия варианта r${branch['revision']}',
                       style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
                     ),
                     const SizedBox(height: 10),
@@ -1856,19 +2002,19 @@ class _ThreadScreenState extends State<ThreadScreen>
                           OutlinedButton.icon(
                             onPressed: _busy ? null : () => _editBranch(row, branch),
                             icon: const Icon(Icons.edit_outlined),
-                            label: const Text('Edit'),
+                            label: const Text('Изменить'),
                           ),
                         if (store.api != null)
                           OutlinedButton.icon(
                             onPressed: _busy ? null : () => _compareBranch(branch),
                             icon: const Icon(Icons.compare_arrows_outlined),
-                            label: const Text('Compare'),
+                            label: const Text('Сравнить'),
                           ),
                         if (branch['status'] == 'DRAFT' && store.api != null)
                           FilledButton.icon(
                             onPressed: _busy || pending.isNotEmpty ? null : () => _mergeBranch(row, branch),
                             icon: const Icon(Icons.merge_type_outlined),
-                            label: const Text('Merge'),
+                            label: const Text('Применить'),
                           ),
                       ],
                     ),
@@ -1884,7 +2030,7 @@ class _ThreadScreenState extends State<ThreadScreen>
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'ASK THREAD',
+                'АНАЛИЗ TACTIX',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
@@ -1894,25 +2040,25 @@ class _ThreadScreenState extends State<ThreadScreen>
                     ? null
                     : () => _askThread(row),
                 icon: const Icon(Icons.question_answer_outlined),
-                label: const Text('Ask'),
+                label: const Text('Анализировать'),
               ),
           ],
         ),
         const SizedBox(height: 6),
         const Text(
-          'Two-pass, evidence-constrained analysis. The server builds the source pack and removes fabricated source references before the answer reaches this device.',
+          'Двухэтапный анализ по подтверждённым данным. Сервер формирует пакет источников и исключает неподтверждённые ссылки до выдачи ответа.',
           style: TextStyle(color: TactixTheme.textMuted, height: 1.5),
         ),
         if (store.api == null)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 14),
-            child: Text('Server connection is required for ASK THREAD. Cached answers remain available offline.'),
+            child: Text('Для анализа TACTIX требуется соединение с сервером. Сохранённые результаты анализа остаются доступны офлайн.'),
           ),
         if (pending.isNotEmpty && store.api != null)
           const Padding(
             padding: EdgeInsets.only(top: 10),
             child: Text(
-              'Synchronize pending Case changes before asking so the AI sees the same evidence you see.',
+              'Перед анализом синхронизируйте изменения, чтобы ИИ видел те же подтверждения, что и вы.',
               style: TextStyle(color: TactixTheme.warning),
             ),
           ),
@@ -1922,20 +2068,20 @@ class _ThreadScreenState extends State<ThreadScreen>
         ] else
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 14),
-            child: Text('No ASK THREAD analysis cached for this Case yet.'),
+            child: Text('Для этого дела ещё нет сохранённого анализа TACTIX.'),
           ),
         const SizedBox(height: 28),
         Row(
           children: [
             Expanded(
               child: Text(
-                'Linked training',
+                'Связанная подготовка',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
             if (store.api != null)
               IconButton(
-                tooltip: 'Refresh linked training',
+                tooltip: 'Обновить связанную подготовку',
                 onPressed: _busy
                     ? null
                     : () => _perform(() => store.loadTraining(row['id'] as String)),
@@ -1945,7 +2091,7 @@ class _ThreadScreenState extends State<ThreadScreen>
         ),
         const SizedBox(height: 6),
         const Text(
-          'Simulation Lab assignments linked to this Case. A submitted result can be imported as evidence and then verified.',
+          'Учебные назначения, связанные с этим делом. Полученный результат можно прикрепить как подтверждение и затем проверить.',
           style: TextStyle(color: TactixTheme.textMuted, height: 1.5),
         ),
         if (training.isEmpty)
@@ -1953,8 +2099,8 @@ class _ThreadScreenState extends State<ThreadScreen>
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Text(
               store.api == null
-                  ? 'Server connection is required to link Simulation Lab training.'
-                  : 'No training action is linked to this Case yet.',
+                  ? 'Для привязки учебного назначения требуется соединение с сервером.'
+                  : 'К этому делу пока не привязана подготовка.',
             ),
           ),
         for (final item in training)
@@ -1970,20 +2116,20 @@ class _ThreadScreenState extends State<ThreadScreen>
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          item['title']?.toString() ?? 'Simulation Lab training',
+                          item['title']?.toString() ?? 'Учебное назначение',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
                       Chip(
                         label: Text(
-                          (item['status'] ?? 'assigned').toString().replaceAll('_', ' ').toUpperCase(),
+                          _statusLabel(item['status'] ?? 'assigned'),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Assignment ${item['id']}${item['due_at'] == null ? '' : '\nDue: ${item['due_at']}'}',
+                    'Назначение ${item['id']}${item['due_at'] == null ? '' : '\nСрок: ${item['due_at']}'}',
                     style: const TextStyle(color: TactixTheme.textMuted),
                   ),
                   if (item['metrics'] is Map && (item['metrics'] as Map).isNotEmpty) ...[
@@ -2009,12 +2155,12 @@ class _ThreadScreenState extends State<ThreadScreen>
                               ? null
                               : () => _importTrainingResult(row, item),
                           icon: const Icon(Icons.fact_check_outlined),
-                          label: const Text('Attach result as evidence'),
+                          label: const Text('Прикрепить результат как подтверждение'),
                         ),
                       if (item['evidence_attached'] == true)
                         const Chip(
                           avatar: Icon(Icons.verified_outlined, size: 17),
-                          label: Text('Result attached'),
+                          label: Text('Результат прикреплён'),
                         ),
                     ],
                   ),
@@ -2024,18 +2170,18 @@ class _ThreadScreenState extends State<ThreadScreen>
           ),
         const SizedBox(height: 28),
         Text(
-          'Evidence · ${row['verification_state']}',
+          'Подтверждения · ${_verificationLabel(row['verification_state'])}',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
         const Text(
-          'Completed does not mean verified. Inspect the supporting context before accepting evidence.',
+          'Выполнено — не значит проверено. Перед подтверждением необходимо проверить основание и контекст.',
           style: TextStyle(color: TactixTheme.textMuted, height: 1.5),
         ),
         if (evidence.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text('No evidence attached. Closure is unavailable.'),
+            child: Text('Подтверждения не приложены. Закрытие дела недоступно.'),
           ),
         for (final item in evidence)
           Card(
@@ -2053,11 +2199,11 @@ class _ThreadScreenState extends State<ThreadScreen>
                   if ((item['source'] ?? '') != '')
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: SelectableText('Source: ${item['source']}'),
+                      child: SelectableText('Источник: ${item['source']}'),
                     ),
                   const SizedBox(height: 8),
                   Text(
-                    item['verification_state'],
+                    _verificationLabel(item['verification_state']),
                     style: TextStyle(
                       color: item['verification_state'] == 'VERIFIED'
                           ? TactixTheme.positive
@@ -2066,7 +2212,7 @@ class _ThreadScreenState extends State<ThreadScreen>
                   ),
                   if (item['verified_by'] != null)
                     SelectableText(
-                      'Reviewer: ${item['verified_by']}\n${item['verified_at']}\n${item['verification_note']}',
+                      'Проверил: ${item['verified_by']}\n${item['verified_at']}\n${item['verification_note']}',
                     ),
                   if (store.staff && !closed && item['pending'] != true)
                     Wrap(
@@ -2076,13 +2222,13 @@ class _ThreadScreenState extends State<ThreadScreen>
                           onPressed: _busy || pending.isNotEmpty
                               ? null
                               : () => _verify(row, item, 'VERIFIED'),
-                          child: const Text('Accept evidence'),
+                          child: const Text('Подтвердить'),
                         ),
                         TextButton(
                           onPressed: _busy || pending.isNotEmpty
                               ? null
                               : () => _verify(row, item, 'REJECTED'),
-                          child: const Text('Reject evidence'),
+                          child: const Text('Отклонить'),
                         ),
                       ],
                     ),
@@ -2091,11 +2237,11 @@ class _ThreadScreenState extends State<ThreadScreen>
             ),
           ),
         const SizedBox(height: 28),
-        Text('Thread relations', style: Theme.of(context).textTheme.titleLarge),
+        Text('Связи цифрового контура', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 10),
         if (store.relationsForCase(row['id'] as String).isEmpty)
           const Text(
-            'No explicit links yet. Link this Case to another Case to build the Digital Thread.',
+            'Явных связей пока нет. Свяжите это дело с другим, чтобы сформировать цифровой контур.',
             style: TextStyle(color: TactixTheme.textMuted),
           ),
         for (final relation in store.relationsForCase(row['id'] as String))
@@ -2110,26 +2256,26 @@ class _ThreadScreenState extends State<ThreadScreen>
                   : TactixTheme.cyan,
             ),
             title: Text(
-              (relation['relationship_type'] as String).replaceAll('_', ' '),
+              _relationshipLabel(relation['relationship_type']),
             ),
             subtitle: SelectableText(
               '${relation['from_type']}:${relation['from_id']}\n→ ${relation['to_type']}:${relation['to_id']}',
             ),
           ),
         const SizedBox(height: 28),
-        Text('Case timeline', style: Theme.of(context).textTheme.titleLarge),
+        Text('Хронология дела', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 12),
         if (events.isEmpty)
           const Text(
-            'No confirmed events cached. Local actions appear above until synchronized.',
+            'Подтверждённых событий пока нет. Локальные действия отображаются выше до синхронизации.',
           ),
         for (final event in events.reversed)
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.history, color: TactixTheme.cyan),
-            title: Text(event['type'].toString().replaceAll('_', ' ')),
+            title: Text(_eventTypeLabel(event['type'])),
             subtitle: SelectableText(
-              '${event['created_at']}\nActor: ${event['actor_id']}\n${(event['details'] as Map).entries.map((e) => '${e.key}: ${e.value}').join('\n')}',
+              '${event['created_at']}\nИнициатор: ${event['actor_id']}\n${(event['details'] as Map).entries.map((e) => '${e.key}: ${e.value}').join('\n')}',
             ),
           ),
         if (store.api != null)
@@ -2139,7 +2285,7 @@ class _ThreadScreenState extends State<ThreadScreen>
               onPressed: _busy
                   ? null
                   : () => _perform(() => store.loadEvents(row['id'])),
-              child: const Text('Load next events / refresh'),
+              child: const Text('Загрузить события / обновить'),
             ),
           ),
       ],

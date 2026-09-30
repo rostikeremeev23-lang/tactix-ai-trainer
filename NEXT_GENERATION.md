@@ -629,3 +629,18 @@ Implemented:
 
 No new migration is required; the database remains at `0007_thread_branches`.
 Packaging-environment backend verification: **42 tests passed**. Flutter verification must be run on the Windows development machine before commit/tag.
+
+## 2026-09-30 — Phase H: Russian UX + Product Definition
+
+Phase H turns the Phase G feature set into a coherent Russian-language product surface without changing backend protocol values.
+
+Implemented:
+- Russian user-facing naming for Digital Thread, Case/Evidence workflows, ASK THREAD, Branch, PULSE and Simulation Lab entry points.
+- Russian labels for statuses, priorities, verification states, relations, process events and graph captions while internal API enums remain unchanged.
+- Russian Home / Training / Profile terminology cleanup.
+- New `О системе TACTIX` product-definition screen accessible from Home.
+- Product definition explicitly includes the military training simulator and AI-assisted fictional training scenario creation.
+- `PRODUCT_DEFINITION_RU.md` as the canonical Russian product wording for documentation and presentations.
+- UI tests updated to the Russian labels plus a dedicated product-definition widget test.
+
+Phase H is UI/documentation only and adds no database migration. Alembic remains `0007_thread_branches`.

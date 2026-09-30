@@ -386,3 +386,24 @@ PULSE is a read-only health view over the existing TACTIX workflow. It does not 
 ### Verification performed in the packaging environment
 - Backend: **42 passed**.
 - Flutter SDK is unavailable in the packaging environment. Run `flutter analyze` and `flutter test --concurrency=1` on Windows before committing/tagging Phase G.
+
+## Phase H — Russian UX / Product Definition / Final Integration
+
+Phase H keeps all server enum values and API contracts intact but replaces technical English labels with consistent Russian product terminology in the main user-facing workflow.
+
+### Product language
+- THREAD / Digital Thread → **Цифровой контур**
+- Case → **Дело**
+- Evidence → **Подтверждение**
+- ASK THREAD → **Анализ TACTIX**
+- Training → **Подготовка**
+- Simulation Lab → **Центр моделирования**
+- Branch → **Вариант плана**
+- PULSE → **Контроль процессов**
+- Event Stream → **Лента событий**
+
+### Product definition
+TACTIX is presented as a digital platform for unit task/preparation/result management with a military training simulator and AI-assisted creation of fictional training scenarios. The assistant/AI layer remains advisory and evidence-bound; human users retain decision authority.
+
+### Integrity
+Internal status codes such as `WAITING_FOR_VERIFICATION`, relation types such as `TRAINED_BY`, and training states remain unchanged in storage/API traffic. Only the presentation layer is translated.

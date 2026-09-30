@@ -62,11 +62,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       results.fold<int>(0, (sum, item) => sum + item.decisions);
 
   String get rank {
-    if (level >= 10) return 'ELITE OPERATOR';
-    if (level >= 7) return 'SENIOR OPERATOR';
-    if (level >= 4) return 'TACTICAL OPERATOR';
-    if (level >= 2) return 'OPERATOR';
-    return 'CADET';
+    if (level >= 10) return 'ЭЛИТНЫЙ ОПЕРАТОР';
+    if (level >= 7) return 'СТАРШИЙ ОПЕРАТОР';
+    if (level >= 4) return 'ТАКТИЧЕСКИЙ ОПЕРАТОР';
+    if (level >= 2) return 'ОПЕРАТОР';
+    return 'КУРСАНТ';
   }
 
   @override
@@ -87,7 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           if (!session.isServerUser)
             IconButton(
-              tooltip: 'Switch local profile',
+              tooltip: 'Сменить локальный профиль',
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const UserSwitcherScreen()),
@@ -111,7 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           if (session.isServerUser)
             IconButton(
-              tooltip: 'Sign out',
+              tooltip: 'Выйти',
               onPressed: () async {
                 await session.signOut();
                 if (context.mounted) {
@@ -121,7 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: const Icon(Icons.logout_rounded, color: Colors.white70),
             ),
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: 'Обновить',
             onPressed: loading ? null : _load,
             icon: const Icon(Icons.sync_rounded, color: Colors.white70),
           ),
@@ -163,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         runSpacing: 4,
                         children: [
                           const Text(
-                            'SERVER ACCOUNT',
+                            'СЕРВЕРНАЯ УЧЁТНАЯ ЗАПИСЬ',
                             style: TextStyle(
                               color: TactixTheme.textMuted,
                               fontSize: 12,
@@ -223,7 +223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  const SectionLabel('AI COACH'),
+                  const SectionLabel('ИИ-НАСТАВНИК'),
                   const SizedBox(height: 10),
                   _CoachCard(
                     results: results,
@@ -306,7 +306,7 @@ class _ProfileHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'TACTIX OPERATOR',
+                      'ОПЕРАТОР TACTIX',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
@@ -327,9 +327,9 @@ class _ProfileHero extends StatelessWidget {
                 ),
               ),
               if (aiOnline)
-                const StatusChip(text: 'AI ONLINE', online: true)
+                const StatusChip(text: 'ИИ ОНЛАЙН', online: true)
               else
-                const StatusChip(text: 'AI OFFLINE', online: false),
+                const StatusChip(text: 'ИИ ОФЛАЙН', online: false),
             ],
           ),
           const SizedBox(height: 22),
@@ -337,7 +337,7 @@ class _ProfileHero extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'LEVEL $level',
+                'УРОВЕНЬ $level',
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.1,
@@ -552,6 +552,14 @@ class _CoachCardState extends State<_CoachCard> {
     return 'BEGINNER';
   }
 
+  String get recommendedDifficultyLabel => switch (recommendedDifficulty) {
+    'BEGINNER' => 'НАЧАЛЬНЫЙ',
+    'INTERMEDIATE' => 'СРЕДНИЙ',
+    'ADVANCED' => 'ПОВЫШЕННЫЙ',
+    'CHALLENGE' => 'ИСПЫТАНИЕ',
+    _ => recommendedDifficulty,
+  };
+
   String get recommendedFocus {
     if (widget.adaptation < 60) return 'АДАПТАЦИЯ';
     if (widget.stability < 65) return 'СТАБИЛЬНОСТЬ';
@@ -564,7 +572,7 @@ class _CoachCardState extends State<_CoachCard> {
       return 'Проведи первую учебную тренировку. После неё TACTIX сможет построить персональный план развития.';
     }
     final focus = recommendedFocus;
-    final difficulty = recommendedDifficulty;
+    final difficulty = recommendedDifficultyLabel;
     final action = switch (focus) {
       'АДАПТАЦИЯ' => 'тренировка с быстро меняющимися условиями среды',
       'СТАБИЛЬНОСТЬ' => 'тренировка с несколькими последовательными решениями без потери качества',
@@ -715,7 +723,7 @@ class _CoachCardState extends State<_CoachCard> {
 
     return PanelCard(
       accent: TactixTheme.gold,
-      title: live ? 'AI COACH • LIVE' : 'AI COACH',
+      title: live ? 'ИИ-НАСТАВНИК • ОНЛАЙН' : 'ИИ-НАСТАВНИК',
       icon: Icons.auto_awesome_rounded,
       trailing: Text(
         widget.online ? 'GEMMA 3 1B' : 'LOCAL',
@@ -732,10 +740,10 @@ class _CoachCardState extends State<_CoachCard> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _CoachMetric(label: 'FORM', value: '${widget.average}'),
-              _CoachMetric(label: 'ADAPTATION', value: '${widget.adaptation}'),
-              _CoachMetric(label: 'STABILITY', value: '${widget.stability}'),
-              _CoachMetric(label: 'RESOURCES', value: '${widget.resource}'),
+              _CoachMetric(label: 'ФОРМА', value: '${widget.average}'),
+              _CoachMetric(label: 'АДАПТАЦИЯ', value: '${widget.adaptation}'),
+              _CoachMetric(label: 'СТАБИЛЬНОСТЬ', value: '${widget.stability}'),
+              _CoachMetric(label: 'РЕСУРСЫ', value: '${widget.resource}'),
             ],
           ),
           const SizedBox(height: 14),
@@ -808,7 +816,7 @@ class _CoachCardState extends State<_CoachCard> {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.auto_awesome, size: 18),
-      label: Text(generating ? 'AI АНАЛИЗИРУЕТ...' : 'ОБНОВИТЬ AI АНАЛИЗ'),
+      label: Text(generating ? 'ИИ АНАЛИЗИРУЕТ...' : 'ОБНОВИТЬ ИИ-АНАЛИЗ'),
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(44),
         backgroundColor: TactixTheme.gold.withValues(alpha: 0.14),

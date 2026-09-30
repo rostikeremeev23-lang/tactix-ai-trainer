@@ -45,9 +45,9 @@ void main() {
           ),
         ),
       );
-      expect(find.text('SIMULATION LAB'), findsOneWidget);
+      expect(find.text('ЦЕНТР МОДЕЛИРОВАНИЯ'), findsOneWidget);
       expect(tester.takeException(), isNull);
-      await tester.tap(find.text('SIMULATION LAB'));
+      await tester.tap(find.text('ЦЕНТР МОДЕЛИРОВАНИЯ'));
       await tester.pumpAndSettle();
       expect(find.byType(SimulationLabScreen), findsOneWidget);
       expect(find.byType(CityLibrary), findsOneWidget);

@@ -5,6 +5,43 @@ import 'package:flutter/material.dart';
 import '../../app/theme.dart';
 import 'thread_store.dart';
 
+
+String _graphCaseStatus(Object? raw) => switch (raw?.toString()) {
+  'OPEN' => 'Открыто',
+  'IN_REVIEW' => 'На рассмотрении',
+  'ACTION_REQUIRED' => 'Требуются действия',
+  'IN_PROGRESS' => 'В работе',
+  'WAITING_FOR_EVIDENCE' => 'Ожидает подтверждений',
+  'TRAINING_REQUIRED' => 'Требуется подготовка',
+  'WAITING_FOR_VERIFICATION' => 'Ожидает проверки',
+  'RESOLVED' => 'Решено',
+  'CLOSED' => 'Закрыто',
+  null => 'Открыто',
+  '' => 'Открыто',
+  final value => value.replaceAll('_', ' '),
+};
+
+String _graphVerification(Object? raw) => switch (raw?.toString()) {
+  'VERIFIED' => 'Проверено',
+  'REJECTED' => 'Отклонено',
+  'PENDING' => 'Ожидает проверки',
+  'UNVERIFIED' => 'Не проверено',
+  null => 'Не проверено',
+  '' => 'Не проверено',
+  final value => value.replaceAll('_', ' '),
+};
+
+String _graphTrainingStatus(Object? raw) => switch (raw?.toString()) {
+  'assigned' => 'Назначено',
+  'in_progress' => 'Выполняется',
+  'submitted' => 'Результат отправлен',
+  'completed' => 'Завершено',
+  'cancelled' => 'Отменено',
+  null => 'Назначено',
+  '' => 'Назначено',
+  final value => value.replaceAll('_', ' '),
+};
+
 /// Native Flutter Digital Thread graph. It intentionally avoids a WebView or
 /// a third-party graph engine so the first Phase C slice stays lightweight and
 /// works offline with the same cached records as ThreadStore.
@@ -48,7 +85,7 @@ class _ThreadGraphViewState extends State<ThreadGraphView> {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Text(
-                'DIGITAL THREAD',
+                'ЦИФРОВОЙ КОНТУР',
                 style: TextStyle(
                   color: TactixTheme.textPrimary,
                   fontWeight: FontWeight.w800,
@@ -56,18 +93,26 @@ class _ThreadGraphViewState extends State<ThreadGraphView> {
                 ),
               ),
               ChoiceChip(
-                label: const Text('Focus'),
+                label: const Text('Фокус'),
                 selected: !_showAll,
                 onSelected: (_) => setState(() => _showAll = false),
               ),
               ChoiceChip(
-                label: const Text('All cached'),
+                label: const Text('Все сохранённые'),
                 selected: _showAll,
                 onSelected: (_) => setState(() => _showAll = true),
               ),
               for (final value in ['ALL', 'RELATED_TO', 'REQUIRES', 'SUPPORTED_BY', 'TRAINED_BY', 'PRODUCED'])
                 ChoiceChip(
-                  label: Text(value.replaceAll('_', ' ')),
+                  label: Text(switch (value) {
+                    'ALL' => 'Все',
+                    'RELATED_TO' => 'Связано с',
+                    'REQUIRES' => 'Требует',
+                    'SUPPORTED_BY' => 'Подтверждается',
+                    'TRAINED_BY' => 'Подготовка',
+                    'PRODUCED' => 'Результат',
+                    _ => value.replaceAll('_', ' '),
+                  }),
                   selected: _filter == value,
                   onSelected: (_) => setState(() => _filter = value),
                 ),
@@ -80,7 +125,7 @@ class _ThreadGraphViewState extends State<ThreadGraphView> {
                   child: Padding(
                     padding: EdgeInsets.all(24),
                     child: Text(
-                      'Create or select a Case to build its Digital Thread.',
+                      'Создайте или выберите дело, чтобы построить его цифровой контур.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: TactixTheme.textMuted),
                     ),
@@ -123,7 +168,7 @@ class _ThreadGraphViewState extends State<ThreadGraphView> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
           child: Text(
-            '${model.nodes.length} nodes · ${model.edges.length} relationships · drag to pan · pinch/scroll to zoom',
+            'Узлов: ${model.nodes.length} · связей: ${model.edges.length} · перетаскивайте для навигации · масштабируйте жестом или колесом',
             style: const TextStyle(
               color: TactixTheme.textMuted,
               fontSize: 12,
@@ -440,7 +485,7 @@ class _GraphNode {
         type: 'CASE',
         id: row['id'] as String,
         label: row['title'] as String,
-        caption: (row['status'] ?? 'OPEN').toString().replaceAll('_', ' '),
+        caption: _graphCaseStatus(row['status']),
         position: position,
         size: const Size(190, 92),
         closed: row['status'] == 'CLOSED',
@@ -450,8 +495,8 @@ class _GraphNode {
       _GraphNode(
         type: 'EVIDENCE',
         id: row['id'] as String,
-        label: (row['title'] ?? 'Evidence').toString(),
-        caption: (row['verification_state'] ?? 'UNVERIFIED').toString(),
+        label: (row['title'] ?? 'Подтверждение').toString(),
+        caption: _graphVerification(row['verification_state']),
         position: position,
         size: const Size(160, 82),
         verified: row['verification_state'] == 'VERIFIED',
@@ -461,8 +506,8 @@ class _GraphNode {
       _GraphNode(
         type: 'TRAINING',
         id: row['id'] as String,
-        label: (row['title'] ?? 'Simulation Lab training').toString(),
-        caption: (row['status'] ?? 'assigned').toString().replaceAll('_', ' '),
+        label: (row['title'] ?? 'Учебное назначение').toString(),
+        caption: _graphTrainingStatus(row['status']),
         position: position,
         size: const Size(178, 88),
         completed: row['status'] == 'submitted',
