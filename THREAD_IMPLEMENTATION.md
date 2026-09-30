@@ -348,3 +348,41 @@ Additional deterministic checks:
 - `python -m alembic heads`: `0007_thread_branches (head)`.
 - Backend: **40 passed**.
 - Flutter SDK is unavailable in the packaging environment. Run `flutter analyze` and `flutter test --concurrency=1` on Windows before commit/tag.
+
+## Phase G — TACTIX PULSE / Process Intelligence / Event Stream
+
+Implemented on top of the Phase F green checkpoint.
+
+### Purpose
+PULSE is a read-only health view over the existing TACTIX workflow. It does not create a second analytics database and does not let AI decide what should be done. Metrics are recomputed from authoritative THREAD, Evidence, Branch and Simulation Lab records.
+
+### Backend
+- `GET /v1/thread/pulse`
+  - staff-only;
+  - active/closed/overdue/due-soon/stale counts;
+  - waiting-for-verification and Evidence counters;
+  - draft Branch and pending Training counters;
+  - seven-day created/closed throughput;
+  - current-status backlog age summary;
+  - deterministic alert list.
+- `GET /v1/thread/event-stream`
+  - staff-only;
+  - unified Case / Branch / Relation / Training activity;
+  - organization-scoped and time-window bounded;
+  - newest-first ordering.
+
+### Flutter client
+- Added a third THREAD view: `PULSE` next to Cases and Graph.
+- PULSE shows metrics, attention queue, current-stage backlog and Event Stream.
+- Alerts and events with a Case reference can open that Case directly.
+- The latest snapshot is persisted in the existing durable local Thread state.
+- Refresh requires server access; cached data remains reviewable offline.
+
+### Safety / integrity
+- No AI is used for metric or alert calculation.
+- PULSE is read-only and never mutates Case, Evidence, Branch, Relation or Training state.
+- No new database migration is required. Alembic remains `0007_thread_branches`.
+
+### Verification performed in the packaging environment
+- Backend: **42 passed**.
+- Flutter SDK is unavailable in the packaging environment. Run `flutter analyze` and `flutter test --concurrency=1` on Windows before committing/tagging Phase G.

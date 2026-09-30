@@ -610,3 +610,22 @@ Implemented:
 - Branch cannot bypass Evidence verification or close a Case.
 
 Phase F adds Alembic migration `0007_thread_branches`. Packaging-environment backend verification: **40 tests passed**. Flutter verification must be run on the Windows development machine before commit/tag.
+
+## 2026-09-30 — TACTIX THREAD Phase G
+
+Added **TACTIX PULSE** as a deterministic process-intelligence layer over the existing Case / Evidence / Branch / Training records.
+
+Implemented:
+- Staff-only PULSE dashboard.
+- Active / closed / overdue / due-soon / stale Case counters.
+- Verification, Evidence, Branch and Training backlog counters.
+- Seven-day created/closed throughput snapshot.
+- Current-stage backlog summary by Case status and time since last update.
+- Deterministic alerts for overdue, stale and waiting-for-verification Cases.
+- Unified Event Stream across Case events, Branch events, Thread relations and Simulation Lab assignment activity.
+- Event/alert drill-down back into the relevant Case.
+- Local caching of the last PULSE snapshot and event stream for review.
+- PULSE calculations do not use AI and do not mutate operational records.
+
+No new migration is required; the database remains at `0007_thread_branches`.
+Packaging-environment backend verification: **42 tests passed**. Flutter verification must be run on the Windows development machine before commit/tag.

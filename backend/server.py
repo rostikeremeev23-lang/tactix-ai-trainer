@@ -38,6 +38,8 @@ from app.thread import router as thread_router
 app.include_router(thread_router)
 from app.thread_branch import router as thread_branch_router
 app.include_router(thread_branch_router)
+from app.thread_pulse import router as thread_pulse_router
+app.include_router(thread_pulse_router)
 
 
 # =====================================================

@@ -23,6 +23,8 @@ class ThreadStore extends ChangeNotifier {
     'branches': <String, dynamic>{},
     'branch_options': <String, dynamic>{},
     'branch_compare': <String, dynamic>{},
+    'pulse': <String, dynamic>{},
+    'event_stream': <dynamic>[],
   };
   int _generation = 0;
   bool ready = false, syncing = false, _disposed = false;
@@ -125,6 +127,14 @@ class ThreadStore extends ChangeNotifier {
         if (state['branch_compare'] != null && state['branch_compare'] is! Map) {
           continue;
         }
+        if (state['pulse'] != null && state['pulse'] is! Map) {
+          continue;
+        }
+        if (state['event_stream'] != null &&
+            (state['event_stream'] is! List ||
+                (state['event_stream'] as List).any((entry) => entry is! Map))) {
+          continue;
+        }
         candidates.add(data);
       } catch (_) {
         /* Preserve unreadable generations for recovery. */
@@ -149,6 +159,8 @@ class ThreadStore extends ChangeNotifier {
     _state['branches'] ??= <String, dynamic>{};
     _state['branch_options'] ??= <String, dynamic>{};
     _state['branch_compare'] ??= <String, dynamic>{};
+    _state['pulse'] ??= <String, dynamic>{};
+    _state['event_stream'] ??= <dynamic>[];
     if (candidates.length < rawCopies.length) {
       final recoveryId = platformId();
       for (final entry in rawCopies.entries) {
@@ -279,6 +291,44 @@ class ThreadStore extends ChangeNotifier {
   Map<String, dynamic>? latestAskForCase(String id) {
     final history = askHistoryForCase(id);
     return history.isEmpty ? null : history.last;
+  }
+
+  Map<String, dynamic>? get pulse {
+    final raw = _state['pulse'];
+    if (raw is! Map || raw.isEmpty) return null;
+    return _copy(Map<String, dynamic>.from(raw));
+  }
+
+  List<Map<String, dynamic>> get eventStream =>
+      ((_state['event_stream'] ?? const <dynamic>[]) as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+
+  Future<void> loadPulse({
+    int staleHours = 72,
+    int dueHours = 48,
+    int eventHours = 168,
+  }) async {
+    if (!ready) throw StateError('Thread is not ready');
+    if (!staff) throw StateError('PULSE requires staff access');
+    if (api == null) throw StateError('PULSE requires server connection');
+    final responses = await Future.wait([
+      api!.request(
+        'GET',
+        '/pulse?stale_hours=$staleHours&due_hours=$dueHours',
+      ),
+      api!.request(
+        'GET',
+        '/event-stream?hours=$eventHours&limit=100',
+      ),
+    ]);
+    final stream = (responses[1]['items'] as List? ?? const <dynamic>[])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    await _change(() {
+      _state['pulse'] = responses[0];
+      _state['event_stream'] = stream;
+    });
   }
 
   List<Map<String, dynamic>> branchesForCase(String id) =>

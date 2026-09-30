@@ -24,6 +24,70 @@ class ThreadTransport implements PlatformTransport {
   ]) async {
     if (!online) throw const PlatformFailure(503, 'Offline');
     if (method == 'GET') {
+      if (path.startsWith('/pulse')) {
+        return {
+          'generated_at': '2026-09-30T10:00:00Z',
+          'metrics': {
+            'active_cases': rows.values.where((r) => r['status'] != 'CLOSED').length,
+            'closed_cases': rows.values.where((r) => r['status'] == 'CLOSED').length,
+            'overdue_cases': 1,
+            'due_soon_cases': 0,
+            'stale_cases': 1,
+            'waiting_for_verification': 0,
+            'unverified_evidence': 0,
+            'rejected_evidence': 0,
+            'draft_branches': branches.values.where((b) => b['status'] == 'DRAFT').length,
+            'training_pending': 0,
+            'created_last_7d': rows.length,
+            'closed_last_7d': 0,
+          },
+          'status_counts': {'OPEN': rows.length},
+          'priority_counts': {'NORMAL': rows.length},
+          'age_buckets': {'0_24h': rows.length, '24_72h': 0, '3_7d': 0, '7d_plus': 0},
+          'bottlenecks': [
+            {'status': 'OPEN', 'count': rows.length, 'avg_age_hours': 4.0, 'max_age_hours': 4.0},
+          ],
+          'alerts': rows.values.isEmpty
+              ? <dynamic>[]
+              : [
+                  {
+                    'code': 'STALE',
+                    'severity': 'MEDIUM',
+                    'case_id': rows.values.first['id'],
+                    'title': rows.values.first['title'],
+                    'status': rows.values.first['status'],
+                    'priority': rows.values.first['priority'],
+                    'age_hours': 80.0,
+                    'due_date': null,
+                  },
+                ],
+          'method': {
+            'engine': 'deterministic',
+            'ai_used': false,
+            'source': 'authoritative THREAD, evidence, branch and training records',
+          },
+        };
+      }
+      if (path.startsWith('/event-stream')) {
+        return {
+          'generated_at': '2026-09-30T10:00:00Z',
+          'hours': 168,
+          'items': rows.values
+              .map((r) => {
+                    'id': '${r['id']}:created',
+                    'kind': 'CASE',
+                    'type': 'CREATED',
+                    'entity_id': r['id'],
+                    'case_id': r['id'],
+                    'actor_id': 'owner',
+                    'title': r['title'],
+                    'details': <String, dynamic>{},
+                    'created_at': r['created_at'],
+                  })
+              .toList(),
+          'next': null,
+        };
+      }
       if (path.contains('/events')) return {'items': <dynamic>[], 'next': null};
       if (path.endsWith('/branches') && path.startsWith('/cases/')) {
         final caseId = path.split('/')[2];
@@ -509,6 +573,41 @@ void main() {
     expect(store.branchesForCase(id).single['status'], 'MERGED');
     expect(store.caseById(id)!['priority'], 'HIGH');
     store.dispose();
+  });
+
+  test('PULSE caches deterministic process intelligence and unified event stream', () async {
+    final api = ThreadTransport()..online = true;
+    var store = ThreadStore('owner', api: api, staff: true);
+    await store.restore(autoSync: false);
+    await store.create('Pulse Case', 'Administrative follow-up');
+    await idle(store);
+    await store.loadPulse();
+    expect(store.pulse, isNotNull);
+    expect(store.pulse!['method']['engine'], 'deterministic');
+    expect(store.pulse!['method']['ai_used'], isFalse);
+    expect(store.pulse!['metrics']['active_cases'], 1);
+    expect(store.eventStream, hasLength(1));
+    expect(store.eventStream.single['kind'], 'CASE');
+    store.dispose();
+
+    store = ThreadStore('owner', api: api, staff: true);
+    await store.restore(autoSync: false);
+    expect(store.pulse!['metrics']['active_cases'], 1);
+    expect(store.eventStream, hasLength(1));
+    store.dispose();
+  });
+
+  test('PULSE requires staff and a server connection', () async {
+    final offline = ThreadStore('owner', staff: true);
+    await offline.restore(autoSync: false);
+    await expectLater(offline.loadPulse(), throwsStateError);
+    offline.dispose();
+
+    final api = ThreadTransport()..online = true;
+    final trainee = ThreadStore('trainee', api: api, staff: false);
+    await trainee.restore(autoSync: false);
+    await expectLater(trainee.loadPulse(), throwsStateError);
+    trainee.dispose();
   });
 
 }

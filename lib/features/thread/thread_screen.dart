@@ -24,7 +24,7 @@ class _ThreadScreenState extends State<ThreadScreen>
   String? _selected;
   String _search = '';
   bool _busy = false;
-  bool _graphMode = false;
+  int _viewMode = 0; // 0 Cases, 1 Graph, 2 PULSE
   ThreadStore get store => _store!;
 
   @override
@@ -1080,22 +1080,35 @@ class _ThreadScreenState extends State<ThreadScreen>
                     ],
                   ),
                   const SizedBox(height: 10),
-                  SegmentedButton<bool>(
+                  SegmentedButton<int>(
                     segments: const [
-                      ButtonSegment<bool>(
-                        value: false,
+                      ButtonSegment<int>(
+                        value: 0,
                         icon: Icon(Icons.view_list_outlined),
                         label: Text('Cases'),
                       ),
-                      ButtonSegment<bool>(
-                        value: true,
+                      ButtonSegment<int>(
+                        value: 1,
                         icon: Icon(Icons.hub_outlined),
                         label: Text('Graph'),
                       ),
+                      ButtonSegment<int>(
+                        value: 2,
+                        icon: Icon(Icons.monitor_heart_outlined),
+                        label: Text('PULSE'),
+                      ),
                     ],
-                    selected: {_graphMode},
-                    onSelectionChanged: (value) =>
-                        setState(() => _graphMode = value.first),
+                    selected: {_viewMode},
+                    onSelectionChanged: (value) {
+                      final mode = value.first;
+                      setState(() => _viewMode = mode);
+                      if (mode == 2 &&
+                          store.staff &&
+                          store.api != null &&
+                          !_busy) {
+                        unawaited(_perform(() => store.loadPulse()));
+                      }
+                    },
                   ),
                 ],
               ),
@@ -1106,14 +1119,15 @@ class _ThreadScreenState extends State<ThreadScreen>
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  if (_graphMode) {
+                  if (_viewMode == 2) return _pulseView();
+                  if (_viewMode == 1) {
                     return ThreadGraphView(
                       store: store,
                       selectedCaseId: _selected,
                       onOpenCase: (id) {
                         setState(() {
                           _selected = id;
-                          _graphMode = false;
+                          _viewMode = 0;
                         });
                         unawaited(_select(id));
                       },
@@ -1163,6 +1177,254 @@ class _ThreadScreenState extends State<ThreadScreen>
 
   Widget _metric(String label, int count) =>
       Chip(label: Text('$count  $label'));
+
+  Widget _pulseView() {
+    if (!store.staff) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'PULSE is available to staff roles. It summarizes administrative and training process health without changing Case data.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: TactixTheme.textMuted, height: 1.5),
+          ),
+        ),
+      );
+    }
+    if (store.api == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'PULSE requires a server connection. Cached Case work remains available offline.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: TactixTheme.textMuted, height: 1.5),
+          ),
+        ),
+      );
+    }
+    final pulse = store.pulse;
+    if (pulse == null) {
+      return Center(
+        child: FilledButton.icon(
+          onPressed: _busy ? null : () => _perform(() => store.loadPulse()),
+          icon: const Icon(Icons.refresh),
+          label: const Text('Load PULSE'),
+        ),
+      );
+    }
+    final metrics = Map<String, dynamic>.from(
+      (pulse['metrics'] as Map?) ?? const <String, dynamic>{},
+    );
+    final bottlenecks = ((pulse['bottlenecks'] ?? const <dynamic>[]) as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    final alerts = ((pulse['alerts'] ?? const <dynamic>[]) as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    final stream = store.eventStream.take(40).toList();
+    final method = Map<String, dynamic>.from(
+      (pulse['method'] as Map?) ?? const <String, dynamic>{},
+    );
+    final cards = <(String, String, IconData)>[
+      ('Active cases', '${metrics['active_cases'] ?? 0}', Icons.work_outline),
+      ('Overdue', '${metrics['overdue_cases'] ?? 0}', Icons.schedule_outlined),
+      ('Due soon', '${metrics['due_soon_cases'] ?? 0}', Icons.event_outlined),
+      ('Stale', '${metrics['stale_cases'] ?? 0}', Icons.hourglass_bottom),
+      ('Verification', '${metrics['waiting_for_verification'] ?? 0}', Icons.fact_check_outlined),
+      ('Unverified evidence', '${metrics['unverified_evidence'] ?? 0}', Icons.attach_file),
+      ('Draft branches', '${metrics['draft_branches'] ?? 0}', Icons.fork_right_outlined),
+      ('Training pending', '${metrics['training_pending'] ?? 0}', Icons.school_outlined),
+      ('Created · 7d', '${metrics['created_last_7d'] ?? 0}', Icons.add_chart_outlined),
+      ('Closed · 7d', '${metrics['closed_last_7d'] ?? 0}', Icons.task_alt_outlined),
+    ];
+    return RefreshIndicator(
+      onRefresh: () => store.loadPulse(),
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('TACTIX PULSE', style: Theme.of(context).textTheme.headlineSmall),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Deterministic process intelligence · no AI recommendations',
+                      style: TextStyle(color: TactixTheme.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Refresh PULSE',
+                onPressed: _busy ? null : () => _perform(() => store.loadPulse()),
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final card in cards)
+                SizedBox(
+                  width: 176,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(card.$3, color: TactixTheme.cyan, size: 20),
+                          const SizedBox(height: 14),
+                          Text(
+                            card.$2,
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            card.$1,
+                            style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text('Attention', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 10),
+          if (alerts.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('No overdue, stale, or verification alerts in the current window.'),
+              ),
+            )
+          else
+            for (final alert in alerts.take(12))
+              Card(
+                child: ListTile(
+                  leading: Icon(
+                    alert['severity'] == 'HIGH' ? Icons.error_outline : Icons.info_outline,
+                    color: alert['severity'] == 'HIGH' ? TactixTheme.warning : TactixTheme.gold,
+                  ),
+                  title: Text(alert['title']?.toString() ?? 'Case'),
+                  subtitle: Text(
+                    '${(alert['code'] ?? '').toString().replaceAll('_', ' ')} · ${(alert['status'] ?? '').toString().replaceAll('_', ' ')} · ${alert['age_hours'] ?? 0}h since update',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    final id = alert['case_id']?.toString();
+                    if (id == null || id.isEmpty) return;
+                    setState(() {
+                      _selected = id;
+                      _viewMode = 0;
+                    });
+                    unawaited(_select(id));
+                  },
+                ),
+              ),
+          const SizedBox(height: 24),
+          Text('Process bottlenecks', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 10),
+          if (bottlenecks.isEmpty)
+            const Text('No active process stages to summarize.', style: TextStyle(color: TactixTheme.textMuted))
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final item in bottlenecks)
+                  SizedBox(
+                    width: 250,
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              (item['status'] ?? '').toString().replaceAll('_', ' '),
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Text('${item['count'] ?? 0} cases'),
+                            Text(
+                              'Average age: ${item['avg_age_hours'] ?? 0}h · max ${item['max_age_hours'] ?? 0}h',
+                              style: const TextStyle(color: TactixTheme.textMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(child: Text('Event Stream', style: Theme.of(context).textTheme.titleLarge)),
+              Text('${stream.length} recent', style: const TextStyle(color: TactixTheme.textMuted)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (stream.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('No recent THREAD, Branch, relation, or training events.'),
+              ),
+            )
+          else
+            for (final event in stream)
+              Card(
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: TactixTheme.panel2,
+                    child: Icon(_eventIcon(event['kind']?.toString()), color: TactixTheme.cyan, size: 19),
+                  ),
+                  title: Text(event['title']?.toString() ?? event['type']?.toString() ?? 'Event'),
+                  subtitle: Text(
+                    "${event['kind'] ?? 'EVENT'} · ${(event['type'] ?? '').toString().replaceAll('_', ' ')}\n${event['created_at'] ?? ''}",
+                  ),
+                  isThreeLine: true,
+                  onTap: event['case_id'] == null
+                      ? null
+                      : () {
+                          final id = event['case_id'].toString();
+                          setState(() {
+                            _selected = id;
+                            _viewMode = 0;
+                          });
+                          unawaited(_select(id));
+                        },
+                ),
+              ),
+          const SizedBox(height: 12),
+          Text(
+            'Generated ${pulse['generated_at'] ?? ''} · ${method['source'] ?? 'authoritative records'}',
+            style: const TextStyle(color: TactixTheme.textMuted, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _eventIcon(String? kind) => switch (kind) {
+    'CASE' => Icons.work_outline,
+    'BRANCH' => Icons.fork_right_outlined,
+    'RELATION' => Icons.hub_outlined,
+    'TRAINING' => Icons.school_outlined,
+    _ => Icons.bolt_outlined,
+  };
+
   Widget _welcome() => ListView(
     padding: const EdgeInsets.all(24),
     children: const [
@@ -1455,7 +1717,7 @@ class _ThreadScreenState extends State<ThreadScreen>
               onPressed: _busy
                   ? null
                   : () {
-                      setState(() => _graphMode = true);
+                      setState(() => _viewMode = 1);
                       unawaited(store.loadRelations(row['id'] as String));
                     },
               icon: const Icon(Icons.account_tree_outlined),
