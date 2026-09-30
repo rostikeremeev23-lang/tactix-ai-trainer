@@ -181,6 +181,47 @@ class ThreadEvidence(Base):
     verification_note: Mapped[str] = mapped_column(String(4000), nullable=False, default="")
 
 
+class ThreadBranch(Base):
+    __tablename__ = "thread_branches"
+    __table_args__ = (
+        Index("ix_thread_branches_case", "organization_id", "case_id"),
+        Index("ix_thread_branches_status", "organization_id", "status"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
+    case_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("thread_cases.id"), nullable=False)
+    created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    description: Mapped[str] = mapped_column(String(2000), nullable=False, default="")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="DRAFT")
+    base_case_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    base_snapshot: Mapped[dict] = mapped_column(JSON().with_variant(JSONB, "postgresql"), nullable=False)
+    draft_snapshot: Mapped[dict] = mapped_column(JSON().with_variant(JSONB, "postgresql"), nullable=False)
+    merged_by: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    merged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+
+class ThreadBranchEvent(Base):
+    __tablename__ = "thread_branch_events"
+    __table_args__ = (
+        UniqueConstraint("branch_id", "revision", name="uq_thread_branch_event_revision"),
+        UniqueConstraint("branch_id", "request_id", name="uq_thread_branch_event_request"),
+        Index("ix_thread_branch_events_branch_id", "branch_id"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    branch_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("thread_branches.id"), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    request_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    type: Mapped[str] = mapped_column(String(32), nullable=False)
+    actor_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    details: Mapped[dict] = mapped_column(JSON(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 class ThreadRelation(Base):
     __tablename__ = "thread_relations"
     __table_args__ = (

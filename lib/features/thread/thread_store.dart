@@ -20,6 +20,9 @@ class ThreadStore extends ChangeNotifier {
     'relations': <dynamic>[],
     'training': <String, dynamic>{},
     'ask': <String, dynamic>{},
+    'branches': <String, dynamic>{},
+    'branch_options': <String, dynamic>{},
+    'branch_compare': <String, dynamic>{},
   };
   int _generation = 0;
   bool ready = false, syncing = false, _disposed = false;
@@ -109,6 +112,19 @@ class ThreadStore extends ChangeNotifier {
                 ))) {
           continue;
         }
+        if (state['branches'] != null &&
+            (state['branches'] is! Map ||
+                (state['branches'] as Map).values.any(
+                  (v) => v is! List || v.any((entry) => entry is! Map),
+                ))) {
+          continue;
+        }
+        if (state['branch_options'] != null && state['branch_options'] is! Map) {
+          continue;
+        }
+        if (state['branch_compare'] != null && state['branch_compare'] is! Map) {
+          continue;
+        }
         candidates.add(data);
       } catch (_) {
         /* Preserve unreadable generations for recovery. */
@@ -130,6 +146,9 @@ class ThreadStore extends ChangeNotifier {
     _state['relations'] ??= <dynamic>[];
     _state['training'] ??= <String, dynamic>{};
     _state['ask'] ??= <String, dynamic>{};
+    _state['branches'] ??= <String, dynamic>{};
+    _state['branch_options'] ??= <String, dynamic>{};
+    _state['branch_compare'] ??= <String, dynamic>{};
     if (candidates.length < rawCopies.length) {
       final recoveryId = platformId();
       for (final entry in rawCopies.entries) {
@@ -260,6 +279,141 @@ class ThreadStore extends ChangeNotifier {
   Map<String, dynamic>? latestAskForCase(String id) {
     final history = askHistoryForCase(id);
     return history.isEmpty ? null : history.last;
+  }
+
+  List<Map<String, dynamic>> branchesForCase(String id) =>
+      (((_state['branches'] as Map)[id] ?? const <dynamic>[]) as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+
+  List<Map<String, dynamic>> branchOwnersForCase(String id) =>
+      (((_state['branch_options'] as Map)[id] ?? const <dynamic>[]) as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+
+  Map<String, dynamic>? branchCompare(String branchId) {
+    final raw = (_state['branch_compare'] as Map)[branchId];
+    return raw == null ? null : Map<String, dynamic>.from(raw as Map);
+  }
+
+  Future<void> loadBranches(String caseId) async {
+    if (api == null || !ready || !staff) return;
+    final responses = await Future.wait([
+      api!.request('GET', '/cases/$caseId/branches'),
+      api!.request('GET', '/cases/$caseId/branch-options'),
+    ]);
+    final branches = (responses[0]['items'] as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    final owners = (responses[1]['owners'] as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    await _change(() {
+      (_state['branches'] as Map)[caseId] = branches;
+      (_state['branch_options'] as Map)[caseId] = owners;
+    });
+  }
+
+  Future<Map<String, dynamic>> createBranch(
+    String caseId,
+    String name,
+    String description,
+  ) async {
+    if (!staff || api == null) {
+      throw StateError('Server instructor access required');
+    }
+    if (pending.any((op) => op['case_id'] == caseId)) {
+      throw StateError('Synchronize pending Case changes before creating a Branch');
+    }
+    final body = <String, dynamic>{
+      'id': platformId(),
+      'request_id': platformId(),
+      'name': name.trim(),
+      'description': description.trim(),
+    };
+    final response = await api!.request('POST', '/cases/$caseId/branches', body);
+    await _change(() {
+      final list = ((_state['branches'] as Map)[caseId] ??= <dynamic>[]) as List;
+      list.removeWhere((e) => (e as Map)['id'] == response['id']);
+      list.insert(0, response);
+    });
+    return Map<String, dynamic>.from(response);
+  }
+
+  Future<Map<String, dynamic>> updateBranch(
+    String caseId,
+    String branchId, {
+    required int baseRevision,
+    required String name,
+    required String description,
+    required Map<String, dynamic> draft,
+  }) async {
+    if (!staff || api == null) {
+      throw StateError('Server instructor access required');
+    }
+    final response = await api!.request('PUT', '/branches/$branchId', {
+      'request_id': platformId(),
+      'base_revision': baseRevision,
+      'name': name.trim(),
+      'description': description.trim(),
+      'draft': draft,
+    });
+    await _change(() {
+      final list = ((_state['branches'] as Map)[caseId] ??= <dynamic>[]) as List;
+      final index = list.indexWhere((e) => (e as Map)['id'] == branchId);
+      if (index < 0) {
+        list.insert(0, response);
+      } else {
+        list[index] = response;
+      }
+      (_state['branch_compare'] as Map).remove(branchId);
+    });
+    return Map<String, dynamic>.from(response);
+  }
+
+  Future<Map<String, dynamic>> compareBranch(String branchId) async {
+    if (!staff || api == null) {
+      throw StateError('Server instructor access required');
+    }
+    final response = await api!.request('GET', '/branches/$branchId/compare');
+    await _change(() {
+      (_state['branch_compare'] as Map)[branchId] = response;
+    });
+    return Map<String, dynamic>.from(response);
+  }
+
+  Future<Map<String, dynamic>> mergeBranch(
+    String caseId,
+    String branchId, {
+    required int baseRevision,
+    required String note,
+  }) async {
+    if (!staff || api == null) {
+      throw StateError('Server instructor access required');
+    }
+    if (pending.any((op) => op['case_id'] == caseId)) {
+      throw StateError('Synchronize pending Case changes before merging a Branch');
+    }
+    final response = await api!.request('POST', '/branches/$branchId/merge', {
+      'request_id': platformId(),
+      'base_revision': baseRevision,
+      'note': note.trim(),
+    });
+    await _change(() {
+      final branch = Map<String, dynamic>.from(response['branch'] as Map);
+      final list = ((_state['branches'] as Map)[caseId] ??= <dynamic>[]) as List;
+      final index = list.indexWhere((e) => (e as Map)['id'] == branchId);
+      if (index < 0) {
+        list.insert(0, branch);
+      } else {
+        list[index] = branch;
+      }
+      final existing = Map<String, dynamic>.from((_state['cases'] as Map)[caseId] as Map);
+      existing.addAll(Map<String, dynamic>.from(response['case'] as Map));
+      (_state['cases'] as Map)[caseId] = existing;
+      (_state['branch_compare'] as Map)[branchId] = response['compare'];
+    });
+    return Map<String, dynamic>.from(response);
   }
 
   Future<Map<String, dynamic>> askThread(String caseId, String question) async {

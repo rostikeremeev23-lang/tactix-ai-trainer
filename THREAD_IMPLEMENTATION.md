@@ -295,3 +295,56 @@ Unverified/rejected Evidence can be shown as context, but the prompt explicitly 
 
 ### Next safe continuation
 Phase F can add Branch/version comparison for administrative/training plans. Do not let Branch bypass Evidence verification or mutate historical Case/Relation events.
+
+## Phase F — TACTIX BRANCH / Compare / Merge / conflict detection
+
+Implemented manually on top of the Phase E green checkpoint.
+
+### Branch model
+- Staff-only planning variants are stored separately from the live Case.
+- Each Branch freezes a base Case snapshot and has its own revision/history.
+- Draft fields: Case description, priority, non-closing status, owner, due date, plus planned TASK/TRAINING/REVIEW items.
+- Branch editing never mutates the live Case.
+
+### Deterministic three-way compare
+The server compares:
+1. Branch base snapshot.
+2. Current live Case.
+3. Current Branch draft.
+
+A live Case may advance after a Branch was created. If live and Branch changed different fields, merge remains possible and preserves the unrelated live changes. If both changed the same field differently, merge is blocked with `FIELD_DIVERGED`.
+
+Additional deterministic checks:
+- closed Case blocks merge;
+- proposed owner / plan-item assignee must still be active organization members;
+- invalid dates block merge;
+- past due dates, duplicate plan items, plan items after Case due, and linked training after Case due are surfaced as warnings.
+
+### Merge semantics
+- Merge never sets `CLOSED`; closure remains controlled by the existing Evidence verification path.
+- Only fields changed by the Branch relative to its base are applied.
+- A successful merge increments the Case revision and appends immutable `BRANCH_MERGED` details, including accepted plan items and warnings.
+- The Branch becomes `MERGED` and records its own immutable merge event.
+
+### API / persistence
+- `GET /v1/thread/cases/{case_id}/branch-options`
+- `GET /v1/thread/cases/{case_id}/branches`
+- `POST /v1/thread/cases/{case_id}/branches`
+- `GET /v1/thread/branches/{branch_id}`
+- `PUT /v1/thread/branches/{branch_id}`
+- `GET /v1/thread/branches/{branch_id}/compare`
+- `POST /v1/thread/branches/{branch_id}/merge`
+- `GET /v1/thread/branches/{branch_id}/events`
+- migration `0007_thread_branches`
+
+### Client
+- TACTIX BRANCH panel in Case detail.
+- Create, edit, compare and merge actions.
+- Organization-member owner/assignee picker.
+- Planned task/training/review items.
+- Branches and compare results are cached for offline review; create/edit/compare/merge remain server-authoritative.
+
+### Verification performed in the packaging environment
+- `python -m alembic heads`: `0007_thread_branches (head)`.
+- Backend: **40 passed**.
+- Flutter SDK is unavailable in the packaging environment. Run `flutter analyze` and `flutter test --concurrency=1` on Windows before commit/tag.

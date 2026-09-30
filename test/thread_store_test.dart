@@ -11,6 +11,7 @@ class ThreadTransport implements PlatformTransport {
   final rows = <String, Map<String, dynamic>>{};
   final requests = <String, Map<String, dynamic>>{};
   final relations = <String, Map<String, dynamic>>{};
+  final branches = <String, Map<String, dynamic>>{};
   int accepted = 0;
   int askCalls = 0;
   Map<String, dynamic> copy(Map<String, dynamic> v) =>
@@ -24,6 +25,43 @@ class ThreadTransport implements PlatformTransport {
     if (!online) throw const PlatformFailure(503, 'Offline');
     if (method == 'GET') {
       if (path.contains('/events')) return {'items': <dynamic>[], 'next': null};
+      if (path.endsWith('/branches') && path.startsWith('/cases/')) {
+        final caseId = path.split('/')[2];
+        return {
+          'items': branches.values
+              .where((b) => b['case_id'] == caseId)
+              .map(copy)
+              .toList(),
+        };
+      }
+      if (path.endsWith('/branch-options') && path.startsWith('/cases/')) {
+        return {
+          'owners': [
+            {'id': 'owner', 'label': 'Owner', 'role': 'admin', 'callsign': 'Owner', 'first_name': 'Owner'},
+          ],
+        };
+      }
+      if (path.startsWith('/branches/') && path.endsWith('/compare')) {
+        final branch = branches[path.split('/')[2]]!;
+        return {
+          'branch_id': branch['id'],
+          'case_id': branch['case_id'],
+          'branch_revision': branch['revision'],
+          'base_case_revision': branch['base_case_revision'],
+          'live_case_revision': rows[branch['case_id']]?['revision'] ?? branch['base_case_revision'],
+          'stale_base': false,
+          'changes': [
+            {'field': 'priority', 'before': 'NORMAL', 'after': branch['draft_snapshot']['priority']},
+          ],
+          'plan_items': branch['draft_snapshot']['plan_items'],
+          'conflicts': <dynamic>[],
+          'blocking_conflicts': 0,
+          'warnings': 0,
+          'can_merge': branch['status'] == 'DRAFT',
+          'live_case': rows[branch['case_id']],
+          'draft': branch['draft_snapshot'],
+        };
+      }
       if (path.endsWith('/relations') && path.startsWith('/cases/')) {
         final caseId = path.split('/')[2];
         return {
@@ -59,6 +97,68 @@ class ThreadTransport implements PlatformTransport {
         'generated_at': '2026-09-30T10:00:00Z',
         'passes': 2,
         'evidence_policy': 'verified-first',
+      };
+    }
+    if (method == 'POST' && path.endsWith('/branches') && path.startsWith('/cases/')) {
+      final caseId = path.split('/')[2];
+      final live = rows[caseId]!;
+      final snapshot = <String, dynamic>{
+        'description': live['description'] ?? '',
+        'priority': live['priority'] ?? 'NORMAL',
+        'status': live['status'] ?? 'OPEN',
+        'owner_id': live['owner_id'] ?? 'owner',
+        'due_date': live['due_date'],
+        'plan_items': <dynamic>[],
+      };
+      final branch = <String, dynamic>{
+        'id': body!['id'],
+        'case_id': caseId,
+        'name': body['name'],
+        'description': body['description'],
+        'status': 'DRAFT',
+        'base_case_revision': live['revision'],
+        'revision': 1,
+        'base_snapshot': snapshot,
+        'draft_snapshot': copy(snapshot),
+        'created_by': 'owner',
+        'merged_by': null,
+        'merged_at': null,
+        'created_at': '2026-09-30T10:00:00Z',
+        'updated_at': '2026-09-30T10:00:00Z',
+      };
+      branches[branch['id'] as String] = branch;
+      return copy(branch);
+    }
+    if (method == 'PUT' && path.startsWith('/branches/')) {
+      final id = path.split('/')[2];
+      final branch = branches[id]!;
+      branch['name'] = body!['name'];
+      branch['description'] = body['description'];
+      branch['draft_snapshot'] = body['draft'];
+      branch['revision'] = (branch['revision'] as int) + 1;
+      return copy(branch);
+    }
+    if (method == 'POST' && path.startsWith('/branches/') && path.endsWith('/merge')) {
+      final id = path.split('/')[2];
+      final branch = branches[id]!;
+      branch['status'] = 'MERGED';
+      branch['revision'] = (branch['revision'] as int) + 1;
+      final live = rows[branch['case_id']]!;
+      final draft = branch['draft_snapshot'] as Map;
+      live['priority'] = draft['priority'];
+      live['revision'] = (live['revision'] as int) + 1;
+      return {
+        'branch': copy(branch),
+        'case': copy(live),
+        'compare': {
+          'branch_id': id,
+          'can_merge': false,
+          'conflicts': <dynamic>[],
+          'changes': <dynamic>[],
+          'plan_items': draft['plan_items'],
+          'blocking_conflicts': 0,
+          'warnings': 0,
+        },
       };
     }
     final requestId = body!['request_id'] as String;
@@ -363,4 +463,52 @@ void main() {
     );
     store.dispose();
   });
+  test('TACTIX BRANCH caches, compares and merges a planning variant', () async {
+    final api = ThreadTransport()..online = true;
+    final store = ThreadStore('owner', api: api, staff: true);
+    await store.restore(autoSync: false);
+    final id = await store.create('Branch Case', 'Base description');
+    await idle(store);
+    final branch = await store.createBranch(id, 'Variant A', 'Alternative plan');
+    expect(branch['status'], 'DRAFT');
+    await store.loadBranches(id);
+    expect(store.branchesForCase(id), hasLength(1));
+    expect(store.branchOwnersForCase(id).single['label'], 'Owner');
+
+    final draft = Map<String, dynamic>.from(branch['draft_snapshot'] as Map);
+    draft['priority'] = 'HIGH';
+    draft['plan_items'] = [
+      {
+        'id': '11111111-1111-4111-8111-111111111111',
+        'title': 'Review result',
+        'kind': 'REVIEW',
+        'assignee_id': 'owner',
+        'due_at': null,
+        'note': '',
+      },
+    ];
+    final updated = await store.updateBranch(
+      id,
+      branch['id'] as String,
+      baseRevision: 1,
+      name: 'Variant A',
+      description: 'Alternative plan',
+      draft: draft,
+    );
+    expect(updated['revision'], 2);
+    final comparison = await store.compareBranch(branch['id'] as String);
+    expect(comparison['can_merge'], isTrue);
+    expect(comparison['plan_items'], hasLength(1));
+
+    await store.mergeBranch(
+      id,
+      branch['id'] as String,
+      baseRevision: 2,
+      note: 'Adopt variant',
+    );
+    expect(store.branchesForCase(id).single['status'], 'MERGED');
+    expect(store.caseById(id)!['priority'], 'HIGH');
+    store.dispose();
+  });
+
 }

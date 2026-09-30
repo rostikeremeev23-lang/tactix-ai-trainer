@@ -593,3 +593,20 @@ Implemented:
 - ASK THREAD is blocked while a Case has unsynchronized local mutations.
 
 No new database migration is required for this Phase E slice. Backend verification: 37 tests passed in the packaging environment. Run the full Flutter suite locally before release/commit.
+
+## 2026-09-30 — TACTIX THREAD Phase F
+
+Added TACTIX BRANCH as an isolated planning/versioning layer for administrative and training Case work.
+
+Implemented:
+- Named Case planning variants without changing the live Case.
+- Alternative description, priority, status, owner and due-date proposals.
+- Planned TASK / TRAINING / REVIEW items with assignee and due date.
+- Server-side deterministic three-way Compare.
+- Non-overlapping live edits are preserved during Merge.
+- Overlapping divergent edits block Merge and are shown explicitly.
+- Schedule/member/training warnings are exposed before Merge.
+- Immutable Branch events and `BRANCH_MERGED` Case timeline events.
+- Branch cannot bypass Evidence verification or close a Case.
+
+Phase F adds Alembic migration `0007_thread_branches`. Packaging-environment backend verification: **40 tests passed**. Flutter verification must be run on the Windows development machine before commit/tag.

@@ -36,6 +36,8 @@ from app.strategy import router as strategy_router
 app.include_router(strategy_router)
 from app.thread import router as thread_router
 app.include_router(thread_router)
+from app.thread_branch import router as thread_branch_router
+app.include_router(thread_branch_router)
 
 
 # =====================================================
